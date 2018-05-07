@@ -1,0 +1,294 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "linuxAdminUsername": {
+      "type": "string",
+      "defaultValue": "azureuser",
+      "metadata": {
+        "description": "User name for the Linux Virtual Machines that are part of the Kubernetes cluster and DVM."
+      }
+    },
+    "sshPublicKey": {
+      "metadata": {
+        "description": "SSH public key used for auth to all Linux machines created as part of the the Kubernetes cluster and DVM."
+      },
+      "type": "string"
+    },
+    "tenantArmEndpoint": {
+      "type": "string",
+      "metadata": {
+        "description": "Tenant endpoint. This is the ARM endpoint to connect to create the resoure group for the Kubernetes cluster. e.g. https://management.redmond.ext-my.masd.stbtest.microsoft.com (multi-node) or https://management.local.azurestack.external (one-node)."
+      }
+    },
+    "tenantId": {
+      "type": "string",
+      "metadata": {
+        "description": "Tenant Id for the tenant. It's usually in the upper right side of the tenant portal. Here is another link to retrieve it: https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-create-service-principal-portal#get-tenant-id"
+      }
+    },
+    "masterProfileDnsPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "This must be a region-unique name e.g. k8s-12345. Try to chose it same as the resource group name as best practice."
+      }
+    },
+    "agentPoolProfileCount": {
+      "allowedValues": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "defaultValue": 2,
+      "metadata": {
+        "description": "The number of agents for the Kubernetes cluster. This value can be from 1 to 32"
+      },
+      "type": "int"
+    },
+    "servicePrincipalClientId": {
+      "metadata": {
+        "description": "The Service Principal application ID (used by the Kubernetes Azure cloud provider). More help here: https://github.com/Azure/acs-engine/blob/master/docs/serviceprincipal.md"
+      },
+      "type": "securestring"
+    },
+    "servicePrincipalClientSecret": {
+      "metadata": {
+        "description": "The Service Principal Client Secret."
+      },
+      "type": "securestring"
+    },
+    "kubernetesAzureCloudProviderVersion": {
+      "type": "string",
+      "defaultValue": "1.7",
+      "allowedValues": [
+        "1.7",
+        "1.8",
+        "1.9"
+      ],
+      "metadata": {
+        "description": "This is the version for the kubernetes Azure cloud provider. We would use a custom kubernetes build specifically for AzureStack for each version."
+      }
+    },
+    "_artifactsLocation": {
+      "type": "string",
+      "metadata": {
+        "description": "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
+      },
+      "defaultValue": "https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master/acsengine-kubernetes/1804/template/DeploymentTemplates/"
+    }
+  },
+  "variables": {
+    "resourceGroupName":  "[resourceGroup().name]",
+    "dnsNameForPublicIP": "[concat('vmd-dns', resourceGroup().name)]",
+    "location": "[resourceGroup().location]",
+    "imagePublisher": "Canonical",
+    "imageOffer": "UbuntuServer",
+    "imageSku": "16.04-LTS",
+    "imageVersion": "16.04.201802220",
+    "vmSize": "Standard_D2_v2",
+    "OSDiskName": "osdisk",
+    "nicName": "[concat('vmd-vnic', resourceGroup().name)]",
+    "addressPrefix": "10.0.0.0/24",
+    "subnetName": "mySubnet",
+    "subnetPrefix": "10.0.0.0/24",
+    "storageAccountName": "[concat('vmdsa', uniquestring(resourceGroup().id))]",
+    "storageAccountType": "Standard_LRS",
+    "publicIPAddressName": "[concat('vmd-publicIP', resourceGroup().name)]",
+    "publicIPAddressType": "Dynamic",
+    "vmStorageAccountContainerName": "vhds",
+    "vmName": "[concat('vmd-', resourceGroup().name)]",
+    "virtualNetworkName": "[concat('vmd-vnet-', resourceGroup().name)]",
+    "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
+    "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
+    "networkSecurityGroupName": "[tolower(concat('vmd-nsg',uniquestring(resourceGroup().id)))]",
+    "sshKeyPath": "[concat('/home/',parameters('linuxAdminUsername'),'/.ssh/authorized_keys')]",
+    "tenantSubscriptionId": "[subscription().subscriptionId]",
+    "scriptName": "script",
+    "scriptParameters": "[concat(variables('resourceGroupName'), ' ', parameters('tenantArmEndpoint'), ' ', parameters('tenantId'), ' ', variables('tenantSubscriptionId'), ' ', parameters('linuxAdminUsername'), ' ', parameters('masterProfileDnsPrefix'), ' ', parameters('agentPoolProfileCount'), ' ', parameters('servicePrincipalClientId'), ' ', parameters('servicePrincipalClientSecret'), ' ', parameters('kubernetesAzureCloudProviderVersion'), ' ', variables('location'), ' ', parameters('sshPublicKey'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[toLower(variables('storageAccountName'))]",
+      "apiVersion": "2015-06-15",
+      "location": "[variables('location')]",
+      "properties": {
+        "accountType": "[variables('storageAccountType')]"
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[variables('networkSecurityGroupName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "ssh",
+            "properties": {
+              "description": "Allow SSH",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "22",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 200,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[variables('publicIPAddressName')]",
+      "location": "[variables('location')]",
+      "properties": {
+        "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
+        "dnsSettings": {
+          "domainNameLabel": "[variables('dnsNameForPublicIP')]"
+        }
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "[variables('virtualNetworkName')]",
+      "location": "[variables('location')]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('addressPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('subnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('subnetPrefix')]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[variables('nicName')]",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'))]",
+        "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
+        "[variables('networkSecurityGroupName')]"
+      ],
+      "properties": {
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+        },
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName'))]"
+              },
+              "subnet": {
+                "id": "[variables('subnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2016-03-30",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[variables('vmName')]",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]",
+        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'))]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('vmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[variables('vmName')]",
+          "adminUsername": "[parameters('linuxAdminUsername')]",
+          "linuxConfiguration": {
+            "disablePasswordAuthentication": "true",
+            "ssh": {
+              "publicKeys": [
+                {
+                  "keyData": "[parameters('sshPublicKey')]",
+                  "path": "[variables('sshKeyPath')]"
+                }
+              ]
+            }
+          }
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('imagePublisher')]",
+            "offer": "[variables('imageOffer')]",
+            "sku": "[variables('imageSku')]",
+            "version": "[variables('imageVersion')]"
+          },
+          "osDisk": {
+            "name": "osdisk",
+            "vhd": {
+              "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob, variables('vmStorageAccountContainerName'),'/',variables('OSDiskName'),'.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('nicName'))]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": "true",
+            "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob]"
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(variables('vmName'),'/LinuxCustomScriptExtension')]",
+      "apiVersion": "2016-03-30",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', variables('vmName'))]"
+      ],
+      "properties": {
+      "publisher": "Microsoft.Azure.Extensions",
+      "type": "CustomScript",
+      "typeHandlerVersion": "2.0",
+        "autoUpgradeMinorVersion": "true",
+        "protectedSettings": {
+          "commandToExecute": "[concat('/bin/bash -c \"/bin/bash ', variables('scriptName'), '.sh ' , variables('scriptParameters'), ' >> /var/log/azure/acsengine-kubernetes-dvm.log 2>&1\"')]"
+        },
+        "settings": {
+          "fileUris": [ "[concat(parameters('_artifactsLocation'), variables('scriptName'), '.sh')]" ]
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "dvmPublicIpFqdn": {
+      "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName')),'2015-06-15').dnsSettings.fqdn]",
+      "type": "string"
+    }
+  }
+}
