@@ -53,7 +53,7 @@ echo "Update the system."
 retrycmd_if_failure 5 10 sudo apt-get update -y
 
 echo "Installing Azure CLI"
-INSTALL_SCRIPT_URL="https://raw.githubusercontent.com/radhikagupta5/AzureStack-QuickStart-Templates/radhikgu-acs/101-acsengine-kubernetes-1805/DeploymentTemplates/install.py"
+INSTALL_SCRIPT_URL="https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master/acsengine-kubernetes/1804/template/DeploymentTemplates/install.py"
 wget $INSTALL_SCRIPT_URL
 if ! command -v python >/dev/null 2>&1
 then
