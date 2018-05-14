@@ -42,7 +42,7 @@
       ],
       "defaultValue": 2,
       "metadata": {
-        "description": "The number of agents for the Kubernetes cluster. This value can be from 1 to 32"
+        "description": "The number of agents for the Kubernetes cluster. This value can be from 1 to 4."
       },
       "type": "int"
     },
