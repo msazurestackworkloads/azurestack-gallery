@@ -80,7 +80,7 @@
   },
   "variables": {
     "resourceGroupName":  "[resourceGroup().name]",
-    "dnsNameForPublicIP": "[concat('vmd-dns', resourceGroup().name)]",
+    "dnsNameForPublicIP": "[toLower(concat('vmd-dns', resourceGroup().name))]",
     "location": "[resourceGroup().location]",
     "imagePublisher": "Canonical",
     "imageOffer": "UbuntuServer",
