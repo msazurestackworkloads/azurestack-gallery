@@ -9,6 +9,6 @@ Login to the deployment VM with name "vmd-(resource group name)" using Putty/SSH
 
 The last error in the file usually reflects the issue. If it's user error please fix it and try redeployment.
 	
-b) If you hit any issues with kubernetes cluster deployment then TBA.
+b) Second it runs Kubernetes cluster deployment, if you hit any issues with kubernetes cluster deployment then TBA.
 	 
 
