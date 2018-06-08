@@ -124,6 +124,8 @@ echo 'Register to the cloud.'
 echo "Set the current cloud to be $ENVIRONMENT_NAME"
 /root/bin/az cloud set --name $ENVIRONMENT_NAME
 
+az cloud update --name $ENVIRONMENT_NAME --endpoint-active-directory "https://login.windows.net"
+
 ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID=$(/root/bin/az cloud show | jq '.endpoints.activeDirectoryResourceId' | tr -d \")
 ENDPOINT_GALLERY=$(/root/bin/az cloud show | jq '.endpoints.gallery' | tr -d \")
 
