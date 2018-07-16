@@ -19,7 +19,7 @@ This template deploys a Linux VM, clones and AzureStack forked ACS-Engine repo/b
     Publisher = "Canonical"
     Offer = "UbuntuServer"
     SKU = "16.04-LTS"
-    Version = "16.04.201802220"
+    Version = "16.04.201806120"
     OSType = "Linux"
 
 	d) You also need to download Custom Script for Linux, 2.0.3 from the marketplace.

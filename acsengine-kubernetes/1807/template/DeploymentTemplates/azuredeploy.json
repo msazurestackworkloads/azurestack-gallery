@@ -86,7 +86,7 @@
     "imagePublisher": "Canonical",
     "imageOffer": "UbuntuServer",
     "imageSku": "16.04-LTS",
-    "imageVersion": "16.04.201802220",
+    "imageVersion": "16.04.201806120",
     "vmSize": "Standard_D2_v2",
     "OSDiskName": "osdisk",
     "nicName": "[concat('vmd-vnic', resourceGroup().name)]",
