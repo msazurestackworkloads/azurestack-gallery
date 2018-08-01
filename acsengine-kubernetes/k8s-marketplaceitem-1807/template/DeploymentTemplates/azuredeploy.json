@@ -54,9 +54,8 @@
     },
     "kubernetesAzureCloudProviderVersion": {
       "type": "string",
-      "defaultValue": "1.7",
+      "defaultValue": "1.10",
       "allowedValues": [
-        "1.7",
         "1.8",
         "1.9",
         "1.10"
@@ -70,7 +69,7 @@
       "metadata": {
         "description": "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
       },
-      "defaultValue": "https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master/acsengine-kubernetes/1807/template/DeploymentTemplates/"
+      "defaultValue": "https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master/acsengine-kubernetes/k8s-marketplaceitem-1807/template/DeploymentTemplates/"
     }
   },
   "variables": {
