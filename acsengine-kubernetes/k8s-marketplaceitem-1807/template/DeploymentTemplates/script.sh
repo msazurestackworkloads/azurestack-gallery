@@ -55,10 +55,6 @@ retrycmd_if_failure 5 10 sudo apt-get install curl -y
 echo "Update the system."
 retrycmd_if_failure 5 10 sudo apt-get update -y
 
-echo 'Import the root CA certificate to python store.'
-sudo cat /var/lib/waagent/Certificates.pem >> /root/lib/azure-cli/lib/python2.7/site-packages/certifi/cacert.pem
-sudo cat /var/lib/waagent/Certificates.pem >> ~/lib/azure-cli/lib/python2.7/site-packages/certifi/cacert.pem
-
 echo 'Import the root CA to store.'
 sudo cp /var/lib/waagent/Certificates.pem /usr/local/share/ca-certificates/azsCertificate.crt
 sudo update-ca-certificates
@@ -102,8 +98,8 @@ ENVIRONMENT_NAME=AzureStackCloud
 
 METADATA=`curl --retry 10 $TENANT_ENDPOINT/metadata/endpoints?api-version=2015-01-01`
 
-ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID=`echo $METADATA  | jq '.authentication.audiences'[0]`
-ENDPOINT_GALLERY=`echo $METADATA  | jq '.galleryEndpoint'`
+ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID=`echo $METADATA  | jq '.authentication.audiences'[0] | tr -d \"`
+ENDPOINT_GALLERY=`echo $METADATA  | jq '.galleryEndpoint' | tr -d \"`
 
 echo 'Overriding the default file with the correct values in the API model or the cluster definition.'
 
