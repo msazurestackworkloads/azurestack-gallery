@@ -1,0 +1,36 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "linuxAdminUsername": {
+        "value": "azureuser"
+      },
+      "sshPublicKey": {
+        "value": ""
+      },
+      "masterProfileDnsPrefix": {
+        "value": ""
+      },
+      "agentPoolProfileCount": {
+        "value": 3
+      },
+      "agentPoolProfileVMSize": {
+        "value": "Standard_D2_v2"
+      },
+      "masterPoolProfileCount": {
+        "value": 3
+      },
+      "masterPoolProfileVMSize": {
+        "value": "Standard_D2_v2"
+      },
+      "servicePrincipalClientId": {
+        "value": ""
+      },
+      "servicePrincipalClientSecret": {
+        "value": ""
+      },
+      "kubernetesAzureCloudProviderVersion": {
+        "value": "1.11"
+      }
+  }
+}
