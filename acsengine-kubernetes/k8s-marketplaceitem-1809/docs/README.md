@@ -39,7 +39,7 @@ This template deploys a Linux VM, clones and AzureStack forked ACS-Engine repo/b
 
 	Select-AzureRmSubscription -Subscription "Default Provider Subscription"
 
-	Add-AzsGalleryItem -GalleryItemUri "https://azurestacktemplate.blob.core.windows.net/kubernetes-1804/Microsoft.AzureStackKubernetesCluster.0.1.0.azpkg" 
+	Add-AzsGalleryItem -GalleryItemUri "https://azurestacktemplate.blob.core.windows.net/kubernetes/Microsoft.AzureStackKubernetesCluster.0.3.0.azpkg" 
 
 	Please wait atleast 5 mins for the item to show up in marketplace in Tenant portal. It will show up with the name "Kubernetes Cluster".
 	
