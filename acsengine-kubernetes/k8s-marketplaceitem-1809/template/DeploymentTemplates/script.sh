@@ -1,6 +1,6 @@
 set -e
 
-echo "Starting test for acsengine-kubernetes-dvm."
+echo "Starting deploying Kubernetes cluster"
 date
 
 echo "Running as:"
@@ -9,23 +9,6 @@ whoami
 sleep 20
 
 # Script parameters
-RESOURCE_GROUP_NAME=${1}
-PUBLICIP_NAME=${2}
-TENANT_ID=${3}
-TENANT_SUBSCRIPTION_ID=${4}
-ADMIN_USERNAME=${5}
-MASTER_DNS_PREFIX=${6}
-AGENT_COUNT=${7}
-SPN_CLIENT_ID=${8}
-SPN_CLIENT_SECRET=${9}
-K8S_AZURE_CLOUDPROVIDER_VERSION=${10}
-REGION_NAME=${11}
-SSH_PUBLICKEY="${12}"
-MASTER_COUNT="${13}"
-AGENT_SIZE="${14}"
-MASTER_SIZE="${15}"
-PUBLICIP_FQDN="${16}"
-
 echo "RESOURCE_GROUP_NAME: $RESOURCE_GROUP_NAME"
 echo "PUBLICIP_NAME: $PUBLICIP_NAME"
 echo "TENANT_ID: $TENANT_ID"

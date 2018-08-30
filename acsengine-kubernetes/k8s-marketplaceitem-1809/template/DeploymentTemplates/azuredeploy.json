@@ -103,7 +103,7 @@
     "sshKeyPath": "[concat('/home/',parameters('linuxAdminUsername'),'/.ssh/authorized_keys')]",
     "tenantSubscriptionId": "[subscription().subscriptionId]",
     "scriptName": "script",
-    "scriptParameters": "[concat('\"',variables('resourceGroupName'),'\" \"', variables('publicIPAddressName'), '\" \"', subscription().tenantId, '\" \"', variables('tenantSubscriptionId'), '\" \"', parameters('linuxAdminUsername'), '\" \"', parameters('masterProfileDnsPrefix'), '\" \"', parameters('agentPoolProfileCount'), '\" \"', parameters('servicePrincipalClientId'), '\" \"', parameters('servicePrincipalClientSecret'), '\" \"', parameters('kubernetesAzureCloudProviderVersion'), '\" \"', variables('location'), '\" \"', parameters('sshPublicKey'), '\" \"', parameters('masterPoolProfileCount'), '\" \"', parameters('agentPoolProfileVMSize'), '\" \"', parameters('masterPoolProfileVMSize'),'\" ')]"
+    "scriptParameters": "[concat('RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_NAME=','\"',variables('publicIPAddressName'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"')]"
   },
   "resources": [
     {
@@ -276,7 +276,7 @@
       "typeHandlerVersion": "2.0",
         "autoUpgradeMinorVersion": "true",
         "protectedSettings": {
-          "commandToExecute": "[concat('/bin/bash -c \"/bin/bash ', variables('scriptName'), '.sh ' , variables('scriptParameters'), ' ', reference(resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName')),'2015-06-15').dnsSettings.fqdn, ' >> /var/log/azure/acsengine-kubernetes-dvm.log 2>&1\"')]"
+          "commandToExecute": "[concat('/bin/bash -c ', '\"', variables('scriptParameters'), ' PUBLICIP_FQDN=', '\"', reference(resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName')),'2015-06-15').dnsSettings.fqdn,'\"',  ' /bin/bash ', variables('scriptName'), '.sh', ' >> /var/log/azure/acsengine-kubernetes-dvm.log 2>&1','\"')]"
         },
         "settings": {
           "skipDos2Unix":false,
