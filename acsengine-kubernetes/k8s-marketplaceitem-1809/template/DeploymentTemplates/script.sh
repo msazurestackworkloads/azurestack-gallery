@@ -10,7 +10,7 @@ sleep 20
 
 # Script parameters
 echo "RESOURCE_GROUP_NAME: $RESOURCE_GROUP_NAME"
-echo "PUBLICIP_NAME: $PUBLICIP_NAME"
+echo "PUBLICIP_DNS: $PUBLICIP_DNS"
 echo "TENANT_ID: $TENANT_ID"
 echo "TENANT_SUBSCRIPTION_ID: $TENANT_SUBSCRIPTION_ID"
 echo "ADMIN_USERNAME: $ADMIN_USERNAME"
@@ -19,18 +19,27 @@ echo "AGENT_COUNT: $AGENT_COUNT"
 echo "AGENT_SIZE: $AGENT_SIZE"
 echo "MASTER_COUNT: $MASTER_COUNT"
 echo "MASTER_SIZE: $MASTER_SIZE"
-echo "SPN_CLIENT_ID: $SPN_CLIENT_ID"
-echo "SPN_CLIENT_SECRET: $SPN_CLIENT_SECRET"
 echo "K8S_AZURE_CLOUDPROVIDER_VERSION: $K8S_AZURE_CLOUDPROVIDER_VERSION"
 echo "REGION_NAME: $REGION_NAME"
 echo "SSH_PUBLICKEY: $SSH_PUBLICKEY"
 echo "PUBLICIP_FQDN: $PUBLICIP_FQDN"
+echo "STORAGE_PROFILE: $STORAGE_PROFILE"
 
 echo 'Printing the system information'
 sudo uname -a
 
 retrycmd_if_failure() { retries=$1; wait=$2; shift && shift; for i in $(seq 1 $retries); do ${@}; [ $? -eq 0  ] && break || sleep $wait; done; echo Executed \"$@\" $i times; }
-
+check_and_move_azurestack_configuration() {
+	if [ -s $1 ] ; then
+	echo "Found $1 in $PWD and is > 0 bytes"
+	else
+		echo "File $1 does not exist in $PWD or is zero length. Error happend during building the input API model or cluster definition."
+		exit 1
+	fi
+	echo "Moving $1 to $2"
+	sudo mv $1 $2
+	echo "Done building the API model based on the stamp information."
+}
 echo "Update the system."
 retrycmd_if_failure 5 10 sudo apt-get update -y
 
@@ -72,7 +81,7 @@ else
 	exit 1
 fi
 
-EXTERNAL_FQDN="${PUBLICIP_FQDN//$PUBLICIP_NAME.$REGION_NAME.}"
+EXTERNAL_FQDN="${PUBLICIP_FQDN//$PUBLICIP_DNS.$REGION_NAME.cloudapp.}"
 TENANT_ENDPOINT="https://management.$REGION_NAME.$EXTERNAL_FQDN"
 echo "TENANT_ENDPOINT: $TENANT_ENDPOINT"
 
@@ -84,6 +93,8 @@ ENVIRONMENT_NAME=AzureStackCloud
 METADATA=`curl --retry 10 $TENANT_ENDPOINT/metadata/endpoints?api-version=2015-01-01`
 
 ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID=`echo $METADATA  | jq '.authentication.audiences'[0] | tr -d \"`
+ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT=`echo $METADATA  | jq '.authentication.loginEndpoint' | tr -d \"`
+ENDPOINT_GRAPH_ENDPOINT=`echo $METADATA  | jq '.graphEndpoint' | tr -d \"`
 ENDPOINT_GALLERY=`echo $METADATA  | jq '.galleryEndpoint' | tr -d \"`
 
 echo 'Overriding the default file with the correct values in the API model or the cluster definition.'
@@ -96,17 +107,31 @@ else
 	exit 1
 fi
 
+
+AZURESTACK_CONFIGURATION_TEMP="${AZURESTACK_CONFIGURATION_TEMP:-azurestack_temp.json}"
+AZURESTACK_CONFIGURATION="${AZURESTACK_CONFIGURATION:-azurestack.json}"
 echo "Copying the default file API model to $PWD."
-sudo cp examples/azurestack/azurestack-kubernetes$K8S_AZURE_CLOUDPROVIDER_VERSION.json azurestack.json
-if [ -s "azurestack.json" ] ; then
-	echo "Found azurestack.json in $PWD and is > 0 bytes"
+sudo cp examples/azurestack/azurestack-kubernetes$K8S_AZURE_CLOUDPROVIDER_VERSION.json $AZURESTACK_CONFIGURATION
+if [ -s "$AZURESTACK_CONFIGURATION" ] ; then
+	echo "Found $AZURESTACK_CONFIGURATION in $PWD and is > 0 bytes"
 else
-	echo "File azurestack.json does not exist in $PWD or is zero length."
+	echo "File $AZURESTACK_CONFIGURATION does not exist in $PWD or is zero length."
 	exit 1
 fi
 
-sudo cat azurestack.json | jq --arg THUMBPRINT $THUMBPRINT '.properties.cloudProfile.resourceManagerRootCertificate = $THUMBPRINT' | \
+STORAGE_PROFILE="${STORAGE_PROFILE:-blobdisk}"
+# use blobdisk and AvailabilitySet
+if [ "$STORAGE_PROFILE" == "blobdisk" ] ; then
+        sudo cat $AZURESTACK_CONFIGURATION | jq --arg AvailabilitySet "AvailabilitySet" '.properties.agentPoolProfiles[0].availabilityProfile=$AvailabilitySet' | \
+        jq --arg StorageAccount "StorageAccount" '.properties.agentPoolProfiles[0].storageProfile=$StorageAccount' | \
+        jq --arg StorageAccount "StorageAccount" '.properties.masterProfile.storageProfile=$StorageAccount' > $AZURESTACK_CONFIGURATION_TEMP
+		check_and_move_azurestack_configuration $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION
+fi
+
+sudo cat $AZURESTACK_CONFIGURATION | jq --arg THUMBPRINT $THUMBPRINT '.properties.cloudProfile.resourceManagerRootCertificate = $THUMBPRINT' | \
 jq --arg ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID '.properties.cloudProfile.serviceManagementEndpoint = $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID' | \
+jq --arg ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT '.properties.cloudProfile.activeDirectoryEndpoint = $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT' | \
+jq --arg ENDPOINT_GRAPH_ENDPOINT $ENDPOINT_GRAPH_ENDPOINT '.properties.cloudProfile.graphEndpoint = $ENDPOINT_GRAPH_ENDPOINT' | \
 jq --arg TENANT_ENDPOINT $TENANT_ENDPOINT '.properties.cloudProfile.resourceManagerEndpoint = $TENANT_ENDPOINT' | \
 jq --arg ENDPOINT_GALLERY $ENDPOINT_GALLERY '.properties.cloudProfile.galleryEndpoint = $ENDPOINT_GALLERY' | \
 jq --arg SUFFIXES_STORAGE_ENDPOINT $SUFFIXES_STORAGE_ENDPOINT '.properties.cloudProfile.storageEndpointSuffix = $SUFFIXES_STORAGE_ENDPOINT' | \
@@ -115,33 +140,23 @@ jq --arg FQDN_ENDPOINT_SUFFIX $FQDN_ENDPOINT_SUFFIX '.properties.cloudProfile.re
 jq --arg REGION_NAME $REGION_NAME '.properties.cloudProfile.location = $REGION_NAME' | \
 jq --arg MASTER_DNS_PREFIX $MASTER_DNS_PREFIX '.properties.masterProfile.dnsPrefix = $MASTER_DNS_PREFIX' | \
 jq '.properties.agentPoolProfiles[0].count'=$AGENT_COUNT | \
-jq '.properties.agentPoolProfiles[0].vmSize'=$AGENT_SIZE | \
-jq '.properties.masterPoolProfiles[0].count'=$MASTER_COUNT | \
-jq '.properties.masterPoolProfiles[0].vmSize'=$AGENT_SIZE | \
+jq --arg AGENT_SIZE $AGENT_SIZE '.properties.agentPoolProfiles[0].vmSize=$AGENT_SIZE' | \
+jq '.properties.masterProfile.count'=$MASTER_COUNT | \
+jq --arg MASTER_SIZE $MASTER_SIZE '.properties.masterProfile.vmSize=$MASTER_SIZE' | \
 jq --arg ADMIN_USERNAME $ADMIN_USERNAME '.properties.linuxProfile.adminUsername = $ADMIN_USERNAME' | \
 jq --arg SSH_PUBLICKEY "${SSH_PUBLICKEY}" '.properties.linuxProfile.ssh.publicKeys[0].keyData = $SSH_PUBLICKEY' | \
 jq --arg SPN_CLIENT_ID $SPN_CLIENT_ID '.properties.servicePrincipalProfile.clientId = $SPN_CLIENT_ID' | \
-jq --arg SPN_CLIENT_SECRET $SPN_CLIENT_SECRET '.properties.servicePrincipalProfile.secret = $SPN_CLIENT_SECRET' > azurestack_temp.json
+jq --arg SPN_CLIENT_SECRET $SPN_CLIENT_SECRET '.properties.servicePrincipalProfile.secret = $SPN_CLIENT_SECRET' >  $AZURESTACK_CONFIGURATION_TEMP
 
-if [ -s "azurestack_temp.json" ] ; then
-	echo "Found azurestack_temp.json in $PWD and is > 0 bytes"
-else
-	echo "File azurestack_temp.json does not exist in $PWD or is zero length. Error happend during building the input API model or cluster definition."
-	exit 1
-fi
-
-sudo mv azurestack_temp.json azurestack.json
+check_and_move_azurestack_configuration $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION
 echo "Done building the API model based on the stamp information."
 
 MYDIR=$PWD
 echo "Current directory is: $MYDIR"
 
 echo "Deploy the template using the API model in resource group $MASTER_DNS_PREFIX."
-sudo ./bin/acs-engine deploy --resource-group $RESOURCE_GROUP_NAME --azure-env $ENVIRONMENT_NAME --location $REGION_NAME --subscription-id $TENANT_SUBSCRIPTION_ID --client-id $SPN_CLIENT_ID --client-secret $SPN_CLIENT_SECRET --auth-method client_secret --api-model azurestack.json
+sudo ./bin/acs-engine deploy --resource-group $RESOURCE_GROUP_NAME --azure-env $ENVIRONMENT_NAME --location $REGION_NAME --subscription-id $TENANT_SUBSCRIPTION_ID --client-id $SPN_CLIENT_ID --client-secret $SPN_CLIENT_SECRET --auth-method client_secret --api-model $AZURESTACK_CONFIGURATION
 
 echo "Templates output directory is $PWD/_output/$MASTER_DNS_PREFIX"
 
 echo "Ending deploying  Kubernetes cluster."
-
-
-

@@ -49,6 +49,13 @@
       },
       "type": "string"
     },
+    "storageProfile": {
+      "defaultValue": "blobdisk",
+      "metadata": {
+        "description": "The Storage Profile"
+      },
+      "type": "string"
+    },
     "servicePrincipalClientId": {
       "metadata": {
         "description": "The Service Principal application ID (used by the Kubernetes Azure cloud provider). More help here: https://github.com/Azure/acs-engine/blob/master/docs/serviceprincipal.md"
@@ -67,13 +74,6 @@
       "metadata": {
         "description": "This is the version for the kubernetes Azure cloud provider. We would use a custom kubernetes build specifically for AzureStack for each version."
       }
-    },
-    "_artifactsLocation": {
-      "type": "string",
-      "metadata": {
-        "description": "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
-      },
-      "defaultValue": "https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master/acsengine-kubernetes/k8s-marketplaceitem-1809/template/DeploymentTemplates/"
     }
   },
   "variables": {
@@ -103,7 +103,7 @@
     "sshKeyPath": "[concat('/home/',parameters('linuxAdminUsername'),'/.ssh/authorized_keys')]",
     "tenantSubscriptionId": "[subscription().subscriptionId]",
     "scriptName": "script",
-    "scriptParameters": "[concat('RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_NAME=','\"',variables('publicIPAddressName'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"')]"
+    "scriptParameters": "[concat('RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"')]"
   },
   "resources": [
     {
@@ -216,6 +216,7 @@
           "vmSize": "[variables('vmSize')]"
         },
         "osProfile": {
+          "customData": "[base64(concat('#cloud-config\n\nwrite_files:\n- path: \"/opt/azure/containers/script.sh\"\n  permissions: \"0744\"\n  encoding: gzip\n  owner: \"root\"\n  content: !!binary |\n    H4sIAAAAAAAA/6xZ/3PithL/Of4r9rmepp15NiQznWnJ0JaCc+VdAjwb0l7vbnzCFqDGlnySzIX08r+/kb9hO4bQe80PGSTtfvaz0mq1sgSWYGJNw/6Gge5KxCWhawhwHLKd+vU6WWJOscQC/DAREnNdC5AsVZyEUiWHRE/XPm0YioimiRDjGC67mvYVuD4nsYQYcRRhibkoFG13unCGtvfKmS5m3mRwa/fAaOnVc4XZ4peb8XA880YTtwdGtVmIzO3JYDL3xqMeGOXvxqC7+MUdOuPZfDyd1CQbA4XaYHQ7nngL13ZyivWOQux24M5tR5HxZo59Pf69B8azvhLzlT2Ze8PpYjJXgPtWXcAd/2GX46rRMFYAVJsNkRyi0ioEXn/veoM/Fo7tDW+mi9HMmd6NR7bj3dmOO55OemC8IKGXC/lKzVi5gGWrEHDdX71stV7bb3pg1NrPVvf6v6NJdXlVu0SaT53BK9ubOdPr8Y0y1+jR87A8n3FC00iWGwxiJySOgNAV4xGShNFzTSQBg4SiCIOJNI1jyXd+FHhk5a0QCROOv/kW/gLVT7DoGxdX8AkR2Tcur0BsyErC119nP65gxTgQIBSMbwT+CBdg5GrfXkHAwPjr56creAvGT2Dij9AFeK+Ulxyje/j8GbLdYih4JU/xFaRO2A/YTyQO4J1u/PxOB4OAJBEWV/Ck+Rvs33uIBl7EtthDjwnHQiL/3vMZXZF1wlM/lQ/aGVnBWzAFGBfwHq7UlFDtLJvRa5bQQA0o9rPfRoBoAETAj9CF5U5ioWtnOBRYOysUSIiVfMCwAMok4AciZKmuZkLAI+YMQkzXcmOBzTnjsEFxjGkAQcLVsiwTEgbF+hAaJxIGszFELMChAslzDQR4RShRrli64vBAJFxoZytSOHDLtgrGuADJwLjUtbN0ZaOt6jIuC7ERo7hudG9uiQQOgNEsViSK4mqoWLr2lIffIlaZrxJSlt4WOPAdXHQhpYFiaa6xhCTTNHdF2hxTIVEYKjIxekgjSMh0ZiJESZyEhe3T8EkGl2K1GvnzY2rjP+508v9Z+PNjuwE/4eHfBlNKFbh/bn7Px1HMuEyhOGMShgMVH0Iyjq188/sxdLaId0Ky7HxCaI2p7Awxl2RFfCSxsGIcQScRvBMyH4UdsUEcd3xk+hWhDnoUFSXL5zJPLSkjsyFe0HPS/LDNfB2ozeuqzVtyreiA3CTRMlb57Fyb/7q4/WXmjCfzvvENizEVIoSH77o/gEnoCe6YK0LXmKdoYFLGEgmfwU8kmMF5/xzMFVzCZ5AczAB63+Zs5yWDNIiO8+2dg7GnWSztMGS03HlD17TpmlAMHMess+SI+pseRGKfxj4xfh8yFIh/A/KFiVNxc9u97P5gXnzf/UHX1kSCH6ptvZEyFr1OZ03kJllaPos6rVCdPRKYy3ZczQ8qAwX73zAgjmHNUhcYJAIDolnqU10Vj5aEIr6zihNrGuMsrzySGFYqd644i7K4xDEDFVr5Pszy1n1AuALJmhJxMB8ftivADyiKwzTgCscq/lhy/agVia/i5pLQTrkE6sggawpk1RBBfKeyNtoiEqJliC1dy46MFehWR2Hs5fUDR0iFC37AupYdGnmOJkKkNWJNxgL7gajp+5c6Y7LEviKaZv8+V6XVTXry93Xjr1op0OnUKj+rWnBYfsiSAMWx9aRreVVnT0azqdovehEmEaJojSNMZV3ZqBluVI0FzL5cLHp0TXMX19fj323XK6qR0ugRA3ut1/abu8HiZq786VtblIRHmWnqX2nCy2D6pesNYXtyN3amk1tVQiqw/n73DpWKpt3a88FoMB/0P2Tp2ExTrkqxTVc7EZYoQBJ1MA1iRqgUP6GYmFvMBWG0f9m9+M7sXpjdiw+aVhIcDOfjO9sbjR17OJ86b7yixh+P+h/SSTYKCgCf1QFzbqFERZgk+eZASUAw9bE4f9t9X+and/qHI1bKNTjRRsjWhNq5X+ftRl45g9mvLyOvOYo3L0ENbm5s581hDBSGmO/aUfK8PN1izklZ0QR4pWInSzOfiNykvT7jHPsStihMsFCFWr36YTwTe15wnWv7NNCafsqf5n15S3zp1mD9KRjV4b3WkkK+GM+q55u0Rv1ytEZtW+Ypy7LqmUpLkdz5YPjaG04n1+NXC2eQXh/n9u1Mpa6jAj2zUrZLHMWp9Sf9IOwxxCpYgZPnfRbvWkNkHwOqdJ79NioOIT9uP26+fEaNQ7S14m6iHxQ5dOIcVDhyl3kWJYdBTr7g1GOicSFVS9a8tZrLkC0DIu6fdO2rtJYoOlLGg+wYJiGROxfLbIb0Zzdd6PdBLxQrcwT5X7aSSB5xMU01pon4umkU9EaHDudWzFms6jwsrLS8nDEWzjhTsSTedt9bqKKS9/eNBo7KY+9KjqV5VzKO1njg+yyhEvR6+xTjItMo7dYR/gmzEVIJMjfwor0fD897uvm1s7MT7/AvAB3ZWyoe/14Y7Av3ahFfn4e00iimgWPBEu7j27So4g5jsnLpgH4VJluE0tYpBQIYJ0kd5icw35KCnqr5igNVUTsF+2TSxcgx2FLmMGHkS7LFI6LObLY//4/TLUYOka3XLRWkxsBhWrWSpkamDtFg0Cggn1WUp0dW1XYD5KDXWYlV5Zr3HPGzXnbVPc20G+YOFv9gHB46ErBZHikIuMlqRR4UjYNgh/hUrxUV9Vr3YR73eHenSoXRxG3hUAVp2G+7nYDR2nvy4t/d1mi0gTVYVK5PtW/SR2wWV3FloaLRAH72Tb/lM/+xcyOgYsZx7sgzzdLYywdeds70q68Hdab7Z4PqE8IJyNvIJY+4X1Fqp1V3rOBTfYxonbqMUbVxBLXgUhFvLEj9Oab5PFPHDglNHspMG0SELgTm6SNAv6nZ3FbVRwtQVV2140k/YkiIjRUny5D4r/EuneF7vBshidItVYVp2pxNvOHN2E6fscCoN2v28mNuxgn1SYzCclFCgqkcB6mlqvphS649dOx5TTzvOsmiwD7HsmEvA1BF0UtV0akPG19eFP0D7wHa7ZvR2Omr+0Bxx0o4x1RCUJzbQEQPjFSueJPSR+mjaoqqbnuhKpAS8dw+oVDkP1hzlsQtiaK4qjU/z+Uvt+lXnAzCzCFaXlbV4qv5NTHdqnOu/qUITLNMibUUapoiWYr0WZcwapLg0BMqmGYWgKlMPXzLoTxgWuLNNFEiN2aE5YYFkIl7ubhpopiY2XwdXuviG14+2wJYIuOkvkzpta7jZSOdtjfbHMWmQf1pvOVt3NL/FwAA//+k7Dq1UR8AAA=='))]",
           "computerName": "[variables('vmName')]",
           "adminUsername": "[parameters('linuxAdminUsername')]",
           "linuxConfiguration": {
@@ -276,11 +277,7 @@
       "typeHandlerVersion": "2.0",
         "autoUpgradeMinorVersion": "true",
         "protectedSettings": {
-          "commandToExecute": "[concat('/bin/bash -c ', '\"', variables('scriptParameters'), ' PUBLICIP_FQDN=', '\"', reference(resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName')),'2015-06-15').dnsSettings.fqdn,'\"',  ' /bin/bash ', variables('scriptName'), '.sh', ' >> /var/log/azure/acsengine-kubernetes-dvm.log 2>&1','\"')]"
-        },
-        "settings": {
-          "skipDos2Unix":false,
-          "fileUris": [ "[concat(parameters('_artifactsLocation'), variables('scriptName'), '.sh')]" ]
+          "commandToExecute": "[concat(variables('scriptParameters'), ' PUBLICIP_FQDN=', '\"', reference(resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName')),'2015-06-15').dnsSettings.fqdn,'\"',' /bin/bash /opt/azure/containers/script.sh >> /var/log/azure/acsengine-kubernetes-dvm.log 2>&1')]"
         }
       }
     }

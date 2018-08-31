@@ -23,6 +23,9 @@
       "masterPoolProfileVMSize": {
         "value": "Standard_D2_v2"
       },
+      "storageProfile": {
+        "value": "BlobDisk"
+      },
       "servicePrincipalClientId": {
         "value": ""
       },
