@@ -78,7 +78,7 @@
   },
   "variables": {
     "resourceGroupName":  "[resourceGroup().name]",
-    "dnsNameForPublicIP": "[toLower(concat('vmd-dns', resourceGroup().name))]",
+    "dnsNameForPublicIP": "[toLower(concat('vmd-dns', parameters('masterProfileDnsPrefix')))]",
     "location": "[resourceGroup().location]",
     "imagePublisher": "Canonical",
     "imageOffer": "UbuntuServer",
