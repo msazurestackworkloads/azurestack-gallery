@@ -53,7 +53,7 @@ printf " $(date -u) Copy logs back \n" >> $LOGDIRECTORY/$LOGCOLLECTOUTPUTFILE
 for m in $MACHINELIST
 do
     scp -rp $CURRENTUSER@$m:/home/$CURRENTUSER/kuberneteslogs/* $LOGDIRECTORY
-    ssh -t $CURRENTUSER@$m "bash rm -r -f /home/$CURRENTUSER/kuberneteslogs"
+    ssh -t $CURRENTUSER@$m "sudo rm -r -f /home/$CURRENTUSER/kuberneteslogs"
 done
 
 
