@@ -7,7 +7,7 @@ function printUsage
     echo "      $FILENAME --identity-file id_rsa --user azureuser --dvmhost 192.168.102.32"   
     echo "      $FILENAME --identity-file id_rsa --host 192.168.102.34 --user azureuser --dvmhost 192.168.102.32"   
     echo  "" 
-    echo "            -i, --identity-file                         the private key file to connect the kubernetes master VM"
+    echo "            -i, --identity-file                         the RSA Private Key filefile to connect the kubernetes master VM, it starts with -----BEGIN RSA PRIVATE KEY-----"
     echo "            -h, --host                                  public ip or FQDN of the Kubernetes cluster master VM. The VM name starts with k8s-master- "
     echo "            -u, --user                                  user name of the Kubernetes cluster master VM "
     echo "            -d, --dvmhost                               public ip or FQDN of the DVM. The vm name start with vhd- "
@@ -30,7 +30,7 @@ case $1 in
     DVMHOST="$2"
     ;;
     -u|--user)
-    USER="$2"
+    AZUREUSER="$2"
     ;;
     *)
     echo ""    
@@ -48,19 +48,37 @@ shift
 fi
 done
 
-if [ -z "$IDENTITYFILE" -o -z "$USER" ]
+if [ -z "$AZUREUSER" ]
 then
+    echo "--user can not be empty"
+    printUsage
+fi
+
+if [ -z "$IDENTITYFILE" ]
+then
+    echo "--identity-file can not be empty"
     printUsage
 fi
 
 if [ -z "$DVMHOST" -a -z "$HOST" ]
 then
+    echo "--dvmhost and --host can not both be empty"
     printUsage
 fi
 
+if [ ! -f $IDENTITYFILE ]
+then
+    echo "can not find identity-file at $IDENTITYFILE"
+    printUsage
+    exit 1
+else
+    cat $IDENTITYFILE | grep "BEGIN RSA PRIVATE KEY" || { echo "The identity file $IDENTITYFILE is not a RSA Private Key file."; echo "The RSA private key file starts with -----BEGIN RSA PRIVATE KEY-----"; exit 1; }
+fi
+
+
 echo "identity-file: $IDENTITYFILE"
 echo "host: $HOST"
-echo "user: $USER"
+echo "user: $AZUREUSER"
 echo "dvmhost: $DVMHOST"
 
 CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
@@ -76,53 +94,53 @@ then
     * ) echo "Invalid choice $choice and stop to collect logs"; exit 0;;
     esac
 
-    IDENTITYFILEBACKUPPATH="/home/$USER/IDENTITYFILEBACKUP"
+    IDENTITYFILEBACKUPPATH="/home/$AZUREUSER/IDENTITYFILEBACKUP"
 
     # Remove existing scrit if ther is
-    ssh -t -i $IDENTITYFILE $USER@$HOST "if [ -f /home/$USER/collectlogsmanager.sh ]; then sudo rm -f /home/$USER/collectlogsmanager.sh; fi;"
-    ssh -t -i $IDENTITYFILE $USER@$HOST "if [ -f /home/$USER/collectlogs.sh ]; then sudo rm -f /home/$USER/collectlogs.sh; fi;"
+    ssh -t -i $IDENTITYFILE $AZUREUSER@$HOST "if [ -f /home/$AZUREUSER/collectlogsmanager.sh ]; then sudo rm -f /home/$AZUREUSER/collectlogsmanager.sh; fi;"
+    ssh -t -i $IDENTITYFILE $AZUREUSER@$HOST "if [ -f /home/$AZUREUSER/collectlogs.sh ]; then sudo rm -f /home/$AZUREUSER/collectlogs.sh; fi;"
 
     #Backup id_rsa
-    ssh -t -i $IDENTITYFILE $USER@$HOST "if [ -f /home/$USER/.ssh/id_rsa ]; then mkdir -p $IDENTITYFILEBACKUPPATH;  sudo mv /home/$USER/.ssh/id_rsa $IDENTITYFILEBACKUPPATH; fi;"
+    ssh -t -i $IDENTITYFILE $AZUREUSER@$HOST "if [ -f /home/$AZUREUSER/.ssh/id_rsa ]; then mkdir -p $IDENTITYFILEBACKUPPATH;  sudo mv /home/$AZUREUSER/.ssh/id_rsa $IDENTITYFILEBACKUPPATH; fi;"
 
     #Copy id_rsa into Kubernete Host VM
-    scp -i $IDENTITYFILE $IDENTITYFILE $USER@$HOST:/home/$USER/.ssh/id_rsa
+    scp -i $IDENTITYFILE $IDENTITYFILE $AZUREUSER@$HOST:/home/$AZUREUSER/.ssh/id_rsa
 
     #set up permission and  Download the script
-    ssh -t -i $IDENTITYFILE $USER@$HOST "if [ -f /home/$USER/.ssh/id_rsa ]; then sudo chmod 400 /home/$USER/.ssh/id_rsa; cd /home/$USER; curl -O https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master/diagnosis/collectlogsmanager.sh; curl -O https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master/diagnosis/collectlogs.sh ;sudo chmod 744 collectlogsmanager.sh;  fi;"
+    ssh -t -i $IDENTITYFILE $AZUREUSER@$HOST "if [ -f /home/$AZUREUSER/.ssh/id_rsa ]; then sudo chmod 400 /home/$AZUREUSER/.ssh/id_rsa; cd /home/$AZUREUSER; curl -O https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master/diagnosis/collectlogsmanager.sh; curl -O https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master/diagnosis/collectlogs.sh ;sudo chmod 744 collectlogsmanager.sh;  fi;"
 
-    ssh -t -i $IDENTITYFILE $USER@$HOST "cd /home/$USER; ./collectlogsmanager.sh;"
+    ssh -t -i $IDENTITYFILE $AZUREUSER@$HOST "cd /home/$AZUREUSER; ./collectlogsmanager.sh;"
 
     #Copy logs back to local machine
-    scp -r -i $IDENTITYFILE $USER@$HOST:/home/$USER/kubernetesalllogs $LOGFILEFOLDER
+    scp -r -i $IDENTITYFILE $AZUREUSER@$HOST:/home/$AZUREUSER/kubernetesalllogs $LOGFILEFOLDER
 
     #Restore id_rsa
-    ssh -t -i $IDENTITYFILE $USER@$HOST "if [ -f $IDENTITYFILEBACKUPPATH/id_rsa ] ; then sudo mv $IDENTITYFILEBACKUPPATH/id_rsa /home/$USER/.ssh/id_rsa; sudo rm -r -f $IDENTITYFILEBACKUPPATH; fi;"
+    ssh -t -i $IDENTITYFILE $AZUREUSER@$HOST "if [ -f $IDENTITYFILEBACKUPPATH/id_rsa ] ; then sudo mv $IDENTITYFILEBACKUPPATH/id_rsa /home/$AZUREUSER/.ssh/id_rsa; sudo rm -r -f $IDENTITYFILEBACKUPPATH; fi;"
 
     # Delete scrits
-    ssh -t -i $IDENTITYFILE $USER@$HOST "if [ -f /home/$USER/collectlogsmanager.sh ]; then sudo rm -f /home/$USER/collectlogsmanager.sh; fi;"
-    ssh -t -i $IDENTITYFILE $USER@$HOST "if [ -f /home/$USER/collectlogs.sh ]; then sudo rm -f /home/$USER/collectlogs.sh; fi;"
+    ssh -t -i $IDENTITYFILE $AZUREUSER@$HOST "if [ -f /home/$AZUREUSER/collectlogsmanager.sh ]; then sudo rm -f /home/$AZUREUSER/collectlogsmanager.sh; fi;"
+    ssh -t -i $IDENTITYFILE $AZUREUSER@$HOST "if [ -f /home/$AZUREUSER/collectlogs.sh ]; then sudo rm -f /home/$AZUREUSER/collectlogs.sh; fi;"
 
     # Delete logs
-    ssh -t -i $IDENTITYFILE $USER@$HOST "if [ -d /home/$USER/kubernetesalllogs ]; then sudo rm -f -r /home/$USER/kubernetesalllogs; fi;"
+    ssh -t -i $IDENTITYFILE $AZUREUSER@$HOST "if [ -d /home/$AZUREUSER/kubernetesalllogs ]; then sudo rm -f -r /home/$AZUREUSER/kubernetesalllogs; fi;"
 fi
 
 if [ -n "$DVMHOST" ]
 then
     # Remove existing scrit if ther is
-    ssh -t -i $IDENTITYFILE $USER@$DVMHOST "if [ -f /home/$USER/collectlogsdvm.sh ]; then sudo rm -f /home/$USER/collectlogsdvm.sh; fi;"
+    ssh -t -i $IDENTITYFILE $AZUREUSER@$DVMHOST "if [ -f /home/$AZUREUSER/collectlogsdvm.sh ]; then sudo rm -f /home/$AZUREUSER/collectlogsdvm.sh; fi;"
 
     # Collect the logs
-    ssh -t -i $IDENTITYFILE $USER@$DVMHOST "cd /home/$USER; curl -O https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master/diagnosis/collectlogsdvm.sh; sudo chmod 744 collectlogsdvm.sh; ./collectlogsdvm.sh;"
+    ssh -t -i $IDENTITYFILE $AZUREUSER@$DVMHOST "cd /home/$AZUREUSER; curl -O https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master/diagnosis/collectlogsdvm.sh; sudo chmod 744 collectlogsdvm.sh; ./collectlogsdvm.sh;"
 
     #Copy logs back to local machine
-    scp -r -i $IDENTITYFILE $USER@$DVMHOST:/home/$USER/dvmlogs $LOGFILEFOLDER
+    scp -r -i $IDENTITYFILE $AZUREUSER@$DVMHOST:/home/$AZUREUSER/dvmlogs $LOGFILEFOLDER
 
     # Delete scrits
-    ssh -t -i $IDENTITYFILE $USER@$DVMHOST "if [ -f /home/$USER/collectlogsdvm.sh ]; then sudo rm -f /home/$USER/collectlogsdvm.sh; fi;"
+    ssh -t -i $IDENTITYFILE $AZUREUSER@$DVMHOST "if [ -f /home/$AZUREUSER/collectlogsdvm.sh ]; then sudo rm -f /home/$AZUREUSER/collectlogsdvm.sh; fi;"
 
     # Delete logs
-    ssh -t -i $IDENTITYFILE $USER@$HOST "if [ -d /home/$USER/dvmlogs ]; then sudo rm -f -r /home/$USER/dvmlogs; fi;"
+    ssh -t -i $IDENTITYFILE $AZUREUSER@$DVMHOST "if [ -d /home/$AZUREUSER/dvmlogs ]; then sudo rm -f -r /home/$AZUREUSER/dvmlogs; fi;"
 fi
 echo "Kubernetes logs are copied into $LOGFILEFOLDER"
 
