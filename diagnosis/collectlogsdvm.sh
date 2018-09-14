@@ -43,6 +43,9 @@ else
     echo "can not find dvm custom log at $DVMCUSTOMSCRIPTLOG "
 fi
 
+sudo journalctl &> $LOGDIRECTORY/journalctl.log
+sudo chown -R $CURRENTUSER $LOGDIRECTORY
+
 LOGZIPFILENAME="$HOSTNAME-dvmlog.tar.gz"
 sudo rm -f $LOGZIPFILENAME
 sudo tar -czf $LOGZIPFILENAME $LOGDIRECTORY

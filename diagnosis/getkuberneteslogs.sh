@@ -97,14 +97,14 @@ then
     scp -r -i $IDENTITYFILE $USER@$HOST:/home/$USER/kubernetesalllogs $LOGFILEFOLDER
 
     #Restore id_rsa
-    ssh -t -i $IDENTITYFILE $USER@$HOST "if [ -f $IDENTITYFILEBACKUPPATH/id_rsa ] ; then sudo mv $IDENTITYFILEBACKUPPATH/id_rsa /home/$USER/.ssh/id_rsa; sudo rm -r -f $IDENTITYFILEBACKUPPATH ; fi;"
+    ssh -t -i $IDENTITYFILE $USER@$HOST "if [ -f $IDENTITYFILEBACKUPPATH/id_rsa ] ; then sudo mv $IDENTITYFILEBACKUPPATH/id_rsa /home/$USER/.ssh/id_rsa; sudo rm -r -f $IDENTITYFILEBACKUPPATH; fi;"
 
     # Delete scrits
-    ssh -t -i $IDENTITYFILE $USER@$HOST "if [ -f /home/$USER/collectlogsmanager.sh ]; then sudo rm -f /home/$USER/collectlogsmanager.sh ; fi;"
+    ssh -t -i $IDENTITYFILE $USER@$HOST "if [ -f /home/$USER/collectlogsmanager.sh ]; then sudo rm -f /home/$USER/collectlogsmanager.sh; fi;"
     ssh -t -i $IDENTITYFILE $USER@$HOST "if [ -f /home/$USER/collectlogs.sh ]; then sudo rm -f /home/$USER/collectlogs.sh; fi;"
 
     # Delete logs
-    ssh -t -i $IDENTITYFILE $USER@$HOST "if [ -d /home/$USER/kubernetesalllogs ]; then sudo rm -f -r /home/$USER/kubernetesalllogs ; fi;"
+    ssh -t -i $IDENTITYFILE $USER@$HOST "if [ -d /home/$USER/kubernetesalllogs ]; then sudo rm -f -r /home/$USER/kubernetesalllogs; fi;"
 fi
 
 if [ -n "$DVMHOST" ]
@@ -122,7 +122,7 @@ then
     ssh -t -i $IDENTITYFILE $USER@$DVMHOST "if [ -f /home/$USER/collectlogsdvm.sh ]; then sudo rm -f /home/$USER/collectlogsdvm.sh; fi;"
 
     # Delete logs
-    ssh -t -i $IDENTITYFILE $USER@$HOST "if [ -d /home/$USER/dvmlogs ]; then sudo rm -f -r /home/$USER/kubernetesalllogs ; fi;"
+    ssh -t -i $IDENTITYFILE $USER@$HOST "if [ -d /home/$USER/dvmlogs ]; then sudo rm -f -r /home/$USER/dvmlogs; fi;"
 fi
 echo "Kubernetes logs are copied into $LOGFILEFOLDER"
 
