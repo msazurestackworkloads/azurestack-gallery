@@ -4,13 +4,13 @@ function printUsage
 {
     echo "      Usage:"    
     echo "      $FILENAME -i id_rsa -h 192.168.102.34 -u azureuser"    
-    echo "      $FILENAME --identity-file id_rsa --user azureuser --dvmhost 192.168.102.32"   
-    echo "      $FILENAME --identity-file id_rsa --host 192.168.102.34 --user azureuser --dvmhost 192.168.102.32"   
+    echo "      $FILENAME --identity-file id_rsa --user azureuser --vmdhost 192.168.102.32"   
+    echo "      $FILENAME --identity-file id_rsa --host 192.168.102.34 --user azureuser --vmdhost 192.168.102.32"   
     echo  "" 
     echo "            -i, --identity-file                         the RSA Private Key filefile to connect the kubernetes master VM, it starts with -----BEGIN RSA PRIVATE KEY-----"
     echo "            -h, --host                                  public ip or FQDN of the Kubernetes cluster master VM. The VM name starts with k8s-master- "
     echo "            -u, --user                                  user name of the Kubernetes cluster master VM "
-    echo "            -d, --dvmhost                               public ip or FQDN of the DVM. The vm name start with vhd- "
+    echo "            -d, --vmdhost                               public ip or FQDN of the DVM. The vm name start with vmd- "
     exit 1
 }
 
@@ -26,7 +26,7 @@ case $1 in
     -h|--host)
     HOST="$2"
     ;;
-    -d|--dvmhost)
+    -d|--vmdhost)
     DVMHOST="$2"
     ;;
     -u|--user)
@@ -62,7 +62,7 @@ fi
 
 if [ -z "$DVMHOST" -a -z "$HOST" ]
 then
-    echo "--dvmhost and --host can not both be empty"
+    echo "--vmdhost and --host can not both be empty"
     printUsage
 fi
 
@@ -79,7 +79,7 @@ fi
 echo "identity-file: $IDENTITYFILE"
 echo "host: $HOST"
 echo "user: $AZUREUSER"
-echo "dvmhost: $DVMHOST"
+echo "vmdhost: $DVMHOST"
 
 CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
 LOGFILEFOLDER="KubernetesLogs$CURRENTDATE"
