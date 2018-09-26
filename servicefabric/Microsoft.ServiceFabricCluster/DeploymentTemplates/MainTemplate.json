@@ -1,0 +1,541 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "clusterName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of your cluster - Between 3 and 23 characters. Letters and numbers only"
+            }
+        },
+        "nodeTypePrefix": {
+            "type": "string",
+            "defaultValue": "MyType",
+            "maxLength": 8,
+            "metadata": {
+                "description": "Service fabric node type name. Also used for VM scaleset name prefix."
+            }
+        },
+        "primaryNtInstanceCount": {
+            "type": "int",
+            "metadata": {
+                "description": "Size of the VM scale set (Min 5 and Max 100)."
+            },
+            "defaultValue": 5,
+            "minValue": 3,
+            "maxValue": 100
+        },
+        "additionalNodeTypeInstaceCounts": {
+            "type": "array",
+            "defaultValue": [ ],
+            "metadata": {
+                "description": "Comma seperated list of instance counts for additional node types (if any) - (like [3, 5, 2])."
+            }
+        },
+        "vmImageSku": {
+            "type": "string",
+            "defaultValue": "2016-Datacenter"
+        },
+        "vmNodeSize": {
+            "type": "string",
+            "allowedValues": [
+                "Standard_D1_v2",
+                "Standard_D2_v2",
+                "Standard_D3_v2",
+                "Standard_D4_v2",
+                "Standard_D5_v2",
+                "Standard_D11_v2",
+                "Standard_D12_v2",
+                "Standard_D13_v2",
+                "Standard_D14_v2",
+                "Standard_DS1_v2",
+                "Standard_DS2_v2",
+                "Standard_DS3_v2",
+                "Standard_DS4_v2",
+                "Standard_DS5_v2",
+                "Standard_DS11_v2",
+                "Standard_DS12_v2",
+                "Standard_DS13_v2",
+                "Standard_DS14_v2"
+            ],
+            "defaultValue": "Standard_D2_v2"
+        },
+        "adminUserName": {
+            "type": "string",
+            "metadata": {
+                "description": "Remote desktop user Id."
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Remote desktop user password. Must be a strong password."
+            }
+        },
+        "servicefabricTcpGatewayPort": {
+            "type": "int",
+            "defaultValue": 19000,
+            "metadata": {
+                "description": "Service Fabric cluster TCP gateway port to be used to connect using service fabric client."
+            }
+        },
+        "servicefabricHttpGatewayPort": {
+            "type": "int",
+            "defaultValue": 19080,
+            "metadata": {
+                "description": "Service Fabric cluster HTTP gateway port to be used to connect using service fabric explorer."
+            }
+        },
+        "servicefabricReverseProxyEndpointPort": {
+            "type": "int",
+            "defaultValue": 19081,
+            "metadata": {
+                "description": "Service Fabric cluster reverse proxy port."
+            }
+        },
+        "lbApplicationPorts": {
+            "type": "array",
+            "defaultValue": [ ],
+            "metadata": {
+                "description": "Array of application ports to be opened (like [80, 8080, 8081])."
+            }
+        },
+        "nsgPorts": {
+            "type": "array",
+            "defaultValue": [ ],
+            "metadata": {
+                "description": "Array of additional ports to be opened in the NSG (like [3389, 80, 8081])."
+            }
+        },
+        "sourceVaultValue": {
+            "type": "string",
+            "metadata": {
+                "description": "Resource Id of the key vault, is should be in the format of /subscriptions/<Sub ID>/resourceGroups/<Resource group name>/providers/Microsoft.KeyVault/vaults/<vault name>"
+            }
+        },
+        "clusterCertificateUrlValue": {
+            "type": "string",
+            "metadata": {
+                "description": "Refers to the location URL in your key vault where the certificate was uploaded, it is should be in the format of https://<name of the vault>.vault.azure.net:443/secrets/<exact location>"
+            }
+        },
+        "clusterCertificateThumbprint": {
+            "type": "string",
+            "metadata": {
+                "description": "Certificate Thumbprint"
+            }
+        },
+        "serverCertificateUrlValue": {
+            "type": "string",
+            "metadata": {
+                "description": "Refers to the location URL in your key vault where the certificate was uploaded, it is should be in the format of https://<name of the vault>.vault.azure.net:443/secrets/<exact location>"
+            }
+        },
+        "serverCertificateThumbprint": {
+            "type": "string",
+            "metadata": {
+                "description": "Certificate Thumbprint"
+            }
+        },
+        "reverseProxyCertificateUrlValue": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Refers to the location URL in your key vault where the certificate was uploaded, it is should be in the format of https://<name of the vault>.vault.azure.net:443/secrets/<exact location>"
+            }
+        },
+        "reverseProxyCertificateThumbprint": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Reverse proxy Certificate Thumbprint"
+            }
+        },
+        "adminClientCertificateThumbprints": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Admin client Certificate Thumbprints"
+            }
+        },
+        "nonAdminClientCertificateThumbprints": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Non-Admin client Certificate Thumbprint"
+            }
+        },
+        "DNSService": {
+            "type": "string",
+            "allowedValues": [
+                "Yes",
+                "No"
+            ],
+            "defaultValue": "No",
+            "metadata": {
+                "description": "DNS Service Optional Feature"
+            }
+        },
+        "RepairManager": {
+            "type": "string",
+            "allowedValues": [
+                "Yes",
+                "No"
+            ],
+            "defaultValue": "No",
+            "metadata": {
+                "description": "Repair Manager Optional Feature"
+            }
+        },
+        "serviceFabricUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "Service fabric deployment package download url."
+            },
+            "defaultValue": "http://go.microsoft.com/fwlink/?LinkId=730690"
+        },
+        "serviceFabricRuntimeUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "Service fabric runtime download url. Leave it empty if using the latest."
+        },
+        "defaultValue": ""
+        },
+        "scriptBaseUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "Scripts base url"
+            },
+            "defaultValue": "[deployment().properties.templateLink.uri]"
+        }
+    },
+    "variables": {
+
+        "apiVersion": {
+            "vmssApiVersion": "2016-03-30",
+            "lbApiVersion": "2015-06-15",
+            "vNetApiVersion": "2015-06-15",
+            "storageApiVersion": "2016-01-01",
+            "publicIPApiVersion": "2015-06-15",
+            "templateDeploymentApiVersion": "2015-01-01"
+        },
+
+        "location": "[resourceGroup().location]",
+        "uniquePrefix": "[uniqueString(resourceGroup().id)]",
+        "frontEndNSGName": "[concat(variables('uniquePrefix'), 'nsg')]",
+        "frontEndNSGID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('frontEndNSGName'))]",
+        "virtualNetworkName": "[concat(variables('uniquePrefix'), 'vnet')]",
+        "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
+
+        "subnetName": "[concat(variables('uniquePrefix'), 'subnet')]",
+        "dnsLabel": "[concat(tolower(parameters('clusterName')), uniqueString(resourceGroup().id))]",
+        "diagStoreAccountName": "[toLower(concat('diagSA', uniqueString(resourceGroup().id)))]",
+        "addressPrefix": "10.0.0.0/16",
+        "subnetPrefixFirstHalf": "10.0.",
+        "subnetPrefixSecondHalf": ".0/24",
+        "ephemeralStartPort": 49152,
+        "ephemeralEndPort": 65534,
+        "applicationStartPort": 20000,
+        "applicationEndPort": 30000,
+        "lbPortsArray": "[concat(array(parameters('servicefabricTcpGatewayPort')), array(parameters('servicefabricHttpGatewayPort')), parameters('lbApplicationPorts'))]",
+        "nsgPortsArray": "[concat(variables('lbPortsArray'), parameters('nsgPorts'), array(concat('-', parameters('servicefabricTcpGatewayPort'))))]",
+        "nodeTypeInstanceCounts": "[concat(array(parameters('primaryNtInstanceCount')), parameters('additionalNodeTypeInstaceCounts'))]",
+        "certificateStoreValue": "My",
+
+        "imageConfig": {
+            "vmssUniqueName": "[concat(parameters('nodeTypePrefix'), 'vmss')]",
+            "vmImagePublisher": "MicrosoftWindowsServer",
+            "vmImageOffer": "[if(equals(parameters('vmImageSku'), 'Datacenter-Core-1709-with-Containers-smalldisk'), 'WindowsServerSemiAnnual', 'WindowsServer')]",
+            "vmImageVersion": "latest",
+            "vhdContainerName": "[concat(variables('uniquePrefix'), 'vhd')]",
+            "osDiskName": "[concat(variables('uniquePrefix'), 'osdisk')]",
+            "overProvision": "false",
+            "storageAccountType": "Standard_LRS"
+        },
+
+        "derivedIds": {
+            "subnetID": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]"
+        },
+
+        "vmssDeploymentTemplateURL": "[uri(parameters('scriptBaseUrl'), 'vmssProvision.json')]",
+        "delimiters": [ ",", ";" ],
+        "adminClientCertificateThumbprint": "[split(trim(parameters('adminClientCertificateThumbprints')), variables('delimiters'))]",
+        "nonAdminClientCertificateThumbprint": "[split(trim(parameters('nonAdminClientCertificateThumbprints')), variables('delimiters'))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[variables('diagStoreAccountName')]",
+            "apiVersion": "[variables('apiVersion').storageApiVersion]",
+            "location": "[variables('location')]",
+            "sku": {
+                "name": "[variables('imageConfig').storageAccountType]"
+            },
+            "kind": "Storage"
+        },
+        {
+            "apiVersion": "[variables('apiVersion').vNetApiVersion]",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('frontEndNSGName')]",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "resourceType": "Service Fabric",
+                "clusterName": "[parameters('clusterName')]",
+                "displayName": "NSG - Front End"
+            },
+            "properties": {
+                "copy": [
+                    {
+                        "name": "securityRules",
+                        "count": "[length(variables('nsgPortsArray'))]",
+                        "input": {
+                            "name": "[concat('NSGRuleForPort_',  if(startsWith(string(variables('nsgPortsArray')[copyIndex('securityRules')]),'-'), replace(string(variables('nsgPortsArray')[copyIndex('securityRules')]),'-','Out_'),string(variables('nsgPortsArray')[copyIndex('securityRules')])))]",
+                            "properties": {
+                                "description": "[concat('Allow ', if(startsWith(string(variables('nsgPortsArray')[copyIndex('securityRules')]),'-'), replace(string(variables('nsgPortsArray')[copyIndex('securityRules')]),'-',''),string(variables('nsgPortsArray')[copyIndex('securityRules')])))]",
+                                "protocol": "Tcp",
+                                "sourcePortRange": "*",
+                                "destinationPortRange": "[if(startsWith(string(variables('nsgPortsArray')[copyIndex('securityRules')]),'-'), replace(string(variables('nsgPortsArray')[copyIndex('securityRules')]),'-',''),string(variables('nsgPortsArray')[copyIndex('securityRules')]))]",
+                                "sourceAddressPrefix": "Internet",
+                                "destinationAddressPrefix": "*",
+                                "access": "Allow",
+                                "priority": "[int(concat('10', copyIndex('securityRules')))]",
+                                "direction": "[if(startsWith(string(variables('nsgPortsArray')[copyIndex('securityRules')]),'-'),'Outbound','Inbound')]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+                "apiVersion": "[variables('apiVersion').vNetApiVersion]",
+                "type": "Microsoft.Network/virtualNetworks",
+                "name": "[variables('virtualNetworkName')]",
+                "location": "[variables('location')]",
+                "dependsOn": [
+                    "[variables('frontEndNSGID')]"
+                ],
+                "properties": {
+                    "addressSpace": {
+                        "addressPrefixes": [
+                            "[variables('addressPrefix')]"
+                        ]
+                    },
+                    "copy": [
+                        {
+                            "name": "subnets",
+                            "count": "[length(variables('nodeTypeInstanceCounts'))]",
+                            "input": {
+                                "name": "[concat(variables('subnetName'), copyIndex('subnets'))]",
+                                "properties": {
+                                    "addressPrefix": "[concat(variables('subnetPrefixFirstHalf'), copyIndex('subnets'), variables('subnetPrefixSecondHalf'))]",
+                                    "networkSecurityGroup": {
+                                        "id": "[variables('frontEndNSGID')]"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                },
+                "tags": {
+                    "resourceType": "Service Fabric",
+                    "clusterName": "[parameters('clusterName')]",
+                    "displayName": "VirtualNetwork"
+                }
+            },
+        {
+            "apiVersion": "[variables('apiVersion').publicIPApiVersion]",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[concat(concat(variables('imageConfig').vmssUniqueName, copyIndex()), 'pip')]",
+            "location": "[variables('location')]",
+            "copy": {
+                 "name": "PublicIPProvisioning",
+                 "count": "[length(variables('nodeTypeInstanceCounts'))]"
+            },
+            "dependsOn": [
+                "[variables('vnetID')]"
+            ],
+            "properties": {
+                "dnsSettings": {
+                    "domainNameLabel": "[if(equals(string(copyIndex()), '0'), variables('dnsLabel'), concat(variables('dnsLabel'), copyIndex()))]"
+                },
+                "publicIPAllocationMethod": "Dynamic"
+            },
+            "tags": {
+                "resourceType": "Service Fabric",
+                "displayName": "PublicIP"
+            }
+        },
+        {
+            "apiVersion": "[variables('apiVersion').templateDeploymentApiVersion]",
+            "name": "[concat('SFDeployment', copyindex())]",
+            "type": "Microsoft.Resources/deployments",
+            "copy": {
+                "name": "SFDeployment",
+                "count": "[length(variables('nodeTypeInstanceCounts'))]"
+            },
+            "dependsOn": [
+                "[variables('diagStoreAccountName')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('vmssDeploymentTemplateURL')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "clusterName": {
+                        "value": "[parameters('clusterName')]"
+                    },
+                    "vmScaleSetName": {
+                        "value": "[concat(variables('imageConfig').vmssUniqueName, copyIndex())]"
+                    },
+                    "nodeTypePrefix": {
+                        "value": "[parameters('nodeTypePrefix')]"
+                    },
+                    "nodeTypeInstanceCounts": {
+                        "value": "[variables('nodeTypeInstanceCounts')]"
+                    },
+                    "nodeTypeIndex": {
+                        "value": "[copyIndex()]"
+                    },
+                    "subnetIPFormat": {
+                        "value": "[concat(variables('subnetPrefixFirstHalf'), '[]', variables('subnetPrefixSecondHalf'))]"
+                    },
+                    "overProvision": {
+                        "value": "[variables('imageConfig').overProvision]"
+                    },
+                    "vmImageSku": {
+                        "value": "[parameters('vmImageSku')]"
+                    },
+                    "vmImagePublisher": {
+                        "value": "[variables('imageConfig').vmImagePublisher]"
+                    },
+                    "vmImageOffer": {
+                        "value": "[variables('imageConfig').vmImageOffer]"
+                    },
+                    "vmImageVersion": {
+                        "value": "[variables('imageConfig').vmImageVersion]"
+                    },
+                    "vmNodeSize": {
+                        "value": "[parameters('vmNodeSize')]"
+                    },
+                    "osDiskName": {
+                        "value": "[concat(variables('imageConfig').osDiskName, copyIndex())]"
+                    },
+                    "diagStoreAccountName": {
+                        "value": "[variables('diagStoreAccountName')]"
+                    },
+                    "diagStoreAccountKey": {
+                        "value": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('diagStoreAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
+                    },
+                    "diagStoreAccountBlobUri": {
+                        "value": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('diagStoreAccountName')), '2016-01-01').primaryEndpoints.blob]"
+                    },
+                    "diagStoreAccountTableUri": {
+                        "value": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('diagStoreAccountName')), '2016-01-01').primaryEndpoints.table]"
+                    },
+                    "vhdContainerName": {
+                        "value": "[concat(variables('imageConfig').vhdContainerName, copyIndex())]"
+                    },
+                    "adminUserName": {
+                        "value": "[parameters('adminUserName')]"
+                    },
+                    "adminPassword": {
+                        "value": "[parameters('adminPassword')]"
+                    },
+                    "dnsLabel": {
+                        "value": "[if(equals(string(copyIndex()), '0'), variables('dnsLabel'), concat(variables('dnsLabel'), copyIndex()))]"
+                    },
+                    "subnetID": {
+                        "value": "[concat(variables('derivedIds').subnetID, copyIndex())]"
+                    },
+                    "publicIPID": {
+                        "value": "[resourceId('Microsoft.Network/publicIPAddresses', concat(concat(variables('imageConfig').vmssUniqueName, copyIndex()), 'pip'))]"
+                    },
+                    "lbPortsArray": {
+                        "value": "[variables('lbPortsArray')]"
+                    },
+                    "sourceVaultValue": {
+                        "value": "[parameters('sourceVaultValue')]"
+                    },
+                    "certificateStoreValue": {
+                        "value": "[variables('certificateStoreValue')]"
+                    },
+                    "clusterCertificateUrlValue": {
+                        "value": "[parameters('clusterCertificateUrlValue')]"
+                    },
+                    "clusterCertificateThumbprint": {
+                        "value": "[parameters('clusterCertificateThumbprint')]"
+                    },
+                    "serverCertificateUrlValue": {
+                        "value": "[parameters('serverCertificateUrlValue')]"
+                    },
+                    "serverCertificateThumbprint": {
+                        "value": "[parameters('serverCertificateThumbprint')]"
+                    },
+                    "reverseProxyCertificateUrlValue": {
+                        "value": "[parameters('reverseProxyCertificateUrlValue')]"
+                    },
+                    "reverseProxyCertificateThumbprint": {
+                        "value": "[parameters('reverseProxyCertificateThumbprint')]"
+                    },
+                    "servicefabricTcpGatewayPort": {
+                        "value": "[parameters('servicefabricTcpGatewayPort')]"
+                    },
+                    "servicefabricHttpGatewayPort": {
+                        "value": "[parameters('servicefabricHttpGatewayPort')]"
+                    },
+                    "servicereverseProxyEndpointPort": {
+                        "value": "[parameters('servicefabricReverseProxyEndpointPort')]"
+                    },
+                    "ephemeralStartPort": {
+                        "value": "[variables('ephemeralStartPort')]"
+                    },
+                    "ephemeralEndPort": {
+                        "value": "[variables('ephemeralEndPort')]"
+                    },
+                    "applicationStartPort": {
+                        "value": "[variables('applicationStartPort')]"
+                    },
+                    "applicationEndPort": {
+                        "value": "[variables('applicationEndPort')]"
+                    },
+                    "adminClientCertificateThumbprint": {
+                        "value": "[variables('adminClientCertificateThumbprint')]"
+                    },
+                    "adminClientConnectionEndpoint": {
+                        "value": "[concat(reference(concat('Microsoft.Network/publicIPAddresses/', concat(concat(variables('imageConfig').vmssUniqueName, '0'), 'pip')), variables('apiVersion').publicIPApiVersion).dnsSettings.fqdn, ':', parameters('servicefabricTcpGatewayPort'))]"
+                    },
+                    "nonAdminClientCertificateThumbprint": {
+                        "value": "[variables('nonAdminClientCertificateThumbprint')]"
+                    },
+                    "DNSService": {
+                        "value": "[parameters('DNSService')]"
+                    },
+                    "RepairManager": {
+                        "value": "[parameters('RepairManager')]"
+                    },
+                    "serviceFabricUrl": {
+                        "value": "[parameters('serviceFabricUrl')]"
+                    },
+                    "serviceFabricRuntimeUrl": {
+                        "value": "[parameters('serviceFabricRuntimeUrl')]"
+                    },
+                    "scriptBaseUrl": {
+                        "value": "[parameters('scriptBaseUrl')]"
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "clusterMgmtEndpoint": {
+            "value": "[concat('https://',reference(concat('Microsoft.Network/publicIPAddresses/', concat(concat(variables('imageConfig').vmssUniqueName, '0'), 'pip')), variables('apiVersion').publicIPApiVersion).dnsSettings.fqdn, ':', parameters('servicefabricHttpGatewayPort'), '/explorer')]",
+            "type": "string"
+        },
+        "clientConnectionEndpoint": {
+            "value": "[concat(reference(concat('Microsoft.Network/publicIPAddresses/', concat(concat(variables('imageConfig').vmssUniqueName, '0'), 'pip')), variables('apiVersion').publicIPApiVersion).dnsSettings.fqdn, ':', parameters('servicefabricTcpGatewayPort'))]",
+            "type": "string"
+        }
+    }
+}
