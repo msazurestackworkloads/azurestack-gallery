@@ -1,4 +1,4 @@
-#Service Fabric Gallery Item 
+# Service Fabric Gallery Item 
 ================================================================================
 This gallery item deploys a Service Fabric Cluster on Azure Stack based on Azure Stack resoureces. It includs following scenarios:
 
@@ -11,7 +11,7 @@ For scale out, you just scale out the VM scale set. For scale down or scale out 
 
 ================================================================================
 
-##Development Guid
+## Development Guid
 1) Source File Contents:
    
    a) DSC
@@ -47,7 +47,7 @@ For scale out, you just scale out the VM scale set. For scale down or scale out 
 
 ================================================================================
 
-##Useful links:
+## Useful links:
 1) Service Fabric on Azure Stack Deployment steps:
    https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-solution-template-service-fabric-cluster
 
