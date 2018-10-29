@@ -5,12 +5,14 @@ function printUsage
     echo "      Usage:"    
     echo "      $FILENAME -i id_rsa -h 192.168.102.34 -u azureuser"    
     echo "      $FILENAME --identity-file id_rsa --user azureuser --vmdhost 192.168.102.32"   
-    echo "      $FILENAME --identity-file id_rsa --host 192.168.102.34 --user azureuser --vmdhost 192.168.102.32"   
+    echo "      $FILENAME --identity-file id_rsa --host 192.168.102.34 --user azureuser --vmdhost 192.168.102.32"
+    echo "      $FILENAME --identity-file id_rsa --host 192.168.102.34 --user azureuser --vmdhost 192.168.102.32 --force"
     echo  "" 
     echo "            -i, --identity-file                         the RSA Private Key filefile to connect the kubernetes master VM, it starts with -----BEGIN RSA PRIVATE KEY-----"
     echo "            -h, --host                                  public ip or FQDN of the Kubernetes cluster master VM. The VM name starts with k8s-master- "
     echo "            -u, --user                                  user name of the Kubernetes cluster master VM "
     echo "            -d, --vmdhost                               public ip or FQDN of the DVM. The vm name start with vmd- "
+    echo "            -f, --force                                 copy private key to kubernetes without prompting to user"
     exit 1
 }
 
@@ -32,6 +34,8 @@ case $1 in
     -u|--user)
     AZUREUSER="$2"
     ;;
+    -f|--force)
+    FORCE="Y"
     *)
     echo ""    
     echo "Incorrect parameter $1"    
@@ -66,6 +70,13 @@ then
     printUsage
 fi
 
+if [ -z "$FORCE" ]
+then
+    FORCE="N"
+else
+    echo "The private key will be copied into the Kubernetes master to collect logs"
+fi
+
 if [ ! -f $IDENTITYFILE ]
 then
     echo "can not find identity-file at $IDENTITYFILE"
@@ -87,12 +98,15 @@ mkdir -p $LOGFILEFOLDER
 
 if [ -n "$HOST" ]
 then
-    read -p "The private key will be copied into the Kubernetes master VM $HOST to collect logs,  Continue (y/n)?" choice
-    case "$choice" in 
-    y|Y ) echo "Continue to collect logs";;
-    n|N ) echo "Stop to collect logs";exit 0 ;;
-    * ) echo "Invalid choice $choice and stop to collect logs"; exit 0;;
-    esac
+    if [ "$FORCE" = "N" ]
+    then
+        read -p "The private key will be copied into the Kubernetes master VM $HOST to collect logs,  Continue (y/n)?" choice
+        case "$choice" in 
+        y|Y ) echo "Continue to collect logs";;
+        n|N ) echo "Stop to collect logs";exit 0 ;;
+        * ) echo "Invalid choice $choice and stop to collect logs"; exit 0;;
+        esac
+    fi
 
     IDENTITYFILEBACKUPPATH="/home/$AZUREUSER/IDENTITYFILEBACKUP"
 
