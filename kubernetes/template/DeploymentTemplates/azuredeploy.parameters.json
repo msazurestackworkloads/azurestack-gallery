@@ -34,6 +34,15 @@
       },
       "kubernetesAzureCloudProviderVersion": {
         "value": "1.11"
+      },
+      "servicePrincipalCertificateKeyVaultId": {
+        "value": ""
+      },
+      "servicePrincipalCertificateKeyVaultSecretName": {
+        "value": ""
+      },
+      "identitySystem": {
+        "value": ""
       }
   }
 }
