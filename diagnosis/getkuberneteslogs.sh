@@ -36,6 +36,7 @@ case $1 in
     ;;
     -f|--force)
     FORCE="Y"
+    ;;
     *)
     echo ""    
     echo "Incorrect parameter $1"    
