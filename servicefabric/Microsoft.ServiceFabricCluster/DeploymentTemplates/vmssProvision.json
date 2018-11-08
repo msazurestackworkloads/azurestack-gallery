@@ -84,9 +84,6 @@
         "diagStoreAccountTableUri": {
             "type": "string"
         },
-        "dnsLabel": {
-            "type": "string"
-        },
         "subnetID": {
             "type": "string"
         },
@@ -150,6 +147,13 @@
             "type": "string",
             "metadata": {
                 "description": "Reverse proxy Certificate Thumbprint"
+            }
+        },
+        "applicationCertificateUrlValue":{
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Application certificate"
             }
         },
         "servicefabricTcpGatewayPort": {
@@ -244,8 +248,9 @@
             "lbPoolID": "[concat(variables('lbID'),'/backendAddressPools/', variables('bePoolName'))]"
         },
 
-        "coreCerts": "[if(equals(parameters('clusterCertificateUrlValue'), parameters('serverCertificateUrlValue')), array(parameters('clusterCertificateUrlValue')), concat(array(parameters('clusterCertificateUrlValue')), array(parameters('serverCertificateUrlValue'))))]",
-        "certsToInstall": "[if(or(equals(parameters('reverseProxyCertificateUrlValue'), ''), or(equals(parameters('reverseProxyCertificateUrlValue'), parameters('clusterCertificateUrlValue')), equals(parameters('reverseProxyCertificateUrlValue'), parameters('serverCertificateUrlValue')))), variables('coreCerts'), concat(array(parameters('reverseProxyCertificateUrlValue')), variables('coreCerts')))]",
+        "clusterCerts": "[if(equals(parameters('clusterCertificateUrlValue'), parameters('serverCertificateUrlValue')), array(parameters('clusterCertificateUrlValue')), concat(array(parameters('clusterCertificateUrlValue')), array(parameters('serverCertificateUrlValue'))))]",
+        "coreCerts": "[if(or(contains(variables('clusterCerts'), parameters('applicationCertificateUrlValue')), equals(parameters('applicationCertificateUrlValue'),'')), variables('clusterCerts'), concat(array(parameters('applicationCertificateUrlValue')), variables('clusterCerts')))]",
+        "certsToInstall": "[if(or(contains(variables('coreCerts'), parameters('reverseProxyCertificateUrlValue')), equals(parameters('reverseProxyCertificateUrlValue'),'')), variables('coreCerts'), concat(array(parameters('reverseProxyCertificateUrlValue')), variables('coreCerts')))]",
         "serviceFabricDeploymentModuleUrl": "[uri(parameters('scriptBaseUrl'), 'DeploySFCluster.zip')]",
         "serviceFabricDeploymentConfigFunction": "DeploySFCluster.ps1\\InstallServiceFabricConfiguration",
         "serviceFabricConfigPath": "[uri(parameters('scriptBaseUrl'), 'ClusterConfig.X509.MultiMachine.json')]",
