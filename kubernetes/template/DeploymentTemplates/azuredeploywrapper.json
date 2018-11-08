@@ -82,6 +82,10 @@
     },
     "identitySystem": {
       "defaultValue": "AzureAD",
+      "allowedValues": [
+        "AzureAD",
+        "ADFS"
+      ],
       "metadata": {
         "description": "The identity system of azure stack. The value could be AzureAD or ADFS"
       },
@@ -99,7 +103,7 @@
       "metadata": {
         "description": "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
       },
-      "defaultValue": "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/201-key-vault-use-dynamic-id/"
+      "defaultValue": "https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/keyvault/kubernetes/template/DeploymentTemplates/"
     }
   },
   "variables": {
@@ -128,36 +132,69 @@
     "networkSecurityGroupName": "[tolower(concat('vmd-nsg',uniquestring(resourceGroup().id)))]",
     "sshKeyPath": "[concat('/home/',parameters('linuxAdminUsername'),'/.ssh/authorized_keys')]",
     "tenantSubscriptionId": "[subscription().subscriptionId]",
+    "servicePrincipalClientSecretCert": {
+      "reference": {
+        "keyVault": {
+          "id": "[parameters('servicePrincipalCertificateKeyVaultId')]"
+        },
+        "secretName": "[parameters('servicePrincipalCertificateKeyVaultSecretName')]"
+      }
+    },
     "scriptName": "script",
     "singleQuote": "'",
     "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"')]"
-
   },
   "resources": [
     {
       "apiVersion": "2018-05-01",
-      "name": "dynamicSecret",
+      "name": "k8sdeployment",
       "type": "Microsoft.Resources/deployments",
       "properties": {
         "mode": "Incremental",
         "templateLink": {
           "contentVersion": "1.0.0.0",
-          "uri": "[uri(parameters('_artifactsLocation'), concat('./nested/sqlserver.json', parameters('_artifactsLocationSasToken')))]"
+          "uri": "[uri(parameters('_artifactsLocation'), 'azuredeploy.2.json'))]"
         },
         "parameters": {
-          "location": {
-            "value": "[parameters('location')]"
+          "linuxAdminUsername": {
+            "value": "[parameters('linuxAdminUsername')]"
           },
-          "adminLogin": {
-            "value": "ghuser"
+          "sshPublicKey": {
+            "value": "[parameters('sshPublicKey')]"
           },
-          "adminPassword": {
-            "reference": {
-              "keyVault": {
-                "id": "[resourceId(parameters('vaultSubscription'), parameters('vaultResourceGroupName'), 'Microsoft.KeyVault/vaults', parameters('vaultName'))]"
-              },
-              "secretName": "[parameters('secretName')]"
-            }
+          "masterProfileDnsPrefix": {
+            "value": "[parameters('masterProfileDnsPrefix')]"
+          },
+          "agentPoolProfileCount": {
+            "value": "[parameters('agentPoolProfileCount')]"
+          },
+          "agentPoolProfileVMSize": {
+            "value": "[parameters('agentPoolProfileVMSize')]"
+          },
+          "masterPoolProfileCount": {
+            "value": "[parameters('masterPoolProfileCount')]"
+          },
+          "masterPoolProfileVMSize": {
+            "value": "[parameters('masterPoolProfileVMSize')]"
+          },
+          "storageProfile": {
+            "value": "[parameters('storageProfile')]"
+          },
+          "servicePrincipalClientId": {
+            "value": "[parameters('servicePrincipalClientId')]"
+          },
+          "servicePrincipalClientSecret": "[if(equals(parameters('identitySystem'), 'AzureAD'), parameters('servicePrincipalClientSecret'), variables('servicePrincipalClientSecretCert'))]",
+          "kubernetesAzureCloudProviderVersion": {
+            "value": "[parameters('kubernetesAzureCloudProviderVersion')]"
+          },
+          "servicePrincipalCertificateKeyVaultId": {
+            "value": "[parameters('servicePrincipalCertificateKeyVaultId')]"
+          },
+          "servicePrincipalCertificateKeyVaultSecretName": {
+            "value": "[parameters('servicePrincipalCertificateKeyVaultSecretName')]"
+          },
+          "identitySystem": {
+            "value": "[parameters('identitySystem')]"
           }
         }
       }
@@ -165,13 +202,12 @@
   ],
   "outputs": {
     "dvmPublicIpFqdn": {
-      "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName')),'2015-06-15').dnsSettings.fqdn]",
-      "type": "string"
+      "type": "string",
+      "value": "[reference('k8sdeployment').outputs.dvmPublicIpFqdn.value]"
     },
     "cmdExecuted": {
-      "value": "[reference('/subscriptions/e67ebc3e-1604-439d-b5d0-e70235c6ec69/resourceGroups/testvrg/providers/Microsoft.KeyVault/vaults/testv/'),'2015-06-15').dnsSettings.fqdn]",
-      "value": "[parameters('servicePrincipalClientSecret')]",
-      "type": "string"
+      "type": "string",
+      "value": "[reference('k8sdeployment').outputs.cmdExecuted.value]"
     }
   }
 }

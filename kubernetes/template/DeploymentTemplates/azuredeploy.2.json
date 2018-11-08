@@ -133,7 +133,6 @@
       "type": "string"
     },
     "cmdExecuted": {
-      "value": "[reference('/subscriptions/e67ebc3e-1604-439d-b5d0-e70235c6ec69/resourceGroups/testvrg/providers/Microsoft.KeyVault/vaults/testv/'),'2015-06-15').dnsSettings.fqdn]",
       "value": "[parameters('servicePrincipalClientSecret')]",
       "type": "string"
     }
