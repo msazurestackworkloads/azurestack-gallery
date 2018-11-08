@@ -151,7 +151,7 @@
   "resources": [
     {
       "apiVersion": "2018-02-01",
-      "name": "k8sdeployment",
+      "name": "dvmdeployment",
       "type": "Microsoft.Resources/deployments",
       "properties": {
         "mode": "Incremental",
