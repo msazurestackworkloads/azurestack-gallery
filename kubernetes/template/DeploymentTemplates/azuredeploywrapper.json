@@ -63,18 +63,21 @@
       "type": "securestring"
     },
     "servicePrincipalClientSecret": {
+      "defaultValue": "servicePrincipalClientSecret",
       "metadata": {
         "description": "The Service Principal Client Secret."
       },
       "type": "securestring"
     },
     "servicePrincipalCertificateKeyVaultId": {
+      "defaultValue": "servicePrincipalCertificateKeyVaultId",
       "metadata": {
-        "description": "the service Principal Certificate KeyVault Url"
+        "description": "the service Principal Certificate KeyVault Id"
       },
       "type": "string"
     },
     "servicePrincipalCertificateKeyVaultSecretName": {
+      "defaultValue": "servicePrincipalCertificateKeyVaultSecretName",
       "metadata": {
         "description": "The service Principal Certificate KeyVault SecretName"
       },
