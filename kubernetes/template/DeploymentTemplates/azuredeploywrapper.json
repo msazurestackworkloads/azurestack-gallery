@@ -188,6 +188,12 @@
             "value": "[parameters('servicePrincipalClientId')]"
           },
           "servicePrincipalClientSecret": "[if(equals(parameters('identitySystem'), 'AzureAD'), variables('servicePrincipalClientSecretJSON') , variables('servicePrincipalClientSecretCert'))]",
+          "servicePrincipalCertificateKeyVaultId": {
+            "value": "[parameters('servicePrincipalCertificateKeyVaultId')]"
+          },
+          "servicePrincipalCertificateKeyVaultSecretName": {
+            "value": "[parameters('servicePrincipalCertificateKeyVaultSecretName')]"
+          },
           "kubernetesAzureCloudProviderVersion": {
             "value": "[parameters('kubernetesAzureCloudProviderVersion')]"
           },
