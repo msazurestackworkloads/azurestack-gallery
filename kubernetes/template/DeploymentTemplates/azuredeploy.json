@@ -68,20 +68,12 @@
       },
       "type": "securestring"
     },
-    "servicePrincipalCertificateKeyVaultId": {
-      "metadata": {
-        "description": "the service Principal Certificate KeyVault Url"
-      },
-      "type": "string"
-    },
-    "servicePrincipalCertificateKeyVaultSecretName": {
-      "metadata": {
-        "description": "The service Principal Certificate KeyVault SecretName"
-      },
-      "type": "string"
-    },
     "identitySystem": {
       "defaultValue": "AzureAD",
+      "allowedValues": [
+        "AzureAD",
+        "ADFS"
+      ],
       "metadata": {
         "description": "The identity system of azure stack. The value could be AzureAD or ADFS"
       },
@@ -96,7 +88,7 @@
     }
   },
   "variables": {
-    "resourceGroupName":  "[resourceGroup().name]",
+    "resourceGroupName": "[resourceGroup().name]",
     "dnsNameForPublicIP": "[toLower(concat('vmd-dns', parameters('masterProfileDnsPrefix')))]",
     "location": "[resourceGroup().location]",
     "imagePublisher": "Canonical",
@@ -123,8 +115,7 @@
     "tenantSubscriptionId": "[subscription().subscriptionId]",
     "scriptName": "script",
     "singleQuote": "'",
-    "servicePrincipalClientSecretCert": "{\"reference\": { \"keyVault\": { \"id\": \"parameters('servicePrincipalCertificateKeyVaultId')\"},\"secretName\": \"parameters('servicePrincipalCertificateKeyVaultSecretName')\"}}",
-    "scriptParameters": "[concat('SERVICE_PRINCIPAL_CLIENT_SECRET=',variables('singleQuote'),variables('servicePrincipalClientSecretCert'),variables('singleQuote'), ' IDENTITY_SYSTEM=',parameters('identitySystem'),' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"')]"
+    "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"')]"
   },
   "resources": [
     {
@@ -237,7 +228,7 @@
           "vmSize": "[variables('vmSize')]"
         },
         "osProfile": {
-          "customData": "[base64(concat('#cloud-config\n\nwrite_files:\n- path: \"/opt/azure/containers/script.sh\"\n  permissions: \"0744\"\n  encoding: gzip\n  owner: \"root\"\n  content: !!binary |\n    H4sIAAAAAAAA/6xZbXPbNhL+bP6KPZZTtzNHSvZMZ1p51FaV6JRn6+VEya2bZBiIhCTUJMAAoGK58X+/Ad9E0pKs5poPGQPcffZZYLFYaAWWYGJNw/6age5KxCWhKwhwHLKt+usmWWBOscQC/DAREnNdC5AsVaYJpUoOiY6ufVozFBFNEyHGMVy2Ne0rcH1OYgkx4ijCEnNRKNrueD7t296b6Xg+8Ua9od0BY8+snitM5r/cOn1n4g1GbgeM6rAQmdmj3mjmOYMOGOXfjY/u/Be3P3UmM2c8qkk2PhRqvcHQGXlz157mFOsThdiw587sqSLjTab2tfN7B4wXcyXmG3s08/rj+WimAHejuoDr/GGX39WgYawAqA4bIjlEZVQI3Hzver0/5lPb69+O54PJdHznDOypd2dPXWc86oDxioRebuQbtWLlBpajQsB1f/Wy3bqx7ztg1MYvdvf6v4NRdXvVuESajae9N7Y3mY6vnVtlrjFTCtrTO6evpp1R35n0br3+rZOuot2f2mrNXpEogJyBPZo5s3vPvXdn9rADRmNGzw/C+YQTmp4ducYgtkLiCAhdMh4hSRg910QSMEgoijCYSNM4lnzrR4FHlt4SkTDh+Jtv4S9Q8wSLrnFxBZ8QkV3j8grEmiwlfP119scVLBkHAoSC8Y3AH+ECjFzt2ysIGBh//fx8BW/B+AlM/BHaAO+V8oJj9ACfP0N2Pg0Fr+QpvoLUCfsR+4nEAbzTjZ/f6WAQkCTC4gqeNX+N/QcP0cCL2AZ76CnhWEjkP3g+o0uySnjqp/JBOyNLeAumAOMC3sOVWhKqnWUres0SGqgPiv3ktwEgGgAR8CO0YbGVWOjaGQ4F1s4KBRJiJR8wLIAyCfiRCFmqq5UQ8IQ5gxDTlVxbYHPOOKxRHGMaQJBwtS2LhIRBsT+ExomE3sSBiAU4VCB5doMALwklyhVLVxweiYQL7WxJCgeGbKNgjAuQDIxLXTtLdzbaqCnjshAbMIrrRnfmFkjgABjNYkWiKK6GiqVrz3n4zWOVayshZen7Age+g4s2pDRQLM0VlpBkmua2SNQOFRKFoSITo8c0goRMVyZClMRJWNg+DZ9kcCnWXiN/fkxt/Mcdj/4/C39+3G/AT3j4t8GUUgXun1vfcyeKGZcpFGdMQr+n4kNIxrGVH34/htYG8VZIFq1PCK0wla0+5pIsiY8kFlaMI2glgrdC5qOwJdaI45aPTL8i1EJPoqJk+VzmqSVlZDbEC3rTND9sMl976vC66vCWXCs6INdJtIhVPjvXZr/Oh7+oJDnrGt+wGFMhQnj8rv0DmISe4I65JHSFeYoGJmUskfAZ/ESCGZx3z8FcwiV8BsnBDKDzbc52VjJIg+g43845GDuaxdb2Q0bLk9d3TZuuCMXAccxaC46ov+5AJHZp7BPjDyFDgfg3IF+YOBU3N+3L9g/mxfftH3RtRST4oTrWaylj0Wm1VkSuk4Xls6i1F6q1QwJzsR9X84PKh4L9bxgQx7BiqQsMEoEB0Sz1qamKRwtCEd9axY01jnGWV55IDEuVO5ecRVlc4piBCq38HGZ56yEgXIFkQ4k4mE+PmyXgRxTFYRpwhWMVfyy5etKKxFdxc0Foq9wCdWWQFQWybIggvlVZG20QCdEixJauZVfGEnSrpTB28vqBK6TCBT9iXcsujTxHEyHSqrQmY4H9SNTy/UvdMVliXxJNs3+fqWLuNq01urrxV634aLVqtaZVLXEsP2RJgOLYeta1vI60R4PJWJ0XvQiTCFG0whGmsq5s1Aw36tQCZlegFjO6prnz62vnd9v1ivqnNHrEwE7rxr6/681vZ8qfrrVBSXiUmab+K014GUy3dL0hbI/unOl4NFTFlALr7k5vX6lo2tCe9Qa9Wa/7IUvHZppyVYptutqKsEQBkqiFaRAzQqX4CcXE3GAuCKPdy/bFd2b7wmxffNC0kmCvP3PubG/gTO3+bDy994pXhTPofkgX2SgoAHxWF8y5hRIVYZLkhwMlAcHUx+L8bft9mZ/e6R+OWCn34EQbIVsRaud+ne838mbam/z6OvKKo3j9GlTv9tae3h/GQGGI+XY/Sp6XxxvMOSkrmgAvVexkaeYTket01mecY1/CBoUJFqpQq1c/jGdiLwuuc22XBvamn/JP86F8l772TrH+FIzq8F7bk0K+GM+q55u0Rv1ytEZtW+Ypy7LqmUpLkdxZr3/j9ceja+fNfNpLH6wzezhRqeuoQMeslO0SR3Fq/Vk/CHsMsQpW4OR5n8XbvSGyiwFVOk9+GxSXkB/vv26+fEWNQ7S14m2iHxQ5dOMcVDjylnkRJYdBTn7g1GOi8QRWW9Z8J5uLkC0CIh6ede2rtJYoJlLGvewaJiGRWxfLbIX0F29r6HZBLxQrawT5v2wnkTziYppqTBPxVdMo6I0JHc6tmLNY1XlYWGl5OWEsnHCmYkm8bb+3UEUln+8aDRyVx96VHEvzrmQcrXDP91lCJej18SnGRaZR2q0j/BNmI6QSZG7gVXs/Hl739PBrZ2cnvuFfATpytlQ8/r0w2BXu1SK+vg5ppVEsA8eCJdzHw7So4lPGZOXRAd0qTLYJpa1TCgQwTpI6zE9gviEFPVXzFReqonYK9smkiy/HYEuZw4SRL8kGD4i6s9nu/j9Ot/hyiGy9bqkgNT4cplUraWpk6hANBo0C8kVFeXpkVW03QA56nZVYVa75zBE/62VX3dNMu2HuYPEPxuFPRwI2yyMFATdZLsmjonEQ7BCf6rOiol6bPszjAW/vVKkwGLl7OFRBGvb3vU7A2Dt78ubfDWs09oE1WFSeT7VfwY/YLJ7iykJFowH8oouwp7Fw7N4IqJhwnDvyQrM09vqFl90z3Wq/os5016ioNi1OQN5ELnnC3YrSflp1xwo+1fbH3qXLGFUHR1ALLhXxxobUG0DNhlAdOyQ0eSwzbRAROheYp02AblOzeayqbRJQVV114lk/YkiItRUni5D4N3ibrvAD3g6QROmRqsI0bU5GRR9EXYX1Yc1efs1NOKE+iVFYbkpIMJVOkFqqqh+2lHVcauL51EkWBfY5lg17GYAqil6rik5tbHx5UfQP9AO04f3AmXbVe6B4YyWcYyohKO5tIKIDRipX9KT0QdrGTVHVay9UBVIiXtonFIr8ByvOknhPoiieas2f5/JecforTgZh5hB7erlq89X6mphu1D1X/6UITLNMibUUapoiWYi0kUwYNUlwqGkLppkFYCpTD9/yUx4we+LNNFEi12aE5ZoFkIl7ubhpopiY2Xod3uviN7x8tQWwRMZJfZvSZ13Ly7609nWJcxSbBvVm/J5uvKX/LwAA//9TYCGGwx8AAA=='))]",
+          "customData": "[base64(concat('#cloud-config\n\nwrite_files:\n- path: \"/opt/azure/containers/script.sh\"\n  permissions: \"0744\"\n  encoding: gzip\n  owner: \"root\"\n  content: !!binary |\n    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'))]",
           "computerName": "[variables('vmName')]",
           "adminUsername": "[parameters('linuxAdminUsername')]",
           "linuxConfiguration": {
@@ -293,9 +284,9 @@
         "[concat('Microsoft.Compute/virtualMachines/', variables('vmName'))]"
       ],
       "properties": {
-      "publisher": "Microsoft.Azure.Extensions",
-      "type": "CustomScript",
-      "typeHandlerVersion": "2.0",
+        "publisher": "Microsoft.Azure.Extensions",
+        "type": "CustomScript",
+        "typeHandlerVersion": "2.0",
         "autoUpgradeMinorVersion": "true",
         "protectedSettings": {
           "commandToExecute": "[concat(variables('scriptParameters'), ' PUBLICIP_FQDN=', '\"', reference(resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName')),'2015-06-15').dnsSettings.fqdn,'\"',' /bin/bash /opt/azure/containers/script.sh >> /var/log/azure/acsengine-kubernetes-dvm.log 2>&1')]"

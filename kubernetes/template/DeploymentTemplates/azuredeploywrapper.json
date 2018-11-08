@@ -140,20 +140,21 @@
         "secretName": "[parameters('servicePrincipalCertificateKeyVaultSecretName')]"
       }
     },
+    "servicePrincipalClientSecretJSON":"[json(concat('{\"value\": \"', parameters('servicePrincipalClientSecret'), '\"}'))]",
     "scriptName": "script",
     "singleQuote": "'",
     "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"')]"
   },
   "resources": [
     {
-      "apiVersion": "2018-05-01",
+      "apiVersion": "2018-02-01",
       "name": "k8sdeployment",
       "type": "Microsoft.Resources/deployments",
       "properties": {
         "mode": "Incremental",
         "templateLink": {
           "contentVersion": "1.0.0.0",
-          "uri": "[uri(parameters('_artifactsLocation'), 'azuredeploy.2.json'))]"
+          "uri": "[uri(parameters('_artifactsLocation'), 'azuredeploy.json')]"
         },
         "parameters": {
           "linuxAdminUsername": {
@@ -183,15 +184,9 @@
           "servicePrincipalClientId": {
             "value": "[parameters('servicePrincipalClientId')]"
           },
-          "servicePrincipalClientSecret": "[if(equals(parameters('identitySystem'), 'AzureAD'), parameters('servicePrincipalClientSecret'), variables('servicePrincipalClientSecretCert'))]",
+          "servicePrincipalClientSecret": "[if(equals(parameters('identitySystem'), 'AzureAD'), variables('servicePrincipalClientSecretJSON') , variables('servicePrincipalClientSecretCert'))]",
           "kubernetesAzureCloudProviderVersion": {
             "value": "[parameters('kubernetesAzureCloudProviderVersion')]"
-          },
-          "servicePrincipalCertificateKeyVaultId": {
-            "value": "[parameters('servicePrincipalCertificateKeyVaultId')]"
-          },
-          "servicePrincipalCertificateKeyVaultSecretName": {
-            "value": "[parameters('servicePrincipalCertificateKeyVaultSecretName')]"
           },
           "identitySystem": {
             "value": "[parameters('identitySystem')]"

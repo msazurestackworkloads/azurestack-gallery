@@ -30,12 +30,7 @@
       "value": "23e22dc8-ad94-4ad0-9b09-e329969f5500"
     },
     "servicePrincipalClientSecret": {
-      "reference": {
-        "keyVault": {
-          "id": "/subscriptions/e67ebc3e-1604-439d-b5d0-e70235c6ec69/resourceGroups/testvrg/providers/Microsoft.KeyVault/vaults/testv"
-        },
-        "secretName": "AdminUserCert"
-      }
+      "value": "servicePrincipalClientSecret"
     },
     "kubernetesAzureCloudProviderVersion": {
       "value": "1.11"
@@ -47,7 +42,7 @@
       "value": "AdminUserCert"
     },
     "identitySystem": {
-      "value": "ADFS"
+      "value": "AzureAD"
     }
   }
 }
