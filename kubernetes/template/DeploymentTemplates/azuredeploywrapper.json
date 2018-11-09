@@ -207,11 +207,7 @@
   "outputs": {
     "dvmPublicIpFqdn": {
       "type": "string",
-      "value": "[reference('k8sdeployment').outputs.dvmPublicIpFqdn.value]"
-    },
-    "cmdExecuted": {
-      "type": "string",
-      "value": "[reference('k8sdeployment').outputs.cmdExecuted.value]"
+      "value": "[reference('dvmdeployment').outputs.dvmPublicIpFqdn.value]"
     }
   }
 }

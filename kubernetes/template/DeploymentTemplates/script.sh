@@ -3,10 +3,17 @@ set -e
 echo "Starting deploying Kubernetes cluster"
 date
 
+echo "version 1.0.0"
 echo "Running as:"
 whoami
 
 sleep 20
+
+#[0]RESOURCE_GROUP_NAME="kube-rg" PUBLICIP_DNS="vmd-dnskube" TENANT_ID="" TENANT_SUBSCRIPTION_ID="" ADMIN_USERNAME="" MASTER_DNS_PREFIX="kube" AGENT_COUNT=3 AGENT_SIZE="Standard_D2_v2" MASTER_COUNT="1" MASTER_SIZE="Standard_D2_v2" K8S_AZURE_CLOUDPROVIDER_VERSION="1.11" REGION_NAME="local" SSH_PUBLICKEY="what a key" PUBLICIP_FQDN="vmd-dnskube.local.cloudapp.azurestack.external" STORAGE_PROFILE="blobdisk" ./script.sh
+
+#[1]Add identity system 
+#RESOURCE_GROUP_NAME="kube-rg" PUBLICIP_DNS="vmd-dnskube" TENANT_ID="" TENANT_SUBSCRIPTION_ID="" ADMIN_USERNAME="" MASTER_DNS_PREFIX="kube" AGENT_COUNT=3 AGENT_SIZE="Standard_D2_v2" MASTER_COUNT="1" MASTER_SIZE="Standard_D2_v2" K8S_AZURE_CLOUDPROVIDER_VERSION="1.11" REGION_NAME="local" SSH_PUBLICKEY="what a key" PUBLICIP_FQDN="vmd-dnskube.local.cloudapp.azurestack.external" STORAGE_PROFILE="blobdisk" IDENTITY_SYSTEM="ADFS" ./script.sh
+
 
 # Script parameters
 echo "RESOURCE_GROUP_NAME: $RESOURCE_GROUP_NAME"
@@ -24,12 +31,11 @@ echo "REGION_NAME: $REGION_NAME"
 echo "SSH_PUBLICKEY: $SSH_PUBLICKEY"
 echo "PUBLICIP_FQDN: $PUBLICIP_FQDN"
 echo "STORAGE_PROFILE: $STORAGE_PROFILE"
-echo "SERVICE_PRINCIPAL_CLIENT_SECRET: $SERVICE_PRINCIPAL_CLIENT_SECRET"
-echo "IDENTITY_SYSTEM: $IDENTITY_SYSTEM"
-
+#[1]Add identity system 
+echo "IDENTITY_SYSTEM: $IDENTITY_SYSTEM" 
+echo "SPN_CLIENT_SECRET: $SPN_CLIENT_SECRET"
 echo 'Printing the system information'
-sudo uname -a
-
+#sudo uname -a
 retrycmd_if_failure() { retries=$1; wait=$2; shift && shift; for i in $(seq 1 $retries); do ${@}; [ $? -eq 0  ] && break || sleep $wait; done; echo Executed \"$@\" $i times; }
 check_and_move_azurestack_configuration() {
 	if [ -s $1 ] ; then
@@ -42,6 +48,20 @@ check_and_move_azurestack_configuration() {
 	sudo mv $1 $2
 	echo "Done building the API model based on the stamp information."
 }
+convert_to_cert() {
+    echo 'converting to file'
+    echo $1 | base64 --decode > cert.json
+    cat cert.json | jq '.data' | tr -d \" | base64 --decode > cert.pfx
+    PASSWORD=$(cat cert.json | jq '.password' | tr -d \")
+
+    echo "Converting to certificate"
+    openssl pkcs12 -in "./cert.pfx" -clcerts -nokeys -out $CERTIFICATE_LOCATION -passin pass:$PASSWORD
+
+    echo "Converting into key"
+    openssl pkcs12 -in "./cert.pfx" -nocerts -nodes  -out $KEY_LOCATION -passin pass:$PASSWORD
+
+}
+
 echo "Update the system."
 retrycmd_if_failure 5 10 sudo apt-get update -y
 
@@ -62,11 +82,11 @@ sudo cp /var/lib/waagent/Certificates.pem /usr/local/share/ca-certificates/azsCe
 sudo update-ca-certificates
 
 echo 'Retrieve the AzureStack root CA certificate thumbprint'
-THUMBPRINT=$(openssl x509 -in /var/lib/waagent/Certificates.pem -fingerprint -noout | cut -d'=' -f 2 | tr -d :)
+THUMBPRINT=$(sudo openssl x509 -in /var/lib/waagent/Certificates.pem -fingerprint -noout | cut -d'=' -f 2 | tr -d :)
 echo 'Thumbprint for AzureStack root CA certificate:' $THUMBPRINT
 
-echo "Cloning the ACS-Engine repo/branch: msazurestackworkloads, acs-engine-v0209-1809"
-git clone https://github.com/msazurestackworkloads/acs-engine -b acs-engine-v0209-1809
+echo "Cloning the ACS-Engine repo/branch: msazurestackworkloads, azsmaster"
+git clone https://github.com/msazurestackworkloads/acs-engine -b azsmaster
 cd acs-engine
 
 echo "We are going to use an existing ACS-Engine binary."
@@ -85,7 +105,9 @@ fi
 
 EXTERNAL_FQDN="${PUBLICIP_FQDN//$PUBLICIP_DNS.$REGION_NAME.cloudapp.}"
 TENANT_ENDPOINT="https://management.$REGION_NAME.$EXTERNAL_FQDN"
-echo "TENANT_ENDPOINT: $TENANT_ENDPOINT"
+
+echo "EXTERNAL_FQDN:$EXTERNAL_FQDN"
+echo "TENANT_ENDPOINT is: $TENANT_ENDPOINT"
 
 SUFFIXES_STORAGE_ENDPOINT=$REGION_NAME.$EXTERNAL_FQDN
 SUFFIXES_KEYVAULT_DNS=.vault.$REGION_NAME.$EXTERNAL_FQDN
@@ -95,7 +117,32 @@ ENVIRONMENT_NAME=AzureStackCloud
 METADATA=`curl --retry 10 $TENANT_ENDPOINT/metadata/endpoints?api-version=2015-01-01`
 
 ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID=`echo $METADATA  | jq '.authentication.audiences'[0] | tr -d \"`
+echo "this is the tennant endpoint $TENANT_ENDPOINT"
+
+
+#[2]trim "adfs" from end of login endpoint if it is ADFS
+#below is the metadata variable
+# {"galleryEndpoint":"https://portal.local.azurestack.external:30015/","graphEndpoint":"https://graph.local.azurestack.external/","portalEndpoint":"https://portal.local.azurestack.external/","authentication":{"loginEndpoint":"https://adfs.local.azurestack.external/adfs","audiences":["https://management.adfs.azurestack.local/ab56c5c4-6067-4522-b7c8-24a01b05e72a"]}}
+#trim the end of "adfs" in loginEndpoint 
+
+
+if [ $IDENTITY_SYSTEM == "ADFS" ]
+then
+echo "Using ADFS"
+ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT=`echo $METADATA  | jq '.authentication.loginEndpoint' | tr -d \" | sed -e 's/adfs*$//' | tr -d '/'`
+echo $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT
+else
+echo "Using AAD"
 ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT=`echo $METADATA  | jq '.authentication.loginEndpoint' | tr -d \"`
+fi
+
+#if it is adfs, parse SPN_CLIENT_SECRET to get pfx and password
+#convert pfx to cert and key 
+CERTIFICATE_LOCATION="domain.cer"
+KEY_LOCATION="domain.key"
+
+convert_to_cert $SPN_CLIENT_SECRET $CERTIFICATE_LOCATION $KEY_LOCATION
+
 ENDPOINT_GRAPH_ENDPOINT=`echo $METADATA  | jq '.graphEndpoint' | tr -d \"`
 ENDPOINT_GALLERY=`echo $METADATA  | jq '.galleryEndpoint' | tr -d \"`
 
@@ -127,8 +174,50 @@ if [ "$STORAGE_PROFILE" == "blobdisk" ] ; then
         sudo cat $AZURESTACK_CONFIGURATION | jq --arg AvailabilitySet "AvailabilitySet" '.properties.agentPoolProfiles[0].availabilityProfile=$AvailabilitySet' | \
         jq --arg StorageAccount "StorageAccount" '.properties.agentPoolProfiles[0].storageProfile=$StorageAccount' | \
         jq --arg StorageAccount "StorageAccount" '.properties.masterProfile.storageProfile=$StorageAccount' > $AZURESTACK_CONFIGURATION_TEMP
+
+		echo "Checking and moving 'use blobdisk and AvailabilitySet'"
 		check_and_move_azurestack_configuration $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION
 fi
+
+#if AzureAD assign SPN_CLIENT_SECRET to properties.servicePrincipalProfile.secret
+#if ADFS use keyvault id and the keyvault secret name as shown below
+#  "servicePrincipalProfile": {
+#             "clientId": "23e22dc8-ad94-4ad0-9b09-e329969f5500",
+#             "keyvaultSecretRef": {
+#                 "VaultID": "/subscriptions/e67ebc3e-1604-439d-b5d0-e70235c6ec69/resourceGroups/testvrg/providers/Microsoft.KeyVault/vaults/testv",
+#                 "SecretName": "AdminUserCert"
+#             }
+#         }
+
+if [ $IDENTITY_SYSTEM == "ADFS" ]
+then
+echo "Using ADFS"
+sudo cat $AZURESTACK_CONFIGURATION | jq --arg THUMBPRINT $THUMBPRINT '.properties.cloudProfile.resourceManagerRootCertificate = $THUMBPRINT' | \
+jq --arg ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID '.properties.cloudProfile.serviceManagementEndpoint = $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID' | \
+jq --arg ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT '.properties.cloudProfile.activeDirectoryEndpoint = $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT' | \
+jq --arg ENDPOINT_GRAPH_ENDPOINT $ENDPOINT_GRAPH_ENDPOINT '.properties.cloudProfile.graphEndpoint = $ENDPOINT_GRAPH_ENDPOINT' | \
+jq --arg TENANT_ENDPOINT $TENANT_ENDPOINT '.properties.cloudProfile.resourceManagerEndpoint = $TENANT_ENDPOINT' | \
+jq --arg ENDPOINT_GALLERY $ENDPOINT_GALLERY '.properties.cloudProfile.galleryEndpoint = $ENDPOINT_GALLERY' | \
+jq --arg SUFFIXES_STORAGE_ENDPOINT $SUFFIXES_STORAGE_ENDPOINT '.properties.cloudProfile.storageEndpointSuffix = $SUFFIXES_STORAGE_ENDPOINT' | \
+jq --arg SUFFIXES_KEYVAULT_DNS $SUFFIXES_KEYVAULT_DNS '.properties.cloudProfile.keyVaultDNSSuffix = $SUFFIXES_KEYVAULT_DNS' | \
+jq --arg FQDN_ENDPOINT_SUFFIX $FQDN_ENDPOINT_SUFFIX '.properties.cloudProfile.resourceManagerVMDNSSuffix = $FQDN_ENDPOINT_SUFFIX' | \
+jq --arg REGION_NAME $REGION_NAME '.properties.cloudProfile.location = $REGION_NAME' | \
+jq --arg MASTER_DNS_PREFIX $MASTER_DNS_PREFIX '.properties.masterProfile.dnsPrefix = $MASTER_DNS_PREFIX' | \
+jq '.properties.agentPoolProfiles[0].count'=$AGENT_COUNT | \
+jq --arg AGENT_SIZE $AGENT_SIZE '.properties.agentPoolProfiles[0].vmSize=$AGENT_SIZE' | \
+jq '.properties.masterProfile.count'=$MASTER_COUNT | \
+jq --arg MASTER_SIZE $MASTER_SIZE '.properties.masterProfile.vmSize=$MASTER_SIZE' | \
+jq --arg ADMIN_USERNAME $ADMIN_USERNAME '.properties.linuxProfile.adminUsername = $ADMIN_USERNAME' | \
+jq --arg SSH_PUBLICKEY "${SSH_PUBLICKEY}" '.properties.linuxProfile.ssh.publicKeys[0].keyData = $SSH_PUBLICKEY' | \
+jq --arg SPN_CLIENT_ID $SPN_CLIENT_ID '.properties.servicePrincipalProfile.clientId = $SPN_CLIENT_ID' | \
+jq --arg SPN_CLIENT_SECRET_KEYVAULT_ID $SPN_CLIENT_SECRET_KEYVAULT_ID '.properties.servicePrincipalProfile.keyvaultSecretRef.VaultID = $SPN_CLIENT_SECRET_KEYVAULT_ID' | \
+jq --arg SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME $SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME '.properties.servicePrincipalProfile.keyvaultSecretRef.SecretName = $SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME' >  $AZURESTACK_CONFIGURATION_TEMP
+
+echo "Checking and moving "
+check_and_move_azurestack_configuration $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION
+
+else
+echo "Using AAD"
 
 sudo cat $AZURESTACK_CONFIGURATION | jq --arg THUMBPRINT $THUMBPRINT '.properties.cloudProfile.resourceManagerRootCertificate = $THUMBPRINT' | \
 jq --arg ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID '.properties.cloudProfile.serviceManagementEndpoint = $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID' | \
@@ -149,15 +238,32 @@ jq --arg ADMIN_USERNAME $ADMIN_USERNAME '.properties.linuxProfile.adminUsername 
 jq --arg SSH_PUBLICKEY "${SSH_PUBLICKEY}" '.properties.linuxProfile.ssh.publicKeys[0].keyData = $SSH_PUBLICKEY' | \
 jq --arg SPN_CLIENT_ID $SPN_CLIENT_ID '.properties.servicePrincipalProfile.clientId = $SPN_CLIENT_ID' | \
 jq --arg SPN_CLIENT_SECRET $SPN_CLIENT_SECRET '.properties.servicePrincipalProfile.secret = $SPN_CLIENT_SECRET' >  $AZURESTACK_CONFIGURATION_TEMP
-
+echo "Checking and moving "
 check_and_move_azurestack_configuration $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION
+
+fi
+
 echo "Done building the API model based on the stamp information."
 
 MYDIR=$PWD
 echo "Current directory is: $MYDIR"
 
 echo "Deploy the template using the API model in resource group $MASTER_DNS_PREFIX."
+
+#if AzureAD use below
+#sudo ./bin/acs-engine deploy --resource-group $RESOURCE_GROUP_NAME --azure-env $ENVIRONMENT_NAME --location $REGION_NAME --subscription-id $TENANT_SUBSCRIPTION_ID --client-id $SPN_CLIENT_ID --client-secret $SPN_CLIENT_SECRET --auth-method client_secret --api-model $AZURESTACK_CONFIGURATION
+#if adfs use 
+#sudo ./bin/acs-engine deploy --api-model ./1.11.json --location "local"  --subscription-id e67ebc3e-1604-439d-b5d0-e70235c6ec69 --auth-method "client_certificate" --certificate-path "c:\domain.cer" --private-key-path "c:\domain.key" --azure-env "AzurestackCloud" --client-id "23e22dc8-ad94-4ad0-9b09-e329969f5500" 
+
+if [ $IDENTITY_SYSTEM == "ADFS" ]
+then
+echo "Using ADFS"
+sudo ./bin/acs-engine deploy --api-model $AZURESTACK_CONFIGURATION --location $REGION_NAME  --subscription-id $TENANT_SUBSCRIPTION_ID --auth-method client_certificate --certificate-path "./domain.cer" --private-key-path "./domain.key" --azure-env $ENVIRONMENT_NAME --client-id $SPN_CLIENT_ID 
+else
+echo "Using AAD"
 sudo ./bin/acs-engine deploy --resource-group $RESOURCE_GROUP_NAME --azure-env $ENVIRONMENT_NAME --location $REGION_NAME --subscription-id $TENANT_SUBSCRIPTION_ID --client-id $SPN_CLIENT_ID --client-secret $SPN_CLIENT_SECRET --auth-method client_secret --api-model $AZURESTACK_CONFIGURATION
+fi
+
 
 echo "Templates output directory is $PWD/_output/$MASTER_DNS_PREFIX"
 
