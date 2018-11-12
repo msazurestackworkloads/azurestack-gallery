@@ -106,7 +106,8 @@
       "metadata": {
         "description": "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
       },
-      "defaultValue": "https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/keyvault/kubernetes/template/DeploymentTemplates/"
+      
+      "defaultValue": "https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/keyvault/kubernetes/template/DeploymentTemplates"
     }
   },
   "variables": {
@@ -211,7 +212,7 @@
     },
     "cmdExecuted": {
       "type": "string",
-      "value": "[reference('k8sdeployment').outputs.cmdExecuted.value]"
+      "value": "[string(deployment().properties.templateLink.uri])"
     }
   }
 }
