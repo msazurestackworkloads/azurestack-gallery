@@ -53,7 +53,7 @@ echo "Update the system."
 retrycmd_if_failure 5 10 sudo apt-get update -y
 
 echo "Installing Azure CLI"
-INSTALL_SCRIPT_URL="https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master/acsengine-kubernetes/1804/template/DeploymentTemplates/install.py"
+INSTALL_SCRIPT_URL="https://raw.githubusercontent.com/deaborch/azurestack-gallery/master/acsengine-kubernetes/1804/template/DeploymentTemplates/install.py"
 wget $INSTALL_SCRIPT_URL
 if ! command -v python >/dev/null 2>&1
 then
@@ -78,8 +78,8 @@ echo 'Retrieve the AzureStack root CA certificate thumbprint'
 THUMBPRINT=$(openssl x509 -in /var/lib/waagent/Certificates.pem -fingerprint -noout | cut -d'=' -f 2 | tr -d :)
 echo 'Thumbprint for AzureStack root CA certificate:' $THUMBPRINT
 
-echo "Cloning the ACS-Engine repo/branch: msazurestackworkloads, acs-engine-v0140-1804"
-git clone https://github.com/msazurestackworkloads/acs-engine -b acs-engine-v0140-1804
+echo "Cloning the ACS-Engine repo/branch: deaborch, acs-engine-v0140-1804"
+git clone https://github.com/deaborch/acs-engine -b acs-engine-v0140-1804
 cd acs-engine
 
 echo "We are going to use an existing ACS-Engine binary."

@@ -122,7 +122,7 @@ then
     scp -i $IDENTITYFILE $IDENTITYFILE $AZUREUSER@$HOST:/home/$AZUREUSER/.ssh/id_rsa
 
     #set up permission and  Download the script
-    ssh -t -i $IDENTITYFILE $AZUREUSER@$HOST "if [ -f /home/$AZUREUSER/.ssh/id_rsa ]; then sudo chmod 400 /home/$AZUREUSER/.ssh/id_rsa; cd /home/$AZUREUSER; curl -O https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master/diagnosis/collectlogsmanager.sh; curl -O https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master/diagnosis/collectlogs.sh ;sudo chmod 744 collectlogsmanager.sh;  fi;"
+    ssh -t -i $IDENTITYFILE $AZUREUSER@$HOST "if [ -f /home/$AZUREUSER/.ssh/id_rsa ]; then sudo chmod 400 /home/$AZUREUSER/.ssh/id_rsa; cd /home/$AZUREUSER; curl -O https://raw.githubusercontent.com/deaborch/azurestack-gallery/master/diagnosis/collectlogsmanager.sh; curl -O https://raw.githubusercontent.com/deaborch/azurestack-gallery/master/diagnosis/collectlogs.sh ;sudo chmod 744 collectlogsmanager.sh;  fi;"
 
     ssh -t -i $IDENTITYFILE $AZUREUSER@$HOST "cd /home/$AZUREUSER; ./collectlogsmanager.sh;"
 
@@ -146,7 +146,7 @@ then
     ssh -t -i $IDENTITYFILE $AZUREUSER@$DVMHOST "if [ -f /home/$AZUREUSER/collectlogsdvm.sh ]; then sudo rm -f /home/$AZUREUSER/collectlogsdvm.sh; fi;"
 
     # Collect the logs
-    ssh -t -i $IDENTITYFILE $AZUREUSER@$DVMHOST "cd /home/$AZUREUSER; curl -O https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master/diagnosis/collectlogsdvm.sh; sudo chmod 744 collectlogsdvm.sh; ./collectlogsdvm.sh;"
+    ssh -t -i $IDENTITYFILE $AZUREUSER@$DVMHOST "cd /home/$AZUREUSER; curl -O https://raw.githubusercontent.com/deaborch/azurestack-gallery/master/diagnosis/collectlogsdvm.sh; sudo chmod 744 collectlogsdvm.sh; ./collectlogsdvm.sh;"
 
     #Copy logs back to local machine
     scp -r -i $IDENTITYFILE $AZUREUSER@$DVMHOST:/home/$AZUREUSER/dvmlogs $LOGFILEFOLDER

@@ -63,8 +63,8 @@ echo 'Retrieve the AzureStack root CA certificate thumbprint'
 THUMBPRINT=$(openssl x509 -in /var/lib/waagent/Certificates.pem -fingerprint -noout | cut -d'=' -f 2 | tr -d :)
 echo 'Thumbprint for AzureStack root CA certificate:' $THUMBPRINT
 
-echo "Cloning the ACS-Engine repo/branch: msazurestackworkloads, acs-engine-v0209-1809"
-git clone https://github.com/msazurestackworkloads/acs-engine -b acs-engine-v0209-1809
+echo "Cloning the ACS-Engine repo/branch: deaborch, acs-engine-v0209-1809"
+git clone https://github.com/deaborch/acs-engine -b acs-engine-v0209-1809
 cd acs-engine
 
 echo "We are going to use an existing ACS-Engine binary."
