@@ -129,7 +129,7 @@ echo "this is the tennant endpoint $TENANT_ENDPOINT"
 if [ $IDENTITY_SYSTEM == "ADFS" ]
 then
 echo "Using ADFS"
-ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT=`echo $METADATA  | jq '.authentication.loginEndpoint' | tr -d \" | sed -e 's/adfs*$//' | tr -d '/'`
+ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT=`echo $METADATA  | jq '.authentication.loginEndpoint' | tr -d \" | sed -e 's/adfs*$//' | tr -d \" `
 echo $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT
 else
 echo "Using AAD"
