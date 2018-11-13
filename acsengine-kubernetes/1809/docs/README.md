@@ -13,7 +13,7 @@ This template deploys a Linux VM, clones and AzureStack forked ACS-Engine repo/b
 	   https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-create-service-principal-portal#create-an-azure-active-directory-application
 
 	b) SSH key is required to login to the Linux VMs. You would need to pass the public key to the template inputs.
-	   https://github.com/deaborch/acs-engine/blob/master/docs/ssh.md#ssh-key-generation
+	   https://github.com/msazurestackworkloads/acs-engine/blob/master/docs/ssh.md#ssh-key-generation
 
 	c) Ensure that the latest Ubuntu image is added from marketplace,
     Publisher = "Canonical"
@@ -71,16 +71,16 @@ Wordpress Installation (using Helm): helm install stable/wordpress
 
 Here are some important links:
 1) Modifed ACS-Engine repo: 
-	https://github.com/deaborch/acs-engine/tree/acs-engine-v0209
+	https://github.com/msazurestackworkloads/acs-engine/tree/acs-engine-v0209
 
 2) Linux binary: 
-	https://github.com/deaborch/acs-engine/tree/acs-engine-v0209/examples/azurestack/acs-engine.tgz
+	https://github.com/msazurestackworkloads/acs-engine/tree/acs-engine-v0209/examples/azurestack/acs-engine.tgz
 
 3) Example of working JSON (API model): 
-	https://github.com/deaborch/acs-engine/tree/acs-engine-v0209/examples/azurestack/azurestack-kubernetes1.11.json
+	https://github.com/msazurestackworkloads/acs-engine/tree/acs-engine-v0209/examples/azurestack/azurestack-kubernetes1.11.json
 
 4) To learn more about generating templates using ACS-Engine refer to ACS Engine: 
-	https://github.com/deaborch/acs-engine/blob/master/docs/kubernetes.md
+	https://github.com/msazurestackworkloads/acs-engine/blob/master/docs/kubernetes.md
 
 
 

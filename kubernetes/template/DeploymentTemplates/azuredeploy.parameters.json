@@ -9,7 +9,7 @@
       "value": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDu3X4RAOuZ21nZeGazygwN9atjz4FDe1fAu1imC7Jmn61rmU2QZ7q4VXEfET868ftcw9E34kRj/VHsqZ4Dr55/nIE1fZUUShE33GpyRmpLGQvGpB4Kb0UC728J8JYJ++RsLN92ogMj60hWwsINvMlSsDy4lMiVL44qf23g7RUhEHf0pPKK1rsWPNFZEQsam/J6n868zCgNUeTCw0kT8LUTmiggM0Qz2QIj+/SlGvB6j1xCtzVL8JXxowl8z0nK/wQ+Cb68UIBx0DfKAq7bZmL593Jpe2wSdu2losIOXZiunVmCz9gJILGbIl7XVBEnUtqy6LtCnSazRjoTR+0yuaqR"
     },
     "masterProfileDnsPrefix": {
-      "value": "superkube0"
+      "value": "superkube2"
     },
     "agentPoolProfileCount": {
       "value": 3
