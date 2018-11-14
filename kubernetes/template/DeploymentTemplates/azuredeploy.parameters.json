@@ -1,48 +1,48 @@
 {
-    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
-    "contentVersion": "1.0.0.0",
-    "parameters": {
-      "linuxAdminUsername": {
-        "value": "azureuser"
-      },
-      "sshPublicKey": {
-        "value": ""
-      },
-      "masterProfileDnsPrefix": {
-        "value": ""
-      },
-      "agentPoolProfileCount": {
-        "value": 3
-      },
-      "agentPoolProfileVMSize": {
-        "value": "Standard_D2_v2"
-      },
-      "masterPoolProfileCount": {
-        "value": 3
-      },
-      "masterPoolProfileVMSize": {
-        "value": "Standard_D2_v2"
-      },
-      "storageProfile": {
-        "value": "BlobDisk"
-      },
-      "servicePrincipalClientId": {
-        "value": ""
-      },
-      "servicePrincipalClientSecret": {
-        "value": ""
-      },
-      "kubernetesAzureCloudProviderVersion": {
-        "value": "1.11"
-      },
-      "servicePrincipalCertificateKeyVaultId": {
-        "value": ""
-      },
-      "servicePrincipalCertificateKeyVaultSecretName": {
-        "value": ""
-      },
-      "identitySystem": {
-        "value": ""
-      }
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "linuxAdminUsername": {
+      "value": "azureuser"
+    },
+    "sshPublicKey": {
+      "value": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDu3X4RAOuZ21nZeGazygwN9atjz4FDe1fAu1imC7Jmn61rmU2QZ7q4VXEfET868ftcw9E34kRj/VHsqZ4Dr55/nIE1fZUUShE33GpyRmpLGQvGpB4Kb0UC728J8JYJ++RsLN92ogMj60hWwsINvMlSsDy4lMiVL44qf23g7RUhEHf0pPKK1rsWPNFZEQsam/J6n868zCgNUeTCw0kT8LUTmiggM0Qz2QIj+/SlGvB6j1xCtzVL8JXxowl8z0nK/wQ+Cb68UIBx0DfKAq7bZmL593Jpe2wSdu2losIOXZiunVmCz9gJILGbIl7XVBEnUtqy6LtCnSazRjoTR+0yuaqR"
+    },
+    "masterProfileDnsPrefix": {
+      "value": "testabc3"
+    },
+    "agentPoolProfileCount": {
+      "value": 1
+    },
+    "agentPoolProfileVMSize": {
+      "value": "Standard_D2_v2"
+    },
+    "masterPoolProfileCount": {
+      "value": 2
+    },
+    "masterPoolProfileVMSize": {
+      "value": "Standard_D2_v2"
+    },
+    "storageProfile": {
+      "value": "BlobDisk"
+    },
+    "servicePrincipalClientId": {
+      "value": "23e22dc8-ad94-4ad0-9b09-e329969f5500"
+    },
+    "servicePrincipalClientSecret": {
+      "value": "servicePrincipalClientSecret"
+    },
+    "kubernetesAzureCloudProviderVersion": {
+      "value": "1.11"
+    },
+    "servicePrincipalCertificateKeyVaultId": {
+      "value": "/subscriptions/e67ebc3e-1604-439d-b5d0-e70235c6ec69/resourceGroups/testvrg/providers/Microsoft.KeyVault/vaults/testv"
+    },
+    "servicePrincipalCertificateKeyVaultSecretName": {
+      "value": "AdminUserCert"
+    },
+    "identitySystem": {
+      "value": "ADFS"
+    }
   }
 }
