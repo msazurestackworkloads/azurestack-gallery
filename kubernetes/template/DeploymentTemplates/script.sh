@@ -42,7 +42,7 @@ check_and_move_azurestack_configuration() {
 convert_to_cert() {
     echo 'converting to file'
     echo $1 | base64 --decode > cert.json
-    cat cert.json | jq '.data' | tr -d \" | base64 --decode > cert.pfx
+    cat cert.json | jq '.data' | tr -d \" | base64 --decode > $CERTIFICATE_PFX_LOCATION
     PASSWORD=$(cat cert.json | jq '.password' | tr -d \")
 
     echo "Converting to certificate"
@@ -127,10 +127,11 @@ fi
 if [ $IDENTITY_SYSTEM == "ADFS" ]
 then
 echo "Using ADFS"
-CERTIFICATE_LOCATION="domain.cer"
-KEY_LOCATION="domain.key"
+CERTIFICATE_LOCATION="spnauth.crt"
+KEY_LOCATION="spnauth.key"
+CERTIFICATE_PFX_LOCATION="spnauth.pfx"
 
-convert_to_cert $SPN_CLIENT_SECRET $CERTIFICATE_LOCATION $KEY_LOCATION
+convert_to_cert $SPN_CLIENT_SECRET $CERTIFICATE_LOCATION $KEY_LOCATION $CERTIFICATE_PFX_LOCATION
 fi
 
 
