@@ -46,10 +46,10 @@ convert_to_cert() {
     PASSWORD=$(cat cert.json | jq '.password' | tr -d \")
 
     echo "Converting to certificate"
-    openssl pkcs12 -in "./cert.pfx" -clcerts -nokeys -out $CERTIFICATE_LOCATION -passin pass:$PASSWORD
+    openssl pkcs12 -in $CERTIFICATE_PFX_LOCATION -clcerts -nokeys -out $CERTIFICATE_LOCATION -passin pass:$PASSWORD
 
     echo "Converting into key"
-    openssl pkcs12 -in "./cert.pfx" -nocerts -nodes  -out $KEY_LOCATION -passin pass:$PASSWORD
+    openssl pkcs12 -in $CERTIFICATE_PFX_LOCATION -nocerts -nodes  -out $KEY_LOCATION -passin pass:$PASSWORD
 
 }
 
