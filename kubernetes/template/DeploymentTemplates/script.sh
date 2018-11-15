@@ -232,7 +232,7 @@ echo "Deploy the template using the API model in resource group $MASTER_DNS_PREF
 if [ $IDENTITY_SYSTEM == "ADFS" ]
 then
 	echo "Using ADFS"
-	sudo ./bin/acs-engine deploy --api-model $AZURESTACK_CONFIGURATION --location $REGION_NAME  --subscription-id $TENANT_SUBSCRIPTION_ID --auth-method client_certificate --certificate-path $CERTIFICATE_LOCATION --private-key-path $KEY_LOCATION --azure-env $ENVIRONMENT_NAME --client-id $SPN_CLIENT_ID 
+	sudo ./bin/acs-engine deploy --resource-group $RESOURCE_GROUP_NAME --api-model $AZURESTACK_CONFIGURATION --location $REGION_NAME  --subscription-id $TENANT_SUBSCRIPTION_ID --auth-method client_certificate --certificate-path $CERTIFICATE_LOCATION --private-key-path $KEY_LOCATION --azure-env $ENVIRONMENT_NAME --client-id $SPN_CLIENT_ID 
 else
 	echo "Using AAD"
 	sudo ./bin/acs-engine deploy --resource-group $RESOURCE_GROUP_NAME --azure-env $ENVIRONMENT_NAME --location $REGION_NAME --subscription-id $TENANT_SUBSCRIPTION_ID --client-id $SPN_CLIENT_ID --client-secret $SPN_CLIENT_SECRET --auth-method client_secret --api-model $AZURESTACK_CONFIGURATION
