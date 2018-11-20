@@ -24,7 +24,9 @@ echo "REGION_NAME: $REGION_NAME"
 echo "SSH_PUBLICKEY: $SSH_PUBLICKEY"
 echo "PUBLICIP_FQDN: $PUBLICIP_FQDN"
 echo "STORAGE_PROFILE: $STORAGE_PROFILE"
-echo "IDENTITY_SYSTEM: $IDENTITY_SYSTEM" 
+echo "SERVICE_PRINCIPAL_CLIENT_SECRET: $SERVICE_PRINCIPAL_CLIENT_SECRET"
+echo "IDENTITY_SYSTEM: $IDENTITY_SYSTEM"
+
 echo 'Printing the system information'
 #sudo uname -a
 retrycmd_if_failure() { retries=$1; wait=$2; shift && shift; for i in $(seq 1 $retries); do ${@}; [ $? -eq 0  ] && break || sleep $wait; done; echo Executed \"$@\" $i times; }
