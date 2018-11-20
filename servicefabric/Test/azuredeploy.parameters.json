@@ -1,0 +1,78 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "clusterName": {
+      "value": "SFCluster"
+    },
+    "nodeTypePrefix": {
+      "value": "SFNode"
+    },
+    "primaryNtInstanceCount": {
+      "value": 3
+    },
+    "vmImageSku": {
+      "value": "2016-Datacenter"
+    },
+    "vmNodeSize": {
+      "value": "Standard_D2_v2"
+    },
+    "adminUserName": {
+      "value": "azureuser"
+    },
+    "adminPassword": {
+      "value": "adminpassword"
+    },
+    "servicefabricTcpGatewayPort": {
+      "value": 19000
+    },
+    "servicefabricHttpGatewayPort": {
+      "value": 19080
+    },
+    "servicefabricReverseProxyEndpointPort": {
+      "value": 19081
+    },
+    "sourceVaultValue": {
+      "value": ""
+    },
+    "clusterCertificateUrlValue": {
+      "value": ""
+    },
+    "clusterCertificateThumbprint": {
+      "value": "0984053b9639215d278a0e4b4ab1120e75057463"
+    },
+	"serverCertificateUrlValue": {
+      "value": ""
+    },
+    "serverCertificateThumbprint": {
+      "value": "0984053b9639215d278a0e4b4ab1120e75057463"
+    },
+    "reverseProxyCertificateUrlValue": {
+      "value": ""
+    },
+    "reverseProxyCertificateThumbprint": {
+      "value": ""
+    },
+    "adminClientCertificateThumbprints": {
+      "value": "0272251171BA32CEC7938A65B8A6A553AA2D3283"
+    },
+    "nonAdminClientCertificateThumbprints": {
+      "value": ""
+    },
+    "DNSService": {
+      "value": "No"
+    },
+    "RepairManager": {
+      "value": "No"
+    },
+    "serviceFabricUrl": {
+      "value": "http://go.microsoft.com/fwlink/?LinkId=730690"
+    },
+    "serviceFabricRuntimeUrl": {
+      "value": ""
+    },
+    "scriptBaseUrl": {
+      "value": "https://raw.githubusercontent.com/LingyunSu/AzureStack-QuickStart-Templates/sf_gallery_stable/ServiceFabricGalleryItem/Microsoft.ServiceFabricCluster/DeploymentTemplates/"
+    }
+  }
+}

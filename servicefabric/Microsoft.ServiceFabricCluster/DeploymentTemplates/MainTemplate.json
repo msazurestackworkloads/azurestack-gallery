@@ -151,6 +151,13 @@
                 "description": "Reverse proxy Certificate Thumbprint"
             }
         },
+        "applicationCertificateUrlValue":{
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Refers to the location URL in your key vault where the certificate was uploaded, it is should be in the format of https://<name of the vault>.vault.azure.net:443/secrets/<exact location>"
+            }
+        },
         "adminClientCertificateThumbprints": {
             "type": "string",
             "defaultValue": "",
@@ -443,9 +450,6 @@
                     "adminPassword": {
                         "value": "[parameters('adminPassword')]"
                     },
-                    "dnsLabel": {
-                        "value": "[if(equals(string(copyIndex()), '0'), variables('dnsLabel'), concat(variables('dnsLabel'), copyIndex()))]"
-                    },
                     "subnetID": {
                         "value": "[concat(variables('derivedIds').subnetID, copyIndex())]"
                     },
@@ -478,6 +482,9 @@
                     },
                     "reverseProxyCertificateThumbprint": {
                         "value": "[parameters('reverseProxyCertificateThumbprint')]"
+                    },
+                    "applicationCertificateUrlValue": {
+                        "value": "[parameters('applicationCertificateUrlValue')]"
                     },
                     "servicefabricTcpGatewayPort": {
                         "value": "[parameters('servicefabricTcpGatewayPort')]"
