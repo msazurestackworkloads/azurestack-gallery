@@ -76,14 +76,10 @@ echo 'Retrieve the AzureStack root CA certificate thumbprint'
 THUMBPRINT=$(openssl x509 -in /var/lib/waagent/Certificates.pem -fingerprint -noout | cut -d'=' -f 2 | tr -d :)
 echo 'Thumbprint for AzureStack root CA certificate:' $THUMBPRINT
 
-echo "Cloning the ACS-Engine repo/branch: msazurestackworkloads, azsmaster"
-git clone https://github.com/msazurestackworkloads/acs-engine -b azsmaster
-cd acs-engine
-
 echo "We are going to use an existing ACS-Engine binary."
 echo "Open the zip file from the repo location."
 sudo mkdir bin
-sudo tar -zxvf examples/azurestack/acs-engine.tgz
+sudo tar -zxvf acs-engine.tgz
 sudo mv acs-engine bin/
 
 echo "Checkign if acs-engine binary is available."

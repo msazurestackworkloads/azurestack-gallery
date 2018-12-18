@@ -199,6 +199,9 @@
           },
           "identitySystem": {
             "value": "[parameters('identitySystem')]"
+          },
+          "_artifactsLocation": {
+            "value": "[parameters('_artifactsLocation')]"
           }
         }
       }
