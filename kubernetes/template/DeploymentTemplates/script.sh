@@ -136,7 +136,7 @@ ENDPOINT_GALLERY=`echo $METADATA  | jq '.galleryEndpoint' | tr -d \"`
 
 echo 'Overriding the default file with the correct values in the API model or the cluster definition.'
 
-if [ -f "examples/azurestack/azurestack-kubernetes$K8S_AZURE_CLOUDPROVIDER_VERSION.json" ]
+if [ -f "azurestack-kubernetes$K8S_AZURE_CLOUDPROVIDER_VERSION.json" ]
 then
 	echo "Found azurestack-kubernetes$K8S_AZURE_CLOUDPROVIDER_VERSION.json."
 else
@@ -148,7 +148,7 @@ fi
 AZURESTACK_CONFIGURATION_TEMP="${AZURESTACK_CONFIGURATION_TEMP:-azurestack_temp.json}"
 AZURESTACK_CONFIGURATION="${AZURESTACK_CONFIGURATION:-azurestack.json}"
 echo "Copying the default file API model to $PWD."
-sudo cp examples/azurestack/azurestack-kubernetes$K8S_AZURE_CLOUDPROVIDER_VERSION.json $AZURESTACK_CONFIGURATION
+sudo cp azurestack-kubernetes$K8S_AZURE_CLOUDPROVIDER_VERSION.json $AZURESTACK_CONFIGURATION
 if [ -s "$AZURESTACK_CONFIGURATION" ] ; then
 	echo "Found $AZURESTACK_CONFIGURATION in $PWD and is > 0 bytes"
 else
@@ -182,8 +182,10 @@ jq --arg FQDN_ENDPOINT_SUFFIX $FQDN_ENDPOINT_SUFFIX '.properties.cloudProfile.re
 jq --arg REGION_NAME $REGION_NAME '.properties.cloudProfile.location = $REGION_NAME' | \
 jq --arg MASTER_DNS_PREFIX $MASTER_DNS_PREFIX '.properties.masterProfile.dnsPrefix = $MASTER_DNS_PREFIX' | \
 jq '.properties.agentPoolProfiles[0].count'=$AGENT_COUNT | \
+jq '.properties.agentPoolProfiles[0].osDiskSizeGB'=200 | \
 jq --arg AGENT_SIZE $AGENT_SIZE '.properties.agentPoolProfiles[0].vmSize=$AGENT_SIZE' | \
 jq '.properties.masterProfile.count'=$MASTER_COUNT | \
+jq '.properties.masterProfile.osDiskSizeGB'=200 | \
 jq --arg MASTER_SIZE $MASTER_SIZE '.properties.masterProfile.vmSize=$MASTER_SIZE' | \
 jq --arg IDENTITY_SYSTEM $IDENTITY_SYSTEM '.properties.cloudProfile.identitySystem=$IDENTITY_SYSTEM' | \
 jq --arg ADMIN_USERNAME $ADMIN_USERNAME '.properties.linuxProfile.adminUsername = $ADMIN_USERNAME' | \

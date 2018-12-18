@@ -309,7 +309,7 @@
         "typeHandlerVersion": "2.0",
         "autoUpgradeMinorVersion": "true",
         "protectedSettings": {
-          "commandToExecute": "[concat(variables('scriptParameters'), ' PUBLICIP_FQDN=', '\"', reference(resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName')),'2015-06-15').dnsSettings.fqdn,'\"',' /bin/bash /opt/azure/containers/script.sh >> /var/log/azure/acsengine-kubernetes-dvm.log 2>&1')]",
+          "commandToExecute": "[concat(variables('scriptParameters'), ' PUBLICIP_FQDN=', '\"', reference(resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName')),'2015-06-15').dnsSettings.fqdn,'\"',' /bin/bash script.sh >> /var/log/azure/acsengine-kubernetes-dvm.log 2>&1')]",
           "fileUris": [
             "[string(uri(parameters('_artifactsLocation'), 'script.sh'))]",
             "[string(uri(parameters('_artifactsLocation'), 'acs-engine.tgz'))]"
