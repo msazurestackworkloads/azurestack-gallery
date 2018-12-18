@@ -213,6 +213,44 @@ check_and_move_azurestack_configuration $AZURESTACK_CONFIGURATION_TEMP $AZURESTA
 
 fi
 
+ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT_AzureChina="https://login.chinacloudapi.cn/"
+
+if [ $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT == "$ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT_AzureChina" ]
+then
+	echo "Azure China: add additional parameters to redirect dependencies to Azure China cloud"
+
+	DOCKER_ENGINE_REPO="https://mirror.azk8s.cn/docker-engine/apt/repo/"
+	DOCKER_COMPOSE_DOWNLOAD_URL="https://mirror.azk8s.cn/docker-engine/apt/repo/"
+	KUBERNETES_DEPENDENCY_IMAGE_BASE="gcr.azk8s.cn/google_containers/"
+	TILLER_IMAGE_BASE="gcr.azk8s.cn/kubernetes-helm/"
+	ACI_CONNECTOR_IMAGE_BASE="dockerhub.azk8s.cn/microsoft/"
+	NVIDIA_IMAGE_BASE="dockerhub.azk8s.cn/nvidia/"
+	AZURE_CNI_IMAGE_BASE="dockerhub.azk8s.cn/containernetworking/"
+	ETCD_DOWNLOAD_URL_BASE="https://mirror.azk8s.cn/kubernetes/etcd"
+	AZURE_CNIBINARIES_BASE="https://mirror.azk8s.cn/kubernetes/azure-container-networking/"
+	CNI_PLUGINS_DOWNLOAD_URL_BASE="https://mirror.azk8s.cn/kubernetes/containernetworking-plugins/"
+	CONTAINERD_DOWNLOAD_URL_BASE="https://mirror.azk8s.cn/kubernetes/containerd/"
+	
+	KUBERNETES_BASE_ORIGIN=`cat $AZURESTACK_CONFIGURATION | jq '.properties.orchestratorProfile.kubernetesConfig.kubernetesImageBase' | tr -d "\""`
+	DOCKER_AZURE_CHINA_PROXY="dockerhub.azk8s.cn/"
+	KUBERNETES_BASE_AZURE_CHINA="$DOCKER_AZURE_CHINA_PROXY$KUBERNETES_BASE_ORIGIN"
+	sudo cat $AZURESTACK_CONFIGURATION | \
+		jq --arg KUBERNETES_BASE_AZURE_CHINA $KUBERNETES_BASE_AZURE_CHINA '.properties.orchestratorProfile.kubernetesConfig.kubernetesImageBase = $KUBERNETES_BASE_AZURE_CHINA' | \
+		jq --arg DOCKER_ENGINE_REPO $DOCKER_ENGINE_REPO '.properties.cloudProfile.dockerEngineRepo = $DOCKER_ENGINE_REPO' | \
+		jq --arg DOCKER_COMPOSE_DOWNLOAD_URL $DOCKER_COMPOSE_DOWNLOAD_URL '.properties.cloudProfile.dockerComposeDownloadURL = $DOCKER_COMPOSE_DOWNLOAD_URL' | \
+		jq --arg KUBERNETES_DEPENDENCY_IMAGE_BASE $KUBERNETES_DEPENDENCY_IMAGE_BASE '.properties.cloudProfile.kubernetesDependencyImageBase = $KUBERNETES_DEPENDENCY_IMAGE_BASE' | \
+		jq --arg TILLER_IMAGE_BASE $TILLER_IMAGE_BASE '.properties.cloudProfile.tillerImageBase = $TILLER_IMAGE_BASE' | \
+		jq --arg ACI_CONNECTOR_IMAGE_BASE $ACI_CONNECTOR_IMAGE_BASE '.properties.cloudProfile.aciConnectorImageBase = $ACI_CONNECTOR_IMAGE_BASE' | \
+		jq --arg NVIDIA_IMAGE_BASE $NVIDIA_IMAGE_BASE '.properties.cloudProfile.nvidiaImageBase = $NVIDIA_IMAGE_BASE' | \
+		jq --arg AZURE_CNI_IMAGE_BASE $AZURE_CNI_IMAGE_BASE '.properties.cloudProfile.azureCNIImageBase = $AZURE_CNI_IMAGE_BASE' | \
+		jq --arg ETCD_DOWNLOAD_URL_BASE $ETCD_DOWNLOAD_URL_BASE '.properties.cloudProfile.etcdDownloadURLBase = $ETCD_DOWNLOAD_URL_BASE' | \
+		jq --arg AZURE_CNIBINARIES_BASE $AZURE_CNIBINARIES_BASE '.properties.cloudProfile.azureCNIBinariesBase = $AZURE_CNIBINARIES_BASE' | \
+		jq --arg CNI_PLUGINS_DOWNLOAD_URL_BASE $CNI_PLUGINS_DOWNLOAD_URL_BASE '.properties.cloudProfile.cniPluginsDownloadURLBase = $CNI_PLUGINS_DOWNLOAD_URL_BASE' | \
+		jq --arg CONTAINERD_DOWNLOAD_URL_BASE $CONTAINERD_DOWNLOAD_URL_BASE '.properties.cloudProfile.containerdDownloadURLBase = $CONTAINERD_DOWNLOAD_URL_BASE' >  $AZURESTACK_CONFIGURATION_TEMP
+	check_and_move_azurestack_configuration $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION
+
+fi
+
 echo "Done building the API model based on the stamp information."
 
 MYDIR=$PWD
