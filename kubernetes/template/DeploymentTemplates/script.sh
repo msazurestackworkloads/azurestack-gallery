@@ -53,6 +53,27 @@ convert_to_cert() {
 
 }
 
+function ensureCertificates()
+{
+    echo "Updating certificates"
+    # Copying the AzureStack root certificate to the appropriate store to be updated.
+
+    AZURESTACK_ROOT_CERTIFICATE_SOURCE_PATH="/var/lib/waagent/Certificates.pem"
+    AZURESTACK_ROOT_CERTIFICATE_DEST_PATH="/usr/local/share/ca-certificates/azsCertificate.crt"
+    AZURESTACK_ROOT_CERTIFICATE_SOURCE_FINGERPRINT=`openssl x509 -in $AZURESTACK_ROOT_CERTIFICATE_SOURCE_PATH -noout -fingerprint`
+
+    sudo cp $AZURESTACK_ROOT_CERTIFICATE_SOURCE_PATH $AZURESTACK_ROOT_CERTIFICATE_DEST_PATH
+    AZURESTACK_ROOT_CERTIFICATE_DEST_FINGERPRINT=`openssl x509 -in $AZURESTACK_ROOT_CERTIFICATE_DEST_PATH -noout -fingerprint`
+
+    echo "AZURESTACK_ROOT_CERTIFICATE_SOURCE_FINGERPRINT: $AZURESTACK_ROOT_CERTIFICATE_SOURCE_FINGERPRINT"
+
+    echo "AZURESTACK_ROOT_CERTIFICATE_DEST_FINGERPRINT: $AZURESTACK_ROOT_CERTIFICATE_DEST_FINGERPRINT"
+
+    update-ca-certificates
+    AZURESTACK_RESOURCE_METADATA_ENDPOINT="$TENANT_ENDPOINT/metadata/endpoints?api-version=2015-01-01"
+    curl $AZURESTACK_RESOURCE_METADATA_ENDPOINT
+}
+
 echo "Update the system."
 retrycmd_if_failure 5 10 sudo apt-get update -y
 
@@ -67,14 +88,6 @@ retrycmd_if_failure 5 10 sudo apt-get install curl -y
 
 echo "Update the system."
 retrycmd_if_failure 5 10 sudo apt-get update -y
-
-echo 'Import the root CA to store.'
-sudo cp /var/lib/waagent/Certificates.pem /usr/local/share/ca-certificates/azsCertificate.crt
-sudo update-ca-certificates
-
-echo 'Retrieve the AzureStack root CA certificate thumbprint'
-THUMBPRINT=$(openssl x509 -in /var/lib/waagent/Certificates.pem -fingerprint -noout | cut -d'=' -f 2 | tr -d :)
-echo 'Thumbprint for AzureStack root CA certificate:' $THUMBPRINT
 
 echo "Cloning the ACS-Engine repo/branch: msazurestackworkloads, azsmaster"
 git clone https://github.com/msazurestackworkloads/acs-engine -b azsmaster
@@ -99,6 +112,12 @@ TENANT_ENDPOINT="https://management.$REGION_NAME.$EXTERNAL_FQDN"
 
 echo "EXTERNAL_FQDN is:$EXTERNAL_FQDN"
 echo "TENANT_ENDPOINT is:$TENANT_ENDPOINT"
+
+retrycmd_if_failure 20 30 ensureCertificates
+
+echo 'Retrieve the AzureStack root CA certificate thumbprint'
+THUMBPRINT=$(openssl x509 -in /var/lib/waagent/Certificates.pem -fingerprint -noout | cut -d'=' -f 2 | tr -d :)
+echo 'Thumbprint for AzureStack root CA certificate:' $THUMBPRINT
 
 SUFFIXES_STORAGE_ENDPOINT=$REGION_NAME.$EXTERNAL_FQDN
 SUFFIXES_KEYVAULT_DNS=.vault.$REGION_NAME.$EXTERNAL_FQDN
