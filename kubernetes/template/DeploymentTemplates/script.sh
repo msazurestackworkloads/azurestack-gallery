@@ -89,8 +89,8 @@ retrycmd_if_failure 5 10 sudo apt-get install curl -y
 echo "Update the system."
 retrycmd_if_failure 5 10 sudo apt-get update -y
 
-echo "Cloning the ACS-Engine repo/branch: msazurestackworkloads, azsmaster"
-git clone https://github.com/msazurestackworkloads/acs-engine -b azsmaster
+echo "Cloning the ACS-Engine repo/branch: msazurestackworkloads, release-azs-1811"
+git clone https://github.com/msazurestackworkloads/acs-engine -b release-azs-1811
 cd acs-engine
 
 echo "We are going to use an existing ACS-Engine binary."
