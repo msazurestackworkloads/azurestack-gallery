@@ -3,49 +3,49 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "linuxAdminUsername": {
-      "value": "azureuser"
+      "value": ""
     },
     "sshPublicKey": {
-      "value": "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEA1LHItRXufolutseN1qqBlid3Pckb4BPQAwDceaJNVmyuGdij3IHfTZnh2/RtNIQqBW+hvHhLg23/Obds0eJ+EQ3eDVsK5f7vM9F4I+tP3G0tEjlWB/3e27EwA8g2dfq6oSSPqHL6fIfGcq87Z3YUrXB2okVT+pytgrQo4OAEPplWI1EF7w8G9RsMQ/4bGeaXP5VyZoGdKsfCY8RST8x/jf2P2Kup5WqjpxmQYhlo0wvHnVVN6qvByoxhDB3TlndREUPaYcSbX4Cq75OOlCU6BonBJkuGr2oqjbFHWt+PdWMTRI0uD29vphcFPL5ENayC3V2jXWwgjZSLwsfyWWQuhQ== rsa-key-20190103"
+      "value": ""
     },
     "masterProfileDnsPrefix": {
-      "value": "testabc3"
+      "value": ""
     },
     "agentPoolProfileCount": {
       "value": 1
     },
     "agentPoolProfileVMSize": {
-      "value": "Standard_D2_v2"
+      "value": ""
     },
     "masterPoolProfileCount": {
       "value": 2
     },
     "masterPoolProfileVMSize": {
-      "value": "Standard_D2_v2"
+      "value": ""
     },
     "storageProfile": {
-      "value": "BlobDisk"
+      "value": ""
     },
     "servicePrincipalClientId": {
-      "value": "6b9c8c70-e5f4-4b17-9a80-13c14d67b0b9"
+      "value": ""
     },
     "servicePrincipalClientSecret": {
-      "value": "servicePrincipalClientSecret"
+      "value": ""
     },
     "kubernetesAzureCloudProviderVersion": {
-      "value": "1.11"
+      "value": ""
     },
     "servicePrincipalKeyVaultResourceGroup": {
-      "value": "testgroup"
+      "value": ""
     },
     "servicePrincipalKeyVaultName": {
-      "value": "testvault"
+      "value": ""
     },
     "servicePrincipalCertificateKeyVaultSecretName": {
-      "value": "admincert"
+      "value": ""
     },
     "identitySystem": {
-      "value": "ADFS"
+      "value": ""
     }
   }
 }
