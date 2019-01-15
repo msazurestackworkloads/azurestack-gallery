@@ -69,10 +69,17 @@
       },
       "type": "securestring"
     },
-    "servicePrincipalCertificateKeyVaultId": {
-      "defaultValue": "servicePrincipalCertificateKeyVaultId",
+    "servicePrincipalKeyVaultName": {
+      "defaultValue": "servicePrincipalKeyVaultName",
       "metadata": {
-        "description": "the service Principal Certificate KeyVault Id"
+        "description": "the service Principal Certificate KeyVault Name"
+      },
+      "type": "string"
+    },
+    "servicePrincipalKeyVaultResourceGroup": {
+      "defaultValue": "servicePrincipalKeyVaultResourceGroup",
+      "metadata": {
+        "description": "the service Principal Certificate KeyVault Resource"
       },
       "type": "string"
     },
@@ -135,10 +142,11 @@
     "networkSecurityGroupName": "[tolower(concat('vmd-nsg',uniquestring(resourceGroup().id)))]",
     "sshKeyPath": "[concat('/home/',parameters('linuxAdminUsername'),'/.ssh/authorized_keys')]",
     "tenantSubscriptionId": "[subscription().subscriptionId]",
+    "servicePrincipalCertificateKeyVaultId":"[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('servicePrincipalKeyVaultResourceGroup'),'/providers/Microsoft.KeyVault/vaults/',parameters('servicePrincipalKeyVaultName'))]",
     "servicePrincipalClientSecretCert": {
       "reference": {
         "keyVault": {
-          "id": "[parameters('servicePrincipalCertificateKeyVaultId')]"
+          "id": "[variables('servicePrincipalCertificateKeyVaultId')]"
         },
         "secretName": "[parameters('servicePrincipalCertificateKeyVaultSecretName')]"
       }
@@ -189,7 +197,7 @@
           },
           "servicePrincipalClientSecret": "[if(equals(parameters('identitySystem'), 'AzureAD'), variables('servicePrincipalClientSecretJSON') , variables('servicePrincipalClientSecretCert'))]",
           "servicePrincipalCertificateKeyVaultId": {
-            "value": "[parameters('servicePrincipalCertificateKeyVaultId')]"
+            "value": "[variables('servicePrincipalCertificateKeyVaultId')]"
           },
           "servicePrincipalCertificateKeyVaultSecretName": {
             "value": "[parameters('servicePrincipalCertificateKeyVaultSecretName')]"
