@@ -64,7 +64,7 @@ sudo mkdir bin
 sudo tar -zxvf examples/azurestack/acs-engine.tgz
 sudo mv acs-engine bin/
 
-echo "Checkign if acs-engine binary is available."
+echo "Checking if acs-engine binary is available."
 if [ -f "./bin/acs-engine" ] ; then
 	echo "Found acs-engine.exe"
 else
@@ -141,7 +141,7 @@ sudo ./bin/acs-engine deploy --resource-group $RESOURCE_GROUP_NAME --azure-env $
 
 echo "Templates output directory is $PWD/_output/$MASTER_DNS_PREFIX"
 
-echo "Ending deploying  Kubernetes cluster."
+echo "Ending deploying Kubernetes cluster."
 
 
 
