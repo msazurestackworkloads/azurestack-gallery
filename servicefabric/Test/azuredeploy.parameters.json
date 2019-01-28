@@ -39,13 +39,13 @@
       "value": ""
     },
     "clusterCertificateThumbprint": {
-      "value": "0984053b9639215d278a0e4b4ab1120e75057463"
+      "value": "E1DE3257117B5DCADCD176C6D989236EB96464B9"
     },
 	"serverCertificateUrlValue": {
       "value": ""
     },
     "serverCertificateThumbprint": {
-      "value": "0984053b9639215d278a0e4b4ab1120e75057463"
+      "value": "E1DE3257117B5DCADCD176C6D989236EB96464B9"
     },
     "reverseProxyCertificateUrlValue": {
       "value": ""
@@ -54,7 +54,7 @@
       "value": ""
     },
     "adminClientCertificateThumbprints": {
-      "value": "0272251171BA32CEC7938A65B8A6A553AA2D3283"
+      "value": "650EBE07FD7596F8778E16896983D3ACD456F5F5"
     },
     "nonAdminClientCertificateThumbprints": {
       "value": ""
