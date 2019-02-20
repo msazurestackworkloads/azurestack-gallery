@@ -141,7 +141,4 @@ sudo ./bin/acs-engine deploy --resource-group $RESOURCE_GROUP_NAME --azure-env $
 
 echo "Templates output directory is $PWD/_output/$MASTER_DNS_PREFIX"
 
-echo "Ending deploying Kubernetes cluster."
-
-
-
+echo "Deployment completed."
