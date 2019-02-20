@@ -1,86 +1,37 @@
-The Azure Container Service Engine (acs-engine) generates ARM (Azure Resource Manager) templates for Docker enabled clusters on Microsoft Azure with  Kubernetes.
+# Microsoft Azure Container Service Engine - Builds Docker Enabled Clusters
 
-We have modified acs-engine to work with AzureStack. Please follow the steps below try Kubernetes
-================================================================================
-This template deploys a Linux VM, clones and AzureStack forked ACS-Engine repo/branch, generate the ACS-Engine templates and deploys them from the linux VM.
+The Azure Container Service Engine (acs-engine) generates ARM (Azure Resource Manager) templates for Docker enabled clusters on Microsoft Azure.
 
-1) Prerequistes:
-	a) You need to be able to create SPN (applications) in your tenant AAD (in Azure portal) for Kubernetes deployment. 
-	   Following can be used to check if you have appropriate permissions:
-	   https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-create-service-principal-portal#check-azure-active-directory-permissions
+This fork should be used to deploy Kubernetes cluster to Microsoft Azure Stack instances. At the moment, only the `generate` and `deploy` commands are supported on Azure Stack. Supporting the remaining commands is already on the team's backlog.
 
-	b) Create an SPN in your AAD in Azure portal: 
-	   https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-create-service-principal-portal#create-an-azure-active-directory-application
+# How to Deploy a Kubernetes Cluster
 
-	b) SSH key is required to login to the Linux VMs. You would need to pass the public key to the template inputs.
-	   https://github.com/msazurestackworkloads/acs-engine/blob/master/docs/ssh.md#ssh-key-generation
+The easiest way to deploy a Kubernetes cluster is through the Kubernetes Cluster marketplace item. The marketplace item deploys a Linux virtual machine, clones AzureStack's fork, generate the ACS-Engine templates and deploys them from the Linux virtual machine.
 
-	c) Ensure that the latest Ubuntu image is added from marketplace,
-    Publisher = "Canonical"
-    Offer = "UbuntuServer"
-    SKU = "16.04-LTS"
-    OSType = "Linux"
+1. You need an Azure Service Principal (applications) from your tenant Azure Active Directory (Azure portal)
+    1. Create a SPN in your AAD in Azure portal ([instructions](https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-create-service-principal-portal#create-an-azure-active-directory-application))
+    2. Make sure your SPN has the [required permissions](https://docs.microsoft.com/en-us/azure/active-directory/develop/howto-create-service-principal-portal#check-azure-active-directory-permissions)
+2. SSH keys are required to remote into the cluster nodes. Follow this [link](https://github.com/msazurestackworkloads/acs-engine/blob/master/docs/ssh.md#ssh-key-generation) if you need help creating the SSH keys
+3. Add/upgrade the following items from Marketplace Management
+    - Canonical's Ubuntu Server 16.04 LST
+    - Custom Script for Linux 2.0
+    - Kubernetes Cluster
+4. Ensure that you have a valid subscription in your Azure Stack tenant portal (with enough Public IPs quota to try out a few applications)
+5. Ensuring that the service principal has [access to the subscription](https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-create-service-principal-portal#assign-application-to-role) in your AzureStack tenant portal.
+6. Deploy the Kubernetes Cluster marketplace item. This should roughly take 30 mins.
 
-	d) You also need to download Custom Script for Linux, 2.0.6 from the marketplace.
+# Troubleshooting:
+- If you hit any issues during cluster deployment, log into the deployment virtual machine named "vmd-(resource group name)" and check the deployment log file `/var/log/azure/acsengine-kubernetes-dvm.log`
 
-	e) Add the marketplace item, azpkg to admin portal using:
-	
-	Add-AzureRmEnvironment -Name "AzureStackUser" -ArmEndpoint "https://adminmanagement.local.azurestack.external"
-	
-	$TenantID="5308332c-26e2-4fdb-9beb-e883a706bc08"
+- If you need to deploy a new cluster, make sure to modify `masterProfileDnsPrefix` so that you can have a unique DNS name.
 
-	$UserName='ciserviceadmin@msazurestack.onmicrosoft.com'
+# Additional Resources
 
-	$Password='Password'| ConvertTo-SecureString -Force -AsPlainText
-	
-	$Credential= New-Object PSCredential($UserName,$Password)
-	
-	Login-AzureRmAccount -EnvironmentName "AzureStackUser" -TenantId $TenantID -Credential $Credential
-
-	Select-AzureRmSubscription -Subscription "Default Provider Subscription"
-
-	Add-AzsGalleryItem -GalleryItemUri "https://azurestacktemplate.blob.core.windows.net/kubernetes/Microsoft.AzureStackKubernetesCluster.0.3.0.azpkg" 
-
-	Please wait atleast 5 mins for the item to show up in marketplace in Tenant portal. It will show up with the name "Kubernetes Cluster".
-	
-	If you have already added the marketplace item once don't forget to remove it first to update to new one:
-	Remove-AzsGalleryItem -Name "Microsoft.AzureStackKubernetesCluster.0.1.0"
-
-2) Ensure that you have a valid subscription in your AzureStack tenant portal (with enough public IP quota to try few applications).
-
-3) Ensuring that the service principal has access to the subcription in your AzureStack tenant portal.
-   https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-create-service-principal-portal#assign-application-to-role
-
-4) Deploy the marketplace item. This should roughly take 30 mins.
-Troubleshooting:
-	a) If you hit any issues with deployment first thing to check is: 
-	
-	Login to the deployment VM with name "vmd-(resource group name)" using Putty/SSH and read the following logs:
-		
-	/var/log/azure/acsengine-kubernetes-dvm.log
-
-5) If you need to deploy ANOTHER deployment, modify masterProfileDnsPrefix (so that you can have a unique DNS name) and repeat all the above steps.
-
-6) Try a few applications by installing Helm
-
-Helm Installation: https://github.com/kubernetes/helm/blob/master/docs/install.md#from-script
-
-Wordpress Installation (using Helm): helm install stable/wordpress
-
-================================================================================
-
-Here are some important links:
-1) Modifed ACS-Engine repo: 
-	https://github.com/msazurestackworkloads/acs-engine/tree/acs-engine-v0209-1809
-
-2) Linux binary: 
-	https://github.com/msazurestackworkloads/acs-engine/tree/acs-engine-v0209-1809/examples/azurestack/acs-engine.tgz
-
-3) Example of working JSON (API model): 
-	https://github.com/msazurestackworkloads/acs-engine/tree/acs-engine-v0209-1809/examples/azurestack/azurestack-kubernetes1.11.json
-
-4) To learn more about generating templates using ACS-Engine refer to ACS Engine: 
-	https://github.com/msazurestackworkloads/acs-engine/blob/master/docs/kubernetes.md
-
-
-
+- ACS-Engine fork:
+  https://github.com/msazurestackworkloads/acs-engine/tree/acs-engine-v0209-1809
+- Linux binaries:
+  https://github.com/msazurestackworkloads/acs-engine/tree/acs-engine-v0209-1809/examples/azurestack/acs-engine.tgz
+- Sample API model:
+  https://github.com/msazurestackworkloads/acs-engine/tree/acs-engine-v0209-1809/examples/azurestack/azurestack-kubernetes1.11.json
+- Learn more about generating templates using ACS-Engine refer to ACS Engine
+  https://github.com/msazurestackworkloads/acs-engine/blob/master/docs/kubernetes.md
