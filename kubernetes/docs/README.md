@@ -2,7 +2,7 @@
 
 The Azure Container Service Engine (acs-engine) generates ARM (Azure Resource Manager) templates for Docker enabled clusters on Microsoft Azure.
 
-This fork should be used to deploy Kubernetes cluster to Microsoft Azure Stack instances. At the moment, only the `generate` and `deploy` commands are supported on Azure Stack. Supporting the remaining commands is already on the team's backlog.
+This fork should be used to deploy Kubernetes cluster to Microsoft Azure Stack instances. At the moment, only the `generate` and `deploy` commands are supported on Azure Stack. We are working on adding support for the `scale` and `upgrade` commands.
 
 # How to Deploy a Kubernetes Cluster
 
