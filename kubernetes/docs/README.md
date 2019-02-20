@@ -2,11 +2,11 @@
 
 The Azure Container Service Engine (acs-engine) generates ARM (Azure Resource Manager) templates for Docker enabled clusters on Microsoft Azure.
 
-This fork should be used to deploy Kubernetes cluster to Microsoft Azure Stack instances. At the moment, only the `generate` and `deploy` commands are supported on Azure Stack. We are working on adding support for the `scale` and `upgrade` commands.
+This [fork](https://github.com/msazurestackworkloads/acs-engine) should be used to deploy Kubernetes cluster to Microsoft Azure Stack instances. At the moment, only the `generate` and `deploy` commands are supported on Azure Stack. We are working on adding support for the `scale` and `upgrade` commands.
 
 # How to Deploy a Kubernetes Cluster
 
-The easiest way to deploy a Kubernetes cluster is through the Kubernetes Cluster marketplace item. The marketplace item deploys a Linux virtual machine, clones AzureStack's fork, generate the ACS-Engine templates and deploys them from the Linux virtual machine.
+The easiest way to deploy a Kubernetes cluster is through the Kubernetes Cluster marketplace item. This marketplace item wraps acs-engine in order to simplify its usage. Behind the scenes, it deploys a Linux virtual machine, clones AzureStack's fork, generate the ACS-Engine templates and deploys them from the Linux virtual machine.
 
 1. You need an Azure Service Principal (applications) from your tenant Azure Active Directory (Azure portal)
     1. Create a SPN in your AAD in Azure portal ([instructions](https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-create-service-principal-portal#create-an-azure-active-directory-application))
