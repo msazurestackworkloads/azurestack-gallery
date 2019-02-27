@@ -36,7 +36,7 @@ else
 fi
 
 
-DVMCUSTOMSCRIPTLOG=`ls /var/log/azure/*.log | head -n 1`
+DVMCUSTOMSCRIPTLOG="/var/log/azure/deploy-script-dvm.log"
 if [ -f $DVMCUSTOMSCRIPTLOG ]; then
     sudo cp $DVMCUSTOMSCRIPTLOG $LOGDIRECTORY/
 else

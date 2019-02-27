@@ -74,9 +74,8 @@ check_and_move_azurestack_configuration() {
 #   	Create cert and key from a given secret.
 #   </summary>
 #	<param name="1">Service principle secret.</param>
-#	<param name="2">Certificate PFX file location.</param>
-#	<param name="3">Cert location.</param>
-#	<param name="4">Key location.</param>
+#	<param name="2">Certificate PFX file name.</param>
+#	<param name="3">Certificate PEM file name.</param>
 #	<returns>None</returns>
 #	<exception>None</exception>
 #	<remarks>Called within same scripts.</remarks>
@@ -92,11 +91,8 @@ convert_to_cert() {
 	log_output -i "Extracting the password."
     PASSWORD=$(cat cert.json | jq '.password' | tr -d \")
 
-    log_output -i "Converting data into certificate."
-    openssl pkcs12 -in $2 -clcerts -nokeys -out $3 -passin pass:$PASSWORD
-
-    log_output -i "Converting data into key."
-    openssl pkcs12 -in $2 -nocerts -nodes -out $4 -passin pass:$PASSWORD
+	log_output -i "Converting data into pem format."
+	openssl pkcs12 -in $2 -nodes -passin pass:$PASSWORD -out $3
 }
 
 ### 
@@ -249,7 +245,7 @@ log_output -i "TENANT_ENDPOINT is:$TENANT_ENDPOINT"
 retrycmd_if_failure 20 30 ensureCertificates
 
 #####################################################################################
-# Section to create API modle file for AKS-Engine.
+# Section to create API model file for AKS-Engine.
 
 # First check if API model file exist else exit.
 log_output -i "Overriding default file with correct values in API model or cluster definition."
@@ -284,17 +280,15 @@ if [ $IDENTITY_SYSTEM == "ADFS" ] ; then
 	ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT=`echo $METADATA  | jq '.authentication.loginEndpoint' | tr -d \" | sed -e 's/adfs*$//' | tr -d \" `
 	log_output -i "Active directory endpoint is: $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT"
 	
-	# Parse SPN_CLIENT_SECRET to get pfx and password
-	# Convert pfx to cert and key 	
-	log_output -i "Parsing secret to get cert and pfx for ADFS scenario."
-	CERTIFICATE_LOCATION="spnauth.crt"
-	KEY_LOCATION="spnauth.key"
+	# Parse SPN_CLIENT_SECRET to get pfx and password and generate pem using PFX
+	log_output -i "Parsing secret to get pem and pfx for ADFS scenario."
 	CERTIFICATE_PFX_LOCATION="spnauth.pfx"
-	convert_to_cert $SPN_CLIENT_SECRET $CERTIFICATE_PFX_LOCATION $CERTIFICATE_LOCATION $KEY_LOCATION 
-	log_output -i "Able to get PFX value in : '$CERTIFICATE_PFX_LOCATION'  and cert location in '$CERTIFICATE_LOCATION'."
+	CERTIFICATE_PEM_LOCATION="spnauth.pem"
+	convert_to_cert $SPN_CLIENT_SECRET $CERTIFICATE_PFX_LOCATION $CERTIFICATE_PEM_LOCATION
+	log_output -i "Able to get PFX value in : '$CERTIFICATE_PFX_LOCATION'  and pem value in '$CERTIFICATE_PEM_LOCATION'."
 	
 else
-	log_output -i "In AAD section to get get(Active_Directory_Endpoint) configurations.."
+	log_output -i "In AAD section to get(Active_Directory_Endpoint) configurations.."
 	ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT=`echo $METADATA  | jq '.authentication.loginEndpoint' | tr -d \"`
 	log_output -i "Active directory endpoint is: $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT"
 fi
@@ -335,12 +329,16 @@ check_and_move_azurestack_configuration $AZURESTACK_CONFIGURATION_TEMP $AZURESTA
 
 if [ $IDENTITY_SYSTEM == "ADFS" ] ; then
 	log_output -i "In ADFS section to update (servicePrincipalProfile, authenticationMethod ) configurations."
-	sudo cat $AZURESTACK_CONFIGURATION | jq --arg IDENTITY_SYSTEM $IDENTITY_SYSTEM '.properties.customCloudProfile.identitySystem=$IDENTITY_SYSTEM' | \
+	IDENTITY_SYSTEM_LOWER=`echo "$IDENTITY_SYSTEM" | tr '[:upper:]' '[:lower:]'`
+	sudo cat $AZURESTACK_CONFIGURATION | jq --arg IDENTITY_SYSTEM_LOWER $IDENTITY_SYSTEM_LOWER '.properties.customCloudProfile.identitySystem=$IDENTITY_SYSTEM_LOWER' | \
 	jq --arg authenticationMethod "client_certificate" '.properties.customCloudProfile.authenticationMethod=$authenticationMethod' | \
 	jq --arg SPN_CLIENT_ID $SPN_CLIENT_ID '.properties.servicePrincipalProfile.clientId = $SPN_CLIENT_ID' | \
 	jq --arg SPN_CLIENT_SECRET_KEYVAULT_ID $SPN_CLIENT_SECRET_KEYVAULT_ID '.properties.servicePrincipalProfile.keyvaultSecretRef.vaultID = $SPN_CLIENT_SECRET_KEYVAULT_ID' | \
 	jq --arg SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME $SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME '.properties.servicePrincipalProfile.keyvaultSecretRef.secretName = $SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME' >  $AZURESTACK_CONFIGURATION_TEMP
-
+	
+	log_output -i "Append adfs back to Active directory endpoint as it is required in Azure CLI to register and login."
+	ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT=${ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT}adfs
+	log_output -i "Final ACTIVE_DIRECTORY endpoint value for adfs is: $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT."
 else
 	log_output -i "In AAD section to update (servicePrincipalProfile ) configurations."
 	sudo cat $AZURESTACK_CONFIGURATION | jq --arg SPN_CLIENT_ID $SPN_CLIENT_ID '.properties.servicePrincipalProfile.clientId = $SPN_CLIENT_ID' | \
@@ -353,19 +351,19 @@ check_and_move_azurestack_configuration $AZURESTACK_CONFIGURATION_TEMP $AZURESTA
 log_output -i "Completed building API model file based on passed stamp information and other parameters."
 
 #####################################################################################
-# Section to login using Azure CLI.
+# Section to gernate Arm template using AKS Engine, login using Azure CLI and deploy the template.
 # https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-version-profiles-azurecli2#connect-to-azure-stack
 HYBRID_PROFILE=2018-03-01-hybrid
-log_output -i "Register to AzureStack cloud."
+log_output -i "Register to AzureStack cloud using below command."
 retrycmd_if_failure 5 10 az cloud register -n $ENVIRONMENT_NAME --endpoint-resource-manager $TENANT_ENDPOINT --suffix-storage-endpoint $SUFFIXES_STORAGE_ENDPOINT --suffix-keyvault-dns $SUFFIXES_KEYVAULT_DNS --endpoint-active-directory-resource-id $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID --endpoint-active-directory $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT --endpoint-active-directory-graph-resource-id $ENDPOINT_GRAPH_ENDPOINT
 log_output -i "Set Azure stack environment."
 retrycmd_if_failure 5 10 az cloud set -n $ENVIRONMENT_NAME
-log_output -i "Update cloud profile."
+log_output -i "Update cloud profile with value: $HYBRID_PROFILE."
 retrycmd_if_failure 5 10 az cloud update --profile $HYBRID_PROFILE
 
 if [ $IDENTITY_SYSTEM == "ADFS" ] ; then
-	log_output -i "Login to ADFS environment using Azure CLI."	
-	retrycmd_if_failure 5 10 az login --service-principal  -u $SPN_CLIENT_ID  -p $CERTIFICATE_LOCATION --tenant $TENANT_ID --debug 
+	log_output -i "Login to ADFS environment using Azure CLI."
+	retrycmd_if_failure 5 10 az login --service-principal -u $SPN_CLIENT_ID  -p $PWD/$CERTIFICATE_PEM_LOCATION --tenant $TENANT_ID
 else
 	log_output -i "Login to AAD environment using Azure CLI."
 	retrycmd_if_failure 5 10 az login --service-principal -u $SPN_CLIENT_ID -p $SPN_CLIENT_SECRET --tenant $TENANT_ID
@@ -377,7 +375,7 @@ retrycmd_if_failure 5 10 az account set --subscription $TENANT_SUBSCRIPTION_ID >
 log_output -i "Generate ARM template using AKS-Engine."
 retrycmd_if_failure 5 10 sudo ./bin/aks-engine generate $AZURESTACK_CONFIGURATION
 
-log_output -i "ARM template generated at $PWD/_output/$MASTER_DNS_PREFIX. Now changing the directory to arm generated dir."
+log_output -i "ARM template generated at $PWD/_output/$MASTER_DNS_PREFIX directory. Now changing current path to given arm template directory."
 cd $PWD/_output/$MASTER_DNS_PREFIX 
 
 log_output -i "Deploy the template."
