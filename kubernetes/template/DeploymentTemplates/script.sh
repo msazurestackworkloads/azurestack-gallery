@@ -21,7 +21,7 @@ log_level()
           ;;
        *)  echo "$(date) [Verbose]: " ${@:2}
           ;;
-       esac
+    esac
 }
 
 ### 
@@ -57,16 +57,16 @@ retrycmd_if_failure()
 ###
 check_and_move_azurestack_configuration() {
 
-       if [ -s $1 ] ; then
-              log_level -i "Found '$1' in path '$PWD' and is greater than zero bytes."
-       else
-              log_level -e "File '$1' does not exist in '$PWD' or is zero length. Error happend during building input API model or cluster definition."
-              exit 1
-       fi
+    if [ -s $1 ] ; then
+        log_level -i "Found '$1' in path '$PWD' and is greater than zero bytes."
+    else
+        log_level -e "File '$1' does not exist in '$PWD' or is zero length. Error happend during building input API model or cluster definition."
+        exit 1
+    fi
        
-       log_level -i "Moving file '$1' to '$2'"
-       sudo mv $1 $2
-       log_level -i "Completed creating API model file with given stamp information."
+    log_level -i "Moving file '$1' to '$2'"
+    sudo mv $1 $2
+    log_level -i "Completed creating API model file with given stamp information."
 }
 
 ### 
