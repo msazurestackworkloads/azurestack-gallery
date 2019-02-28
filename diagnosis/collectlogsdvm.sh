@@ -36,7 +36,7 @@ else
 fi
 
 
-DVMCUSTOMSCRIPTLOG="/var/log/azure/acsengine-kubernetes-dvm.log"
+DVMCUSTOMSCRIPTLOG="/var/log/azure/deploy-script-dvm.log"
 if [ -f $DVMCUSTOMSCRIPTLOG ]; then
     sudo cp $DVMCUSTOMSCRIPTLOG $LOGDIRECTORY/
 else
