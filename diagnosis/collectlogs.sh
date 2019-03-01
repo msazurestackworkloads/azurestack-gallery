@@ -1,105 +1,84 @@
-#!/bin/bash
+#! /bin/bash
 
-LOGDIRECTORY="$HOME/kuberneteslogs/$HOSTNAME"
-CURRENTUSER=$(whoami)
-LOGCOLLECTOUTPUTFILE="log_output.log"
+NOW=`date +%Y%m%d%H%M%S`
+LOGDIRECTORY="$HOSTNAME-$NOW"
+LOGFILENAME="kube_logs.tar.gz"
+TRACEFILENAME="$LOGDIRECTORY/collector_trace"
+ERRFILENAME="$LOGDIRECTORY/ERRORS.txt"
+CURRENTUSER=`whoami`
 
-if [ -d "$LOGDIRECTORY" ]; then
-    printf "$(date -u) found old logs at $LOGDIRECTORY, removing $LOGDIRECTORY"
-    sudo rm -r -f $LOGDIRECTORY
-    mkdir -p $LOGDIRECTORY
-else
-    mkdir -p $LOGDIRECTORY
-fi
+if [[ $HOSTNAME == k8s-master* ]]; then ISMASTER=true; else ISMASTER=false; fi
 
-printf " $(date -u) Start log collection \n\n" >> $LOGDIRECTORY/$LOGCOLLECTOUTPUTFILE
+mkdir $LOGDIRECTORY
 
-printf "$(date -u) Gather linux logs into $LOGDIRECTORY" >> $LOGDIRECTORY/$LOGCOLLECTOUTPUTFILE
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Cleaning up old temp logs" | tee -a $TRACEFILENAME
+sudo rm -f $LOGFILENAME
 
-if [ -d "$LOGDIRECTORY" ]; then
-    printf " $(date -u) found old logs at $LOGDIRECTORY, removing $LOGDIRECTORY" >> $LOGDIRECTORY/$LOGCOLLECTOUTPUTFILE
-    sudo rm -r -f $LOGDIRECTORY
-    mkdir $LOGDIRECTORY
-else
-    mkdir $LOGDIRECTORY
-fi
+# Loading common functions
+source ./common.sh $ERRFILENAME
 
-SYSLOGPATH="/var/log/syslog"
-printf "copying $SYSLOGPATH \n"
-sudo cp $SYSLOGPATH $LOGDIRECTORY/
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Starting log collection" | tee -a $TRACEFILENAME
 
-WAAGENTPATH="/var/lib/waagent"
-printf "copying $WAAGENTPATH \n"
-if [ -d $WAAGENTPATH ]; then
-    sudo find $WAAGENTPATH &> $LOGDIRECTORY/"waagentfilelist"
-else
-    printf " $(date -u) waagent folder $WAAGENTPATH does not exist" >> $LOGDIRECTORY/$LOGCOLLECTOUTPUTFILE
-fi
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for syslog file" | tee -a $TRACEFILENAME
+try_copy_file /var/log/syslog $LOGDIRECTORY/
 
-WAAGENTLOGPATH="/var/log/waagent.log"
-printf "copying $WAAGENTLOGPATH \n"
-if [ -f $WAAGENTLOGPATH ]; then
-    sudo cp $WAAGENTLOGPATH $LOGDIRECTORY/
-else
-    printf " $(date -u) can not find waagent log at $WAAGENTLOGPATH " >> $LOGDIRECTORY/$LOGCOLLECTOUTPUTFILE
-fi
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Dumping Microsoft Azure Linux Agent (waagent) directory tree" | tee -a $TRACEFILENAME
+try_print_directory_tree /var/lib/waagent $LOGDIRECTORY/waagent.tree
 
-CLOUDINITLOG="/var/log/cloud-init.log"
-printf "copying $CLOUDINITLOG \n"
-if [ -f $CLOUDINITLOG ]; then
-    sudo cp $CLOUDINITLOG $LOGDIRECTORY/
-else
-    printf " $(date -u) can not find cloud init log at $CLOUDINITLOG " >> $LOGDIRECTORY/$LOGCOLLECTOUTPUTFILE
-fi
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for Microsoft Azure Linux Agent (waagent) log file" | tee -a $TRACEFILENAME
+try_copy_file /var/log/waagent.log $LOGDIRECTORY/
 
-MASTERCUSTOMSCRIPTLOG="/var/log/azure"
-printf "copying $MASTERCUSTOMSCRIPTLOG \n"
-if [ -d $MASTERCUSTOMSCRIPTLOG ]; then
-    sudo cp -r $MASTERCUSTOMSCRIPTLOG $LOGDIRECTORY/
-else
-    printf " $(date -u) can not find master custom log at $MASTERCUSTOMSCRIPTLOG " >> $LOGDIRECTORY/$LOGCOLLECTOUTPUTFILE
-fi
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for cloud-init log files" | tee -a $TRACEFILENAME
+try_copy_file /var/log/cloud-init.log $LOGDIRECTORY/
+try_copy_file /var/log/cloud-init-output.log $LOGDIRECTORY/
 
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for CSE directory" | tee -a $TRACEFILENAME
+mkdir -p $LOGDIRECTORY/cse/
+try_copy_directory_content /var/log/azure/ $LOGDIRECTORY/cse
+try_copy_file /opt/m $LOGDIRECTORY/cse/
 
-ETCDSETUPLOG="/opt/azure/containers/setup-etcd.log"
-printf "copying $ETCDSETUPLOG \n"
-if [ -f $ETCDSETUPLOG ]; then
-    sudo cp $ETCDSETUPLOG $LOGDIRECTORY/
-else
-    printf " $(date -u) can not find ETCD setup log at $ETCDSETUPLOG " >> $LOGDIRECTORY/$LOGCOLLECTOUTPUTFILE
-fi
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Dumping running container list" | tee -a $TRACEFILENAME
+sudo docker ps &> $LOGDIRECTORY/containers.list
 
-OPERATIONM="/opt/m"
-printf "copying $OPERATIONM \n"
-if [ -f $OPERATIONM ]; then
-    sudo cp $OPERATIONM $LOGDIRECTORY/
-else
-    printf " $(date -u) can not find operation log at $OPERATIONM " >> $LOGDIRECTORY/$LOGCOLLECTOUTPUTFILE
-fi
-
-printf " $(date -u) Getting container instance and logs \n" >> $LOGDIRECTORY/$LOGCOLLECTOUTPUTFILE
-
-sudo docker ps &> $LOGDIRECTORY/containerList.log
-for var in $(docker ps -a -q)
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for containers logs" | tee -a $TRACEFILENAME
+mkdir -p $LOGDIRECTORY/containers/
+for cid in $(docker ps -a -q --no-trunc)
 do
-    sudo docker logs $var &> $LOGDIRECTORY/$var.log
+    sudo docker inspect $cid &> $LOGDIRECTORY/containers/$cid.json
+    clog=`docker inspect --format='{{.LogPath}}' $cid`
+    sudo cp -f $clog $LOGDIRECTORY/containers/$cid.log
 done
 
-printf "Getting Kubernetes cluster log \n"
-sudo journalctl  &> $LOGDIRECTORY/journalctl.log
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Dumping kubelet service status and journal" | tee -a $TRACEFILENAME
+if systemctl list-units | grep -q kubelet.service; then
+    sudo systemctl show kubelet &> $LOGDIRECTORY/kubelet_status.log
+    sudo journalctl -u kubelet &> $LOGDIRECTORY/kubelet_journal.log
 
-if systemctl list-units | grep kubelet.service
-then
-    sudo systemctl status kubelet &> $LOGDIRECTORY/kubeletstatus.log
-    sudo journalctl -u kubelet &> $LOGDIRECTORY/kubelet.log
+    if systemctl is-active --quiet kubelet.service | grep inactive; then
+        echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] The kubelet service is not running" | tee -a $ERRFILENAME
+    fi
+else
+    echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] The kubelet service is not installed" | tee -a $ERRFILENAME
 fi
 
-if systemctl list-units | grep etcd.service
-then
-    sudo systemctl status etcd &> $LOGDIRECTORY/etcdstatus.log
-    sudo journalctl -u etcd &> $LOGDIRECTORY/etcd.log
+if [ "$ISMASTER" = true ]; then
+    if systemctl list-units | grep -q etcd.service; then
+        echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Dumping etcd service status and journal" | tee -a $TRACEFILENAME
+        sudo systemctl show etcd &> $LOGDIRECTORY/etcd_status.log
+        sudo journalctl -u etcd &> $LOGDIRECTORY/etcd_journal.log
+
+        if systemctl is-active --quiet etcd.service | grep inactive; then
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] The etcd service is not running" | tee -a $ERRFILENAME
+        fi
+    else
+        echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] The etcd service is not installed" | tee -a $ERRFILENAME        
+    fi
 fi
 
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Compressing logs into $LOGFILENAME" | tee -a $TRACEFILENAME
 sudo chown -R $CURRENTUSER $LOGDIRECTORY
+sudo tar -czf $LOGFILENAME $LOGDIRECTORY
+sudo chown $CURRENTUSER $LOGFILENAME
 
-printf " $(date -u) End log collection \n\n" >> $LOGDIRECTORY/$LOGCOLLECTOUTPUTFILE
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Cleaning up temp files"
+sudo rm -r -f $LOGDIRECTORY
