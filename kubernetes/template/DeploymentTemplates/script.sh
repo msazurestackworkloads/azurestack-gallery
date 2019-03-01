@@ -208,10 +208,8 @@ log_level -i "Azure CLI version : $(az --version)"
 
 #####################################################################################
 #Section to install/get AKS-Engine binary.
-log_level -i "Getting AKS-Engine binary."
-
-# Todo update release branch details: msazurestackworkloads, azsmaster
-retrycmd_if_failure 5 10 git clone https://github.com/msazurestackworkloads/aks-engine -b azsmaster
+log_level -i "Getting AKS-Engine binary from release branch: release-v0.31.0-azs-1902-28."
+retrycmd_if_failure 5 10 git clone https://github.com/msazurestackworkloads/aks-engine -b release-v0.31.0-azs-1902-28
 cd aks-engine
 
 log_level -i "We are going to use an existing AKS-Engine binary."
