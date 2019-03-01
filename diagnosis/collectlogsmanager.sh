@@ -78,6 +78,11 @@ echo "[$(date +%Y%m%d%H%M%S)][INFO] Dumping cluster-info"
 kubectl cluster-info &> $LOGDIRECTORY/cluster-info.log
 kubectl cluster-info dump &> $LOGDIRECTORY/cluster-info-dump.log
 
+# Aggregate ERRORS.txt
+if [ `find $LOGDIRECTORY -name ERRORS.txt | wc -w` -ne "0" ]; 
+then 
+    cat $LOGDIRECTORY/*/ERRORS.txt &> $LOGDIRECTORY/ALL_ERRORS.txt
+fi
 
 # Restore known_hosts file
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Restoring known_hosts file"

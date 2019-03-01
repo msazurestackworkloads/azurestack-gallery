@@ -19,4 +19,6 @@ These are the logs retrieved by the script:
 - Etcd service status and journal
 - Gallery item's DVM logs
 
-Take into account that the current version of `getkuberneteslogs.sh` will momentarily upload your private SSH key to the cluster.
+Take into account that the current version of `getkuberneteslogs.sh` will momentarily upload your private SSH key to the cluster.
+
+The script will also try to look for common issues or misconfigurations. If any of those are found, they will be saved in file `ALL_ERRORS.txt`.

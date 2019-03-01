@@ -68,3 +68,52 @@ try_print_directory_tree()
         echo "[$(date +%Y%m%d%H%M%S)][WARN][$HOSTNAME] Expected directory not found: $1" | tee -a $ERRFILENAME
     fi
 }
+
+find_cse_errors() 
+{   
+    if [ -f $1 ]; 
+    then  
+        ERROR=`grep "VMExtensionProvisioningError" $1 -A 1 | tail -n 1`
+        
+        if [ "$ERROR" ]; then
+            echo "====================" | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME][VMExtensionProvisioningError] $ERROR" | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Hint: The list of error codes can be found here: https://github.com/Azure/aks-engine/blob/master/parts/k8s/kubernetesprovisionsource.sh" | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Log file source: $1" | tee -a $ERRFILENAME
+        fi
+    fi
+}
+
+find_spn_errors() 
+{   
+    if [ -f $1 ]; 
+    then  
+        ERROR403=$(grep "failed to load apimodel" $1 | grep "StatusCode=403")
+        
+        if [ "$ERROR403" ]; then
+            echo "====================" | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME][AuthorizationFailed] $ERROR403" | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Hint: Double-check the entered Service Principal has write permissions to the target subscription" | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Help: https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-solution-template-kubernetes-azuread#give-the-service-principal-access" | tee -a $ERRFILENAME        
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Log file source: $1" | tee -a $ERRFILENAME
+        fi
+
+        ERROR401=$(grep "failed to load apimodel" $1 | grep "StatusCode=401" | grep "invalid_client")
+        
+        if [ "$ERROR401" ]; then
+            echo "====================" | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME][InvalidClient] $ERROR401" | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Hint: double-check the entered Service Principal secret is correct" | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Log file source: $1" | tee -a $ERRFILENAME
+        fi
+
+        ERROR400=$(grep "failed to load apimodel" $1 | grep "StatusCode=400" | grep "unauthorized_client")
+        
+        if [ "$ERROR400" ]; then
+            echo "====================" | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME][InvalidClient] $ERROR400" | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Hint: double-check the entered Service Principal name is correct" | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Log file source: $1" | tee -a $ERRFILENAME
+        fi
+    fi
+}

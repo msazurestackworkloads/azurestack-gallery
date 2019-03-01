@@ -75,6 +75,10 @@ if [ "$ISMASTER" = true ]; then
     fi
 fi
 
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for known issues and misconfigurations" | tee -a $TRACEFILENAME
+find_cse_errors $LOGDIRECTORY/cse/cluster-provision.log 
+find_cse_errors $LOGDIRECTORY/cloud-init-output.log 
+
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Compressing logs into $LOGFILENAME" | tee -a $TRACEFILENAME
 sudo chown -R $CURRENTUSER $LOGDIRECTORY
 sudo tar -czf $LOGFILENAME $LOGDIRECTORY
