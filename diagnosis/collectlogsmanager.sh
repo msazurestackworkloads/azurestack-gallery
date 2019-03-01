@@ -23,10 +23,10 @@ CURRENTUSER=`whoami`
 HOSTLIST=$LOGDIRECTORY/hosts.list
 
 # Download scripts
-ARTIFACTSURL="https://raw.githubusercontent.com/jadarsie/azurestack-gallery/log-collector"
-curl -O $ARTIFACTSURL/diagnosis/common.sh;
+ARTIFACTSURL="https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master"
+curl -s -O $ARTIFACTSURL/diagnosis/common.sh;
 sudo chmod 744 common.sh
-curl -O $ARTIFACTSURL/diagnosis/collectlogs.sh;
+curl -s -O $ARTIFACTSURL/diagnosis/collectlogs.sh;
 sudo chmod 744 collectlogs.sh
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Cleaning up cluster temp files"

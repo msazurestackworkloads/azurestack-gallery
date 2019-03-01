@@ -9,7 +9,7 @@ CURRENTUSER=`whoami`
 
 # Download scripts
 ARTIFACTSURL="https://raw.githubusercontent.com/jadarsie/azurestack-gallery/log-collector"
-curl -O $ARTIFACTSURL/diagnosis/common.sh;
+curl -s -O $ARTIFACTSURL/diagnosis/common.sh;
 sudo chmod 744 common.sh
 
 mkdir $LOGDIRECTORY

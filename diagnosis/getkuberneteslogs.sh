@@ -111,7 +111,7 @@ echo ""
 
 CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
 LOGFILEFOLDER="./KubernetesLogs_$CURRENTDATE"
-ARTIFACTSURL="https://raw.githubusercontent.com/jadarsie/azurestack-gallery/log-collector"
+ARTIFACTSURL="https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master"
 
 mkdir -p $LOGFILEFOLDER
 
@@ -145,8 +145,8 @@ then
     # ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "sudo chmod 744 collectlogs.sh;"
     # scp -q -i $IDENTITYFILE collectlogsmanager.sh $AZUREUSER@$HOST:/home/$AZUREUSER/collectlogsmanager.sh
     # ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "sudo chmod 744 collectlogsmanager.sh; ./collectlogsmanager.sh;"  
-    ssh -t -i $IDENTITYFILE $AZUREUSER@$HOST "curl -O $ARTIFACTSURL//diagnosis/collectlogsmanager.sh"
-    ssh -t -i $IDENTITYFILE $AZUREUSER@$HOST "sudo chmod 744 collectlogsmanager.sh; ./collectlogsmanager.sh"
+    ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "curl -s -O $ARTIFACTSURL/diagnosis/collectlogsmanager.sh"
+    ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "sudo chmod 744 collectlogsmanager.sh; ./collectlogsmanager.sh"
     
     # Copy logs back to local machine
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
@@ -175,8 +175,8 @@ then
     # ssh -tq -i $IDENTITYFILE $AZUREUSER@$DVMHOST "sudo chmod 744 common.sh;"
     # scp -q -i $IDENTITYFILE collectlogsdvm.sh $AZUREUSER@$DVMHOST:/home/$AZUREUSER/collectlogsdvm.sh
     # ssh -tq -i $IDENTITYFILE $AZUREUSER@$DVMHOST "sudo chmod 744 collectlogsdvm.sh; ./collectlogsdvm.sh;"
-    ssh -t -i $IDENTITYFILE $AZUREUSER@$DVMHOST "curl -O $ARTIFACTSURL/diagnosis/collectlogsdvm.sh;"
-    ssh -t -i $IDENTITYFILE $AZUREUSER@$DVMHOST "sudo chmod 744 collectlogsdvm.sh; ./collectlogsdvm.sh;"
+    ssh -tq -i $IDENTITYFILE $AZUREUSER@$DVMHOST "curl -s -O $ARTIFACTSURL/diagnosis/collectlogsdvm.sh;"
+    ssh -tq -i $IDENTITYFILE $AZUREUSER@$DVMHOST "sudo chmod 744 collectlogsdvm.sh; ./collectlogsdvm.sh;"
 
     # Copy logs back to local machine
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
