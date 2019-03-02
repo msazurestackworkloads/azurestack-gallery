@@ -50,7 +50,7 @@
       "type": "string"
     },
     "storageProfile": {
-      "defaultValue": "blobdisk",
+      "defaultValue": "manageddisk",
       "metadata": {
         "description": "The Storage Profile"
       },
@@ -59,6 +59,12 @@
     "servicePrincipalClientId": {
       "metadata": {
         "description": "The Service Principal application ID (used by the Kubernetes Azure cloud provider). More help here: https://github.com/Azure/acs-engine/blob/master/docs/serviceprincipal.md"
+      },
+      "type": "securestring"
+    },
+    "servicePrincipalObjectId": {
+      "metadata": {
+        "description": "The service principal object ID (used by the Deployment to assign roles to your service principle). More help here: https://github.com/Azure/acs-engine/blob/master/docs/serviceprincipal.md"
       },
       "type": "securestring"
     },
@@ -194,6 +200,9 @@
           },
           "servicePrincipalClientId": {
             "value": "[parameters('servicePrincipalClientId')]"
+          },
+          "servicePrincipalObjectId": {
+            "value": "[parameters('servicePrincipalObjectId')]"
           },
           "servicePrincipalClientSecret": "[if(equals(parameters('identitySystem'), 'AzureAD'), variables('servicePrincipalClientSecretJSON') , variables('servicePrincipalClientSecretCert'))]",
           "servicePrincipalCertificateKeyVaultId": {

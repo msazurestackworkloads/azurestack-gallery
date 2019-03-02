@@ -50,7 +50,7 @@
       "type": "string"
     },
     "storageProfile": {
-      "defaultValue": "blobdisk",
+      "defaultValue": "manageddisk",
       "metadata": {
         "description": "The Storage Profile"
       },
@@ -59,6 +59,12 @@
     "servicePrincipalClientId": {
       "metadata": {
         "description": "The Service Principal application ID (used by the Kubernetes Azure cloud provider). More help here: https://github.com/Azure/aks-engine/blob/master/docs/topics/service-principals.md"
+      },
+      "type": "securestring"
+    },
+    "servicePrincipalObjectId": {
+      "metadata": {
+        "description": "The service principal object ID (used by the Deployment to assign roles to your service principle). More help here: https://github.com/Azure/acs-engine/blob/master/docs/serviceprincipal.md"
       },
       "type": "securestring"
     },
@@ -129,9 +135,22 @@
     "tenantSubscriptionId": "[subscription().subscriptionId]",
     "scriptName": "script",
     "singleQuote": "'",
-    "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' SPN_CLIENT_SECRET_KEYVAULT_ID=','\"',parameters('servicePrincipalCertificateKeyVaultId'),'\"' ,' SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME=','\"',parameters('servicePrincipalCertificateKeyVaultSecretName'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"')]"
+    "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' SPN_CLIENT_SECRET_KEYVAULT_ID=','\"',parameters('servicePrincipalCertificateKeyVaultId'),'\"' ,' SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME=','\"',parameters('servicePrincipalCertificateKeyVaultSecretName'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"')]",
+    "Contributor": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+    "scope": "[resourceGroup().id]",
+    "roleNameGuid":"[guid(resourceGroup().id)]"
   },
   "resources": [
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2015-07-01",
+      "name": "[variables('roleNameGuid')]",
+      "properties": {
+        "roleDefinitionId": "[variables('Contributor')]",
+        "principalId": "[parameters('servicePrincipalObjectId')]",
+        "scope": "[variables('scope')]"
+      }
+    },
     {
       "type": "Microsoft.Storage/storageAccounts",
       "name": "[toLower(variables('storageAccountName'))]",
