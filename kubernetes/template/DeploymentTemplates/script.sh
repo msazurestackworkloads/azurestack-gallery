@@ -276,6 +276,7 @@ if [ $IDENTITY_SYSTEM == "ADFS" ] ; then
     # Trim "adfs" from end of login endpoint if it is ADFS
     log_level -i "In ADFS section to get(Active_Directory_Endpoint, SPN_CLIENT_SECRET) configurations."
     ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT=`echo $METADATA  | jq '.authentication.loginEndpoint' | tr -d \" | sed -e 's/adfs*$//' | tr -d \" `
+    ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT_CLI=`echo $METADATA  | jq '.authentication.loginEndpoint' | tr -d \"`
     log_level -i "Active directory endpoint is: $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT"
        
     # Parse SPN_CLIENT_SECRET to get pfx and password and generate pem using PFX
@@ -325,36 +326,13 @@ jq --arg SSH_PUBLICKEY "${SSH_PUBLICKEY}" '.properties.linuxProfile.ssh.publicKe
 log_level -i "Checking and moving temp file data to main api model file."
 check_and_move_azurestack_configuration $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION
 
-if [ $IDENTITY_SYSTEM == "ADFS" ] ; then
-
-    log_level -i "In ADFS section to update (servicePrincipalProfile, authenticationMethod ) configurations."
-    IDENTITY_SYSTEM_LOWER=`echo "$IDENTITY_SYSTEM" | tr '[:upper:]' '[:lower:]'`
-    sudo cat $AZURESTACK_CONFIGURATION | jq --arg IDENTITY_SYSTEM_LOWER $IDENTITY_SYSTEM_LOWER '.properties.customCloudProfile.identitySystem=$IDENTITY_SYSTEM_LOWER' | \
-    jq --arg authenticationMethod "client_certificate" '.properties.customCloudProfile.authenticationMethod=$authenticationMethod' | \
-    jq --arg SPN_CLIENT_ID $SPN_CLIENT_ID '.properties.servicePrincipalProfile.clientId = $SPN_CLIENT_ID' | \
-    jq --arg SPN_CLIENT_SECRET_KEYVAULT_ID $SPN_CLIENT_SECRET_KEYVAULT_ID '.properties.servicePrincipalProfile.keyvaultSecretRef.vaultID = $SPN_CLIENT_SECRET_KEYVAULT_ID' | \
-    jq --arg SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME $SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME '.properties.servicePrincipalProfile.keyvaultSecretRef.secretName = $SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME' >  $AZURESTACK_CONFIGURATION_TEMP
-       
-    log_level -i "Append adfs back to Active directory endpoint as it is required in Azure CLI to register and login."
-    ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT=${ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT}adfs
-    log_level -i "Final ACTIVE_DIRECTORY endpoint value for adfs is: $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT."
-else
-    log_level -i "In AAD section to update (servicePrincipalProfile ) configurations."
-    sudo cat $AZURESTACK_CONFIGURATION | jq --arg SPN_CLIENT_ID $SPN_CLIENT_ID '.properties.servicePrincipalProfile.clientId = $SPN_CLIENT_ID' | \
-    jq --arg SPN_CLIENT_SECRET $SPN_CLIENT_SECRET '.properties.servicePrincipalProfile.secret = $SPN_CLIENT_SECRET' >  $AZURESTACK_CONFIGURATION_TEMP
-fi
-
-log_level -i "Checking and moving temp file data(servicePrincipalProfile) to main api model file."
-check_and_move_azurestack_configuration $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION
-
-log_level -i "Completed building API model file based on passed stamp information and other parameters."
 
 #####################################################################################
-# Section to generate ARM template using AKS Engine, login using Azure CLI and deploy the template.
+# Section to login using Azure CLI
 # https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-version-profiles-azurecli2#connect-to-azure-stack
 HYBRID_PROFILE=2018-03-01-hybrid
 log_level -i "Register to AzureStack cloud using below command."
-retrycmd_if_failure 5 10 az cloud register -n $ENVIRONMENT_NAME --endpoint-resource-manager $TENANT_ENDPOINT --suffix-storage-endpoint $SUFFIXES_STORAGE_ENDPOINT --suffix-keyvault-dns $SUFFIXES_KEYVAULT_DNS --endpoint-active-directory-resource-id $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID --endpoint-active-directory $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT --endpoint-active-directory-graph-resource-id $ENDPOINT_GRAPH_ENDPOINT
+retrycmd_if_failure 5 10 az cloud register -n $ENVIRONMENT_NAME --endpoint-resource-manager $TENANT_ENDPOINT --suffix-storage-endpoint $SUFFIXES_STORAGE_ENDPOINT --suffix-keyvault-dns $SUFFIXES_KEYVAULT_DNS --endpoint-active-directory-resource-id $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID --endpoint-active-directory $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT_CLI --endpoint-active-directory-graph-resource-id $ENDPOINT_GRAPH_ENDPOINT
 log_level -i "Set Azure stack environment."
 retrycmd_if_failure 5 10 az cloud set -n $ENVIRONMENT_NAME
 log_level -i "Update cloud profile with value: $HYBRID_PROFILE."
@@ -370,6 +348,52 @@ fi
 
 log_level -i "Setting subscription to $TENANT_SUBSCRIPTION_ID"
 retrycmd_if_failure 5 10 az account set --subscription $TENANT_SUBSCRIPTION_ID > /dev/null
+
+#####################################################################################
+# Create a new keyvault to migrate the secret into the resource group and updating azurestack configuration  
+# https://docs.microsoft.com/en-us/azure/key-vault/key-vault-manage-with-cli2
+
+if [ $IDENTITY_SYSTEM == "ADFS" ] ; then
+
+    #####################################################################################
+    #Create a new Keyvault in the current resource group to store a copy of the service principle secret 
+
+    KEYVAULT_NAME="$MASTER_DNS_PREFIX-Vault"
+
+    log_level -i "Creating Keyvault in current resource group"
+    retrycmd_if_failure 5 10 az keyvault create --name $KEYVAULT_NAME --resource-group $RESOURCE_GROUP_NAME --location $REGION_NAME --enabled-for-deployment true --enabled-for-template-deployment true
+
+    log_level -i "Storing secret in keyvault"
+    retrycmd_if_failure 5 10 az keyvault secret set --vault-name $KEYVAULT_NAME --name $SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME --value $SPN_CLIENT_SECRET
+
+    log_level -i "Getting new keyvault id and updating the client secret vault id"
+    SPN_CLIENT_SECRET_KEYVAULT_ID=$(az keyvault show --name $KEYVAULT_NAME | jq '.id' | tr -d \" )
+
+    #####################################################################################
+    #Update the azurestack.json file with the new keyvault location 
+
+    log_level -i "In ADFS section to update (servicePrincipalProfile, authenticationMethod ) configurations."
+    IDENTITY_SYSTEM_LOWER=`echo "$IDENTITY_SYSTEM" | tr '[:upper:]' '[:lower:]'`
+    sudo cat $AZURESTACK_CONFIGURATION | jq --arg IDENTITY_SYSTEM_LOWER $IDENTITY_SYSTEM_LOWER '.properties.customCloudProfile.identitySystem=$IDENTITY_SYSTEM_LOWER' | \
+    jq --arg authenticationMethod "client_certificate" '.properties.customCloudProfile.authenticationMethod=$authenticationMethod' | \
+    jq --arg SPN_CLIENT_ID $SPN_CLIENT_ID '.properties.servicePrincipalProfile.clientId = $SPN_CLIENT_ID' | \
+    jq --arg SPN_CLIENT_SECRET_KEYVAULT_ID $SPN_CLIENT_SECRET_KEYVAULT_ID '.properties.servicePrincipalProfile.keyvaultSecretRef.vaultID = $SPN_CLIENT_SECRET_KEYVAULT_ID' | \
+    jq --arg SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME $SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME '.properties.servicePrincipalProfile.keyvaultSecretRef.secretName = $SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME' >  $AZURESTACK_CONFIGURATION_TEMP
+
+else
+    log_level -i "In AAD section to update (servicePrincipalProfile ) configurations."
+    sudo cat $AZURESTACK_CONFIGURATION | jq --arg SPN_CLIENT_ID $SPN_CLIENT_ID '.properties.servicePrincipalProfile.clientId = $SPN_CLIENT_ID' | \
+    jq --arg SPN_CLIENT_SECRET $SPN_CLIENT_SECRET '.properties.servicePrincipalProfile.secret = $SPN_CLIENT_SECRET' >  $AZURESTACK_CONFIGURATION_TEMP
+fi
+
+log_level -i "Checking and moving temp file data(servicePrincipalProfile) to main api model file."
+check_and_move_azurestack_configuration $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION
+
+log_level -i "Completed building API model file based on passed stamp information and other parameters."
+
+#####################################################################################
+# Section to generate ARM template using AKS Engine, login using Azure CLI and deploy the template.
+# https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-version-profiles-azurecli2#connect-to-azure-stack
 
 log_level -i "Generate ARM template using AKS-Engine."
 retrycmd_if_failure 5 10 sudo ./bin/aks-engine generate $AZURESTACK_CONFIGURATION
