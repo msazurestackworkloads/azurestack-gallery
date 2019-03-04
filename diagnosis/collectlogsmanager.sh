@@ -1,5 +1,10 @@
 #! /bin/bash
 
+### 
+#   <summary>
+#       Find nodes on the network using the `ping` command instead of `kubectl get nodes`.
+#   </summary>
+###
 find_hosts() 
 {   
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Searching for cluster nodes"

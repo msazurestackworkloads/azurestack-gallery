@@ -3,11 +3,11 @@
 ERRFILENAME=$1
 
 ### 
-#	<summary>
-#   	Wrapper around the cp command that prints a nice message if the source file does not exist.
+#   <summary>
+#       Wrapper around the cp command that prints a nice message if the source file does not exist.
 #   </summary>
-#	<param name="1">Source file expected location</param>
-#	<param name="2">Destination directory</param>
+#   <param name="1">Source file expected location</param>
+#   <param name="2">Destination directory</param>
 ###
 try_copy_file() 
 {     
@@ -19,11 +19,11 @@ try_copy_file()
 }
 
 ### 
-#	<summary>
-#   	Wrapper around the cp command that prints a nice message if the source directory does not exist.
+#   <summary>
+#       Wrapper around the cp command that prints a nice message if the source directory does not exist.
 #   </summary>
-#	<param name="1">Source directory expected location</param>
-#	<param name="2">Destination directory</param>
+#   <param name="1">Source directory expected location</param>
+#   <param name="2">Destination directory</param>
 ###
 try_copy_directory() 
 {     
@@ -35,11 +35,11 @@ try_copy_directory()
 }
 
 ### 
-#	<summary>
-#   	Wrapper around the cp command that prints a nice message if the source directory does not exist.
+#   <summary>
+#       Wrapper around the cp command that prints a nice message if the source directory does not exist.
 #   </summary>
-#	<param name="1">Source directory expected location</param>
-#	<param name="2">Destination directory</param>
+#   <param name="1">Source directory expected location</param>
+#   <param name="2">Destination directory</param>
 ###
 try_copy_directory_content() 
 {     
@@ -54,11 +54,11 @@ try_copy_directory_content()
 }
 
 ### 
-#	<summary>
-#   	Wrapper around the find command that prints a nice message if the source directory does not exist.
+#   <summary>
+#       Wrapper around the find command that prints a nice message if the source directory does not exist.
 #   </summary>
-#	<param name="1">Source directory expected location</param>
-#	<param name="2">Destination file</param>
+#   <param name="1">Source directory expected location</param>
+#   <param name="2">Destination file</param>
 ###
 try_print_directory_tree() 
 {    
@@ -69,6 +69,12 @@ try_print_directory_tree()
     fi
 }
 
+### 
+#   <summary>
+#       Look for known errors on CustomScriptExtension logs
+#   </summary>
+#   <param name="1">CustomScriptExtension logs location</param>
+###
 find_cse_errors() 
 {   
     if [ -f $1 ]; 
@@ -84,6 +90,12 @@ find_cse_errors()
     fi
 }
 
+### 
+#   <summary>
+#       Look for known errors on DVM logs
+#   </summary>
+#   <param name="1">DVM logs location</param>
+###
 find_spn_errors() 
 {   
     if [ -f $1 ]; 
@@ -94,7 +106,7 @@ find_spn_errors()
             echo "====================" | tee -a $ERRFILENAME
             echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME][AuthorizationFailed] $ERROR403" | tee -a $ERRFILENAME
             echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Hint: Double-check the entered Service Principal has write permissions to the target subscription" | tee -a $ERRFILENAME
-            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Help: https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-solution-template-kubernetes-azuread#give-the-service-principal-access" | tee -a $ERRFILENAME        
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Help: https://aka.ms/AzsK8sSpn" | tee -a $ERRFILENAME        
             echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Log file source: $1" | tee -a $ERRFILENAME
         fi
 

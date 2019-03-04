@@ -102,6 +102,7 @@ else
     cat $IDENTITYFILE | grep -q "BEGIN RSA PRIVATE KEY" || { echo "The identity file $IDENTITYFILE is not a RSA Private Key file."; echo "A RSA private key file starts with '-----BEGIN RSA PRIVATE KEY-----''"; exit 1; }
 fi
 
+# Print user input
 echo ""
 echo "user: $AZUREUSER"
 echo "identity-file: $IDENTITYFILE"
@@ -139,14 +140,16 @@ then
     ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "if [ -f .ssh/id_rsa ]; then sudo chmod 400 .ssh/id_rsa; fi;"
 
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
+    ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "curl -s -O $ARTIFACTSURL/diagnosis/collectlogsmanager.sh"
+    ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "sudo chmod 744 collectlogsmanager.sh; ./collectlogsmanager.sh"
+
+    # Keep these commented lines around, useful to speed up development
     # scp -q -i $IDENTITYFILE common.sh $AZUREUSER@$HOST:/home/$AZUREUSER/common.sh
     # ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "sudo chmod 744 common.sh;"
     # scp -q -i $IDENTITYFILE collectlogs.sh $AZUREUSER@$HOST:/home/$AZUREUSER/collectlogs.sh
     # ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "sudo chmod 744 collectlogs.sh;"
     # scp -q -i $IDENTITYFILE collectlogsmanager.sh $AZUREUSER@$HOST:/home/$AZUREUSER/collectlogsmanager.sh
     # ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "sudo chmod 744 collectlogsmanager.sh; ./collectlogsmanager.sh;"  
-    ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "curl -s -O $ARTIFACTSURL/diagnosis/collectlogsmanager.sh"
-    ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "sudo chmod 744 collectlogsmanager.sh; ./collectlogsmanager.sh"
     
     # Copy logs back to local machine
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
@@ -171,12 +174,14 @@ then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect VMD logs"
 
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
+    ssh -tq -i $IDENTITYFILE $AZUREUSER@$DVMHOST "curl -s -O $ARTIFACTSURL/diagnosis/collectlogsdvm.sh;"
+    ssh -tq -i $IDENTITYFILE $AZUREUSER@$DVMHOST "sudo chmod 744 collectlogsdvm.sh; ./collectlogsdvm.sh;"
+    
+    # Keep these commented lines around, useful to speed up development
     # scp -q -i $IDENTITYFILE common.sh $AZUREUSER@$DVMHOST:/home/$AZUREUSER/common.sh
     # ssh -tq -i $IDENTITYFILE $AZUREUSER@$DVMHOST "sudo chmod 744 common.sh;"
     # scp -q -i $IDENTITYFILE collectlogsdvm.sh $AZUREUSER@$DVMHOST:/home/$AZUREUSER/collectlogsdvm.sh
     # ssh -tq -i $IDENTITYFILE $AZUREUSER@$DVMHOST "sudo chmod 744 collectlogsdvm.sh; ./collectlogsdvm.sh;"
-    ssh -tq -i $IDENTITYFILE $AZUREUSER@$DVMHOST "curl -s -O $ARTIFACTSURL/diagnosis/collectlogsdvm.sh;"
-    ssh -tq -i $IDENTITYFILE $AZUREUSER@$DVMHOST "sudo chmod 744 collectlogsdvm.sh; ./collectlogsdvm.sh;"
 
     # Copy logs back to local machine
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
