@@ -50,7 +50,7 @@
       "type": "string"
     },
     "storageProfile": {
-      "defaultValue": "Managed disk",
+      "defaultValue": "manageddisk",
       "metadata": {
         "description": "The Storage Profile"
       },
