@@ -50,7 +50,7 @@
       "type": "string"
     },
     "storageProfile": {
-      "defaultValue": "blobdisk",
+      "defaultValue": "Managed disk",
       "metadata": {
         "description": "The Storage Profile"
       },
