@@ -97,7 +97,7 @@
       "type": "string",
       "defaultValue": "1.11",
       "metadata": {
-        "description": "This is the version for the kubernetes Azure cloud provider. We would use a custom kubernetes build specifically for AzureStack for each version."
+        "description": "This is the version for the kubernetes Azure cloud provider. We would use a custom kubernetes build specifically for Azure Stack for each version."
       }
     }
   },
