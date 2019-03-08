@@ -371,7 +371,7 @@ else
 fi
 
 log_level -i "Setting subscription to $TENANT_SUBSCRIPTION_ID"
-retrycmd_if_failure 5 10 az account set --subscription $TENANT_SUBSCRIPTION_ID > /dev/null
+retrycmd_if_failure 5 10 az account set --subscription $TENANT_SUBSCRIPTION_ID --output none
 
 log_level -i "Generate ARM template using AKS-Engine."
 retrycmd_if_failure 5 10 sudo ./bin/aks-engine generate $AZURESTACK_CONFIGURATION
@@ -380,6 +380,6 @@ log_level -i "ARM template generated at $PWD/_output/$MASTER_DNS_PREFIX director
 cd $PWD/_output/$MASTER_DNS_PREFIX 
 
 log_level -i "Deploy the template."
-az group deployment create -g $RESOURCE_GROUP_NAME --template-file azuredeploy.json --parameters azuredeploy.parameters.json > /dev/null
+az group deployment create -g $RESOURCE_GROUP_NAME --template-file azuredeploy.json --parameters azuredeploy.parameters.json --output none
 
 log_level -i "Kubernetes cluster deployment went through fine."
