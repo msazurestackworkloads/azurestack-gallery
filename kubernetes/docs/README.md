@@ -25,13 +25,3 @@ The easiest way to deploy a Kubernetes cluster is through the Kubernetes Cluster
 
 - If you need to deploy a new cluster, make sure to modify `masterProfileDnsPrefix` so that you can have a unique DNS name.
 
-# Additional Resources
-
-- ACS-Engine fork:
-  https://github.com/msazurestackworkloads/acs-engine/tree/acs-engine-v0209-1809
-- Linux binaries:
-  https://github.com/msazurestackworkloads/acs-engine/tree/acs-engine-v0209-1809/examples/azurestack/acs-engine.tgz
-- Sample API model:
-  https://github.com/msazurestackworkloads/acs-engine/tree/acs-engine-v0209-1809/examples/azurestack/azurestack-kubernetes1.11.json
-- Learn more about generating templates using ACS-Engine refer to ACS Engine
-  https://github.com/msazurestackworkloads/acs-engine/blob/master/docs/kubernetes.md
