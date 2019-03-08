@@ -1,4 +1,4 @@
-# Microsoft Azure Container Service Engine - Builds Docker Enabled Clusters
+# Microsoft Azure Container Service Engine
 
 The Azure Container Service Engine (acs-engine) generates ARM (Azure Resource Manager) templates for Docker enabled clusters on Microsoft Azure.
 
