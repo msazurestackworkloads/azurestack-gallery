@@ -4,7 +4,7 @@ This short [guide](https://github.com/Azure/aks-engine/blob/master/docs/howto/tr
 
 Please refer to this [article](https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-solution-template-kubernetes-trouble) for specifics about how the Kubernetes marketplace gallery item deploys a Kubernetes cluster on Azure Stack.
 
-# Gathering logs
+## Gathering logs
 
 The Bash scripts on this directory are aim to simplify the log collection process. Instead of SSH-ing into the cluster nodes, you can simply download and execute script `getkuberneteslogs.sh` and wait for the logs to be saved back into your workstation.  
 
