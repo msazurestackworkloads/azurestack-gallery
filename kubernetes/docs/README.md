@@ -20,8 +20,6 @@ The easiest way to deploy a Kubernetes cluster is through the Kubernetes Cluster
 5. Ensuring that the service principal has [access to the subscription](https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-create-service-principal-portal#assign-application-to-role) in your Azure Stack tenant portal.
 6. Deploy the Kubernetes Cluster marketplace item. This should roughly take 30 mins.
 
-# Troubleshooting:
-- If you hit any issues during cluster deployment, log into the deployment virtual machine named "vmd-(resource group name)" and check the deployment log file `/var/log/azure/acsengine-kubernetes-dvm.log`
+# Troubleshooting
 
-- If you need to deploy a new cluster, make sure to modify `masterProfileDnsPrefix` so that you can have a unique DNS name.
-
+Follow this link to the [troubleshooting guide](../../diagnosis/README.md) for help.
