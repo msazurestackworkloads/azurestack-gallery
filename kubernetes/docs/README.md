@@ -1,10 +1,10 @@
-# Microsoft Azure Container Service Engine - Builds Docker Enabled Clusters
+# Microsoft Azure Container Service Engine
 
 The Azure Container Service Engine (acs-engine) generates ARM (Azure Resource Manager) templates for Docker enabled clusters on Microsoft Azure.
 
 This [fork](https://github.com/msazurestackworkloads/acs-engine) should be used to deploy Kubernetes cluster to Microsoft Azure Stack instances. At the moment, only the `generate` and `deploy` commands are supported on Azure Stack. We are working on adding support for the `scale` and `upgrade` commands.
 
-# How to Deploy a Kubernetes Cluster
+## How to Deploy a Kubernetes Cluster
 
 The easiest way to deploy a Kubernetes cluster is through the Kubernetes Cluster marketplace item. This marketplace item wraps acs-engine in order to simplify its usage. Behind the scenes, it deploys a Linux virtual machine, clones Azure Stack's fork, generate the ACS-Engine templates and deploys them from the Linux virtual machine.
 
@@ -20,18 +20,6 @@ The easiest way to deploy a Kubernetes cluster is through the Kubernetes Cluster
 5. Ensuring that the service principal has [access to the subscription](https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-create-service-principal-portal#assign-application-to-role) in your Azure Stack tenant portal.
 6. Deploy the Kubernetes Cluster marketplace item. This should roughly take 30 mins.
 
-# Troubleshooting:
-- If you hit any issues during cluster deployment, log into the deployment virtual machine named "vmd-(resource group name)" and check the deployment log file `/var/log/azure/acsengine-kubernetes-dvm.log`
+## Troubleshooting
 
-- If you need to deploy a new cluster, make sure to modify `masterProfileDnsPrefix` so that you can have a unique DNS name.
-
-# Additional Resources
-
-- ACS-Engine fork:
-  https://github.com/msazurestackworkloads/acs-engine/tree/acs-engine-v0209-1809
-- Linux binaries:
-  https://github.com/msazurestackworkloads/acs-engine/tree/acs-engine-v0209-1809/examples/azurestack/acs-engine.tgz
-- Sample API model:
-  https://github.com/msazurestackworkloads/acs-engine/tree/acs-engine-v0209-1809/examples/azurestack/azurestack-kubernetes1.11.json
-- Learn more about generating templates using ACS-Engine refer to ACS Engine
-  https://github.com/msazurestackworkloads/acs-engine/blob/master/docs/kubernetes.md
+Follow this link to the [troubleshooting guide](../../diagnosis/README.md) for help.
