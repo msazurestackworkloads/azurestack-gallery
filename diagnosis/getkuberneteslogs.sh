@@ -116,6 +116,8 @@ then
     echo "[ERR] identity-file not found at $IDENTITYFILE"
     printUsage
     exit 1
+else
+    cat $IDENTITYFILE | grep -q "BEGIN RSA PRIVATE KEY" || { echo "The identity file $IDENTITYFILE is not a RSA Private Key file."; echo "A RSA private key file starts with '-----BEGIN RSA PRIVATE KEY-----''"; exit 1; }
 fi
 
 # Print user input
@@ -143,7 +145,7 @@ then
     scp -q -i $IDENTITYFILE hosts.sh $USER@$MASTER_HOST:/home/$USER/hosts.sh
     ssh -tq -i $IDENTITYFILE $USER@$MASTER_HOST "sudo chmod 744 hosts.sh; ./hosts.sh $NOW"
     scp -q -i $IDENTITYFILE $USER@$MASTER_HOST:"/home/$USER/cluster-info.$NOW" $LOGFILEFOLDER/cluster-info.tar.gz
-    ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f cluster-info.$NOW ]; then sudo rm -f cluster-info.$NOW; fi;"
+    ssh -tq -i $IDENTITYFILE $USER@$MASTER_HOST "sudo rm -f cluster-info.$NOW hosts.sh"
     tar -xzf $LOGFILEFOLDER/cluster-info.tar.gz -C $LOGFILEFOLDER
     rm $LOGFILEFOLDER/cluster-info.tar.gz
 
