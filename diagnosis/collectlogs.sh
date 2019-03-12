@@ -7,9 +7,7 @@ TRACEFILENAME="$LOGDIRECTORY/collector_trace"
 ERRFILENAME="$LOGDIRECTORY/ERRORS.txt"
 CURRENTUSER=`whoami`
 
-if [[ $HOSTNAME == k8s-master* ]]; then ISMASTER=true; else ISMASTER=false; fi
-
-mkdir $LOGDIRECTORY
+mkdir -p $LOGDIRECTORY
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Cleaning up old temp logs" | tee -a $TRACEFILENAME
 sudo rm -f $LOGFILENAME
@@ -44,6 +42,7 @@ echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for containers logs" | te
 mkdir -p $LOGDIRECTORY/containers/
 for cid in $(docker ps -a -q --no-trunc)
 do
+    # TODO Check size
     sudo docker inspect $cid &> $LOGDIRECTORY/containers/$cid.json
     clog=`docker inspect --format='{{.LogPath}}' $cid`
     sudo cp -f $clog $LOGDIRECTORY/containers/$cid.log
@@ -52,7 +51,10 @@ done
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Dumping kubelet service status and journal" | tee -a $TRACEFILENAME
 if systemctl list-units | grep -q kubelet.service; then
     sudo systemctl show kubelet &> $LOGDIRECTORY/kubelet_status.log
-    sudo journalctl -u kubelet &> $LOGDIRECTORY/kubelet_journal.log
+    # journal can be long, do not collect everything
+    # TODO make this smarter
+    sudo journalctl -u kubelet | head -n 10000 &> $LOGDIRECTORY/kubelet_journal_head.log
+    sudo journalctl -u kubelet | tail -n 10000 &> $LOGDIRECTORY/kubelet_journal_tail.log
 
     if systemctl is-active --quiet kubelet.service | grep inactive; then
         echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] The kubelet service is not running" | tee -a $ERRFILENAME
@@ -61,11 +63,14 @@ else
     echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] The kubelet service is not installed" | tee -a $ERRFILENAME
 fi
 
-if [ "$ISMASTER" = true ]; then
+if is_master_node; then
     if systemctl list-units | grep -q etcd.service; then
         echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Dumping etcd service status and journal" | tee -a $TRACEFILENAME
         sudo systemctl show etcd &> $LOGDIRECTORY/etcd_status.log
-        sudo journalctl -u etcd &> $LOGDIRECTORY/etcd_journal.log
+        # journal can be long, do not collect everything
+        # TODO make this smarter
+        sudo journalctl -u etcd | head -n 10000 &> $LOGDIRECTORY/etcd_journal_head.log
+        sudo journalctl -u etcd | tail -n 10000 &> $LOGDIRECTORY/etcd_journal_tail.log
 
         if systemctl is-active --quiet etcd.service | grep inactive; then
             echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] The etcd service is not running" | tee -a $ERRFILENAME
@@ -79,10 +84,10 @@ echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for known issues and misc
 find_cse_errors $LOGDIRECTORY/cse/cluster-provision.log 
 find_cse_errors $LOGDIRECTORY/cloud-init-output.log 
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Compressing logs into $LOGFILENAME" | tee -a $TRACEFILENAME
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Compressing logs" | tee -a $TRACEFILENAME
 sudo chown -R $CURRENTUSER $LOGDIRECTORY
 sudo tar -czf $LOGFILENAME $LOGDIRECTORY
 sudo chown $CURRENTUSER $LOGFILENAME
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Cleaning up temp files"
-sudo rm -r -f $LOGDIRECTORY
+sudo rm -rf $LOGDIRECTORY
