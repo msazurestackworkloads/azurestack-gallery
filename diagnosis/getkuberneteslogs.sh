@@ -147,6 +147,17 @@ then
     tar -xzf $LOGFILEFOLDER/cluster-info.tar.gz -C $LOGFILEFOLDER
     rm $LOGFILEFOLDER/cluster-info.tar.gz
 
+    # Backup .ssh/config
+    if [ -f ~/.ssh/config ]; then cp ~/.ssh/config ~/.ssh/config.$NOW; fi
+    
+    # Configure SSH bastion host. Technically only needed for worker nodes.
+    for host in $(cat $LOGFILEFOLDER/host.list)
+    do
+        # https://en.wikibooks.org/wiki/OpenSSH/Cookbook/Proxies_and_Jump_Hosts#Passing_Through_One_or_More_Gateways_Using_ProxyJump
+        echo "Host $host" >> ~/.ssh/config
+        echo "    ProxyJump $USER@$MASTER_HOST" >> ~/.ssh/config
+    done
+    
     for host in $(cat $LOGFILEFOLDER/host.list)
     do
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host $host"
@@ -167,6 +178,10 @@ then
         ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f collectlogs.sh ]; then rm -f collectlogs.sh; fi;"
         ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f kube_logs.tar.gz ]; then rm -f kube_logs.tar.gz; fi;"
     done
+
+    #Restore .ssh/config
+    rm ~/.ssh/config; 
+    if [ -f ~/.ssh/config.$NOW ]; then mv ~/.ssh/config.$NOW ~/.ssh/config; fi
 
     rm $LOGFILEFOLDER/host.list
 fi
