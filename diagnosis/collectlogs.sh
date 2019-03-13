@@ -83,6 +83,7 @@ fi
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for known issues and misconfigurations" | tee -a $TRACEFILENAME
 find_cse_errors $LOGDIRECTORY/cse/cluster-provision.log 
 find_cse_errors $LOGDIRECTORY/cloud-init-output.log 
+find_etcd_bad_cert_errors $LOGDIRECTORY/cse/cluster-provision.log $LOGDIRECTORY/etcd_status.log
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Compressing logs" | tee -a $TRACEFILENAME
 sudo chown -R $CURRENTUSER $LOGDIRECTORY
