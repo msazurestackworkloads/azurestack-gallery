@@ -138,3 +138,32 @@ find_spn_errors()
         fi
     fi
 }
+
+### 
+#   <summary>
+#       Look for known errors with etcd certs
+#   </summary>
+#   <param name="1">CustomScriptExtension logs location</param>
+#   <param name="2">etcd status log</param>
+###
+find_etcd_bad_cert_errors() 
+{
+    if [ -f $1 -a -f $2 ]
+    then  
+        STATUS14=`grep "command terminated with exit status=14" $1` 
+        BAD_CERT=`grep "remote error: tls: bad certificate" $2` 
+        
+        if [ "$STATUS14" -a "$BAD_CERT" ]
+        then
+            TRUSTED_HOSTS=`openssl x509 -in /etc/kubernetes/certs/etcdpeer*.crt -text -noout | grep "X509v3 Subject Alternative Name" -A 1 | tail -n 1 | xargs`
+            
+            echo "====================" | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][WARN][$HOSTNAME][TlsBadEtcdCertificate] $ERROR" | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][WARN][$HOSTNAME] Hint: The etcd instance running on $HOSTNAME cannot establish a secure connection with its peers." | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][WARN][$HOSTNAME] These are the trusted hosts as listed in certificate /etc/kubernetes/certs/etcdpeer[0-9].crt: "$TRUSTED_HOSTS"." | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][WARN][$HOSTNAME] Make sure the etcd peers are running on trusted hosts." | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][WARN][$HOSTNAME] Log file source 1: $1" | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][WARN][$HOSTNAME] Log file source 2: $2" | tee -a $ERRFILENAME
+        fi
+    fi
+}

@@ -1,0 +1,22 @@
+● etcd.service - etcd - highly-available key value store
+   Loaded: loaded (/etc/systemd/system/etcd.service; disabled; vendor preset: enabled)
+   Active: activating (start) since Sat 2019-03-09 10:46:13 UTC; 29s ago
+     Docs: https://github.com/coreos/etcd
+           man:etcd
+ Main PID: 17795 (etcd)
+    Tasks: 8
+   Memory: 36.3M
+      CPU: 21.105s
+   CGroup: /system.slice/etcd.service
+           └─17795 /usr/bin/etcd --name k8s-master-39889462-0 --peer-client-cert-auth --peer-trusted-ca-file=/etc/kubernetes/certs/ca.crt --peer-cert-file=/etc/kubernetes/certs/etcdpeer0.crt --peer-key-file=/etc/kubernetes/certs/etcdpeer0.key --initial-advertise-peer-urls https://10.100.0.5:2380 --listen-peer-urls https://10.100.0.5:2380 --client-cert-auth --trusted-ca-file=/etc/kubernetes/certs/ca.crt --cert-file=/etc/kubernetes/certs/etcdserver.crt --key-file=/etc/kubernetes/certs/etcdserver.key --advertise-client-urls https://10.100.0.5:2379 --listen-client-urls https://10.100.0.5:2379,https://127.0.0.1:2379 --initial-cluster-token k8s-etcd-cluster --initial-cluster k8s-master-39889462-0=https://10.100.0.5:2380,k8s-master-39889462-1=https://10.100.0.6:2380,k8s-master-39889462-2=https://10.100.0.7:2380 --data-dir /var/lib/etcddisk --initial-cluster-state new
+
+Mar 09 10:46:43 k8s-master-39889462-0 etcd[17795]: rejected connection from "10.100.0.7:44068" (error "remote error: tls: bad certificate", ServerName "")
+Mar 09 10:46:43 k8s-master-39889462-0 etcd[17795]: rejected connection from "10.100.0.6:53512" (error "remote error: tls: bad certificate", ServerName "")
+Mar 09 10:46:43 k8s-master-39889462-0 etcd[17795]: rejected connection from "10.100.0.6:53514" (error "remote error: tls: bad certificate", ServerName "")
+Mar 09 10:46:43 k8s-master-39889462-0 etcd[17795]: rejected connection from "10.100.0.7:44072" (error "remote error: tls: bad certificate", ServerName "")
+Mar 09 10:46:43 k8s-master-39889462-0 etcd[17795]: cc50aad0ab64cb41 is starting a new election at term 2357
+Mar 09 10:46:43 k8s-master-39889462-0 etcd[17795]: cc50aad0ab64cb41 became candidate at term 2358
+Mar 09 10:46:43 k8s-master-39889462-0 etcd[17795]: cc50aad0ab64cb41 received MsgVoteResp from cc50aad0ab64cb41 at term 2358
+Mar 09 10:46:43 k8s-master-39889462-0 etcd[17795]: cc50aad0ab64cb41 [logterm: 1, index: 3] sent MsgVote request to 8e5cbfde980e12f8 at term 2358
+Mar 09 10:46:43 k8s-master-39889462-0 etcd[17795]: cc50aad0ab64cb41 [logterm: 1, index: 3] sent MsgVote request to d34a714a2de724aa at term 2358
+Mar 09 10:46:43 k8s-master-39889462-0 etcd[17795]: rejected connection from "10.100.0.7:44076" (error "remote error: tls: bad certificate", ServerName "")
