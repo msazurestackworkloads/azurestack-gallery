@@ -2,6 +2,15 @@
 
 ERRFILENAME=$1
 
+is_master_node() 
+{
+    if [[ $HOSTNAME == k8s-master* ]]; then 
+        return 0
+    else 
+        return 1
+    fi
+}
+
 ### 
 #   <summary>
 #       Wrapper around the cp command that prints a nice message if the source file does not exist.

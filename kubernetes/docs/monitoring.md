@@ -30,10 +30,10 @@ The required steps are listed below. These commands should to executed from any 
 #!/bin/bash
 
 # Download install script 
-$ curl -O https://raw.githubusercontent.com/Azure/aks-engine/master/extensions/prometheus-grafana-k8s/v1/prometheus-grafana-k8s.sh
+curl -O https://raw.githubusercontent.com/Azure/aks-engine/master/extensions/prometheus-grafana-k8s/v1/prometheus-grafana-k8s.sh
 
 # Make it executable
-$ chmod +x prometheus-grafana-k8s.sh
+chmod +x prometheus-grafana-k8s.sh
 
 # Set environment variables (this is a required step)
 # Update values if defaults do not work for you

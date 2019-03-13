@@ -1,5 +1,34 @@
 #! /bin/bash
 
+function download_scripts
+{
+    ARTIFACTSURL=$1
+
+    curl -fs $ARTIFACTSURL/diagnosis/common.sh -o $LOGFILEFOLDER/scripts/common.sh
+
+    if [ ! -f $LOGFILEFOLDER/scripts/common.sh ]
+    then
+        echo "[$(date +%Y%m%d%H%M%S)][ERROR] Required script not available. URL: $ARTIFACTSURL/diagnosis/common.sh"
+        exit 1
+    fi
+
+    curl -fs $ARTIFACTSURL/diagnosis/collectlogs.sh -o $LOGFILEFOLDER/scripts/collectlogs.sh
+
+    if [ ! -f $LOGFILEFOLDER/scripts/collectlogs.sh ]
+    then
+        echo "[$(date +%Y%m%d%H%M%S)][ERROR] Required script not available. URL: $ARTIFACTSURL/diagnosis/collectlogs.sh"
+        exit 1
+    fi
+    
+    curl -fs $ARTIFACTSURL/diagnosis/collectlogsdvm.sh -o $LOGFILEFOLDER/scripts/collectlogsdvm.sh
+
+    if [ ! -f $LOGFILEFOLDER/scripts/collectlogsdvm.sh ]
+    then
+        echo "[$(date +%Y%m%d%H%M%S)][ERROR] Required script not available. URL: $ARTIFACTSURL/diagnosis/collectlogsdvm.sh"
+        exit 1
+    fi
+}
+
 function printUsage
 {
     echo ""
@@ -7,14 +36,13 @@ function printUsage
     echo "  $FILENAME -i id_rsa -m 192.168.102.34 -u azureuser"
     echo "  $FILENAME --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32"
     echo "  $FILENAME --identity-file id_rsa --master-host 192.168.102.34 --user azureuser --vmd-host 192.168.102.32"
-    echo "  $FILENAME --identity-file id_rsa --master-host 192.168.102.34 --user azureuser --vmd-host 192.168.102.32 --force"
+    echo "  $FILENAME --identity-file id_rsa --master-host 192.168.102.34 --user azureuser --vmd-host 192.168.102.32"
     echo "" 
     echo "Options:"
     echo "  -u, --user              User name associated to the identifity-file"
     echo "  -i, --identity-file     RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')"
-    echo "  -m, --master-host       The master node's public IP or FQDN (host name starts with 'k8s-master-')"
+    echo "  -m, --master-host       A master node's public IP or FQDN (host name starts with 'k8s-master-')"
     echo "  -d, --vmd-host          The DVM's public IP or FQDN (host name starts with 'vmd-')"
-    echo "  -f, --force             Do not prompt before uploading private key"
     echo "  -h, --help              Print the command usage"
     exit 1
 }
@@ -26,7 +54,7 @@ then
     printUsage
 fi
 
-# Handle the named parameters
+# Handle named parameters
 while [[ "$#" -gt 0 ]]
 do
     case $1 in
@@ -34,16 +62,13 @@ do
         IDENTITYFILE="$2"
         ;;
         -m|--master-host)
-        HOST="$2"
+        MASTER_HOST="$2"
         ;;
         -d|--vmd-host)
-        DVMHOST="$2"
+        DVM_HOST="$2"
         ;;
         -u|--user)
-        AZUREUSER="$2"
-        ;;
-        -f|--force)
-        FORCE="Y"
+        USER="$2"
         ;;
         -h|--help)
         printUsage
@@ -63,7 +88,8 @@ do
     fi
 done
 
-if [ -z "$AZUREUSER" ]
+# Validate input
+if [ -z "$USER" ]
 then
     echo ""
     echo "[ERR] --user is required"
@@ -77,19 +103,11 @@ then
     printUsage
 fi
 
-if [ -z "$DVMHOST" -a -z "$HOST" ]
+if [ -z "$DVM_HOST" -a -z "$MASTER_HOST" ]
 then
     echo ""
     echo "[ERR] Either --vmd-host or --master-host should be provided"
     printUsage
-fi
-
-if [ -z "$FORCE" ]
-then
-    FORCE="N"
-else
-    echo ""
-    echo "[INFO] The private key will be uploaded to the Kubernetes master to collect logs"
 fi
 
 if [ ! -f $IDENTITYFILE ]
@@ -104,96 +122,98 @@ fi
 
 # Print user input
 echo ""
-echo "user: $AZUREUSER"
+echo "user: $USER"
 echo "identity-file: $IDENTITYFILE"
-echo "master-host: $HOST"
-echo "vmd-host: $DVMHOST"
+echo "master-host: $MASTER_HOST"
+echo "vmd-host: $DVM_HOST"
 echo ""
 
+NOW=`date +%Y%m%d%H%M%S`
 CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
 LOGFILEFOLDER="./KubernetesLogs_$CURRENTDATE"
+mkdir -p $LOGFILEFOLDER/scripts
+
+# Download scripts from github
 ARTIFACTSURL="https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master"
+download_scripts $ARTIFACTSURL
 
-mkdir -p $LOGFILEFOLDER
-
-if [ -n "$HOST" ]
+if [ -n "$MASTER_HOST" ]
 then
-    if [ "$FORCE" = "N" ]
-    then
-        read -p "The private key has to be uploaded to the Kubernetes master VM $HOST to collect logs, accept (y/n)? " choice
-        case "$choice" in 
-        y|Y|yes|YES ) echo "Continue";;
-        n|N|no|NO) echo "Aborting"; exit 0 ;;
-        * ) echo "Invalid option '$choice'. Stopping the log collection process"; exit 0;;
-        esac
-    fi
-
     echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect cluster logs"
 
-    # Backup id_rsa
-    IDENTITYFILEBACKUP="~/.ssh/bak/id_rsa"
-    ssh -q -i $IDENTITYFILE $AZUREUSER@$HOST "if [ -f .ssh/id_rsa ]; then mkdir -p $IDENTITYFILEBACKUP; cp .ssh/id_rsa $IDENTITYFILEBACKUP; fi;"
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Looking for cluster hosts"
+    scp -q -i $IDENTITYFILE hosts.sh $USER@$MASTER_HOST:/home/$USER/hosts.sh
+    ssh -tq -i $IDENTITYFILE $USER@$MASTER_HOST "sudo chmod 744 hosts.sh; ./hosts.sh $NOW"
+    scp -q -i $IDENTITYFILE $USER@$MASTER_HOST:"/home/$USER/cluster-info.$NOW" $LOGFILEFOLDER/cluster-info.tar.gz
+    ssh -tq -i $IDENTITYFILE $USER@$MASTER_HOST "sudo rm -f cluster-info.$NOW hosts.sh"
+    tar -xzf $LOGFILEFOLDER/cluster-info.tar.gz -C $LOGFILEFOLDER
+    rm $LOGFILEFOLDER/cluster-info.tar.gz
 
-    # Copy id_rsa into Kubernete Host VM
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading private key"
-    scp -q -i $IDENTITYFILE ~/.ssh/id_rsa $AZUREUSER@$HOST:/home/$AZUREUSER/.ssh/id_rsa
-    ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "if [ -f .ssh/id_rsa ]; then sudo chmod 400 .ssh/id_rsa; fi;"
-
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
-    ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "curl -s -O $ARTIFACTSURL/diagnosis/collectlogsmanager.sh"
-    ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "sudo chmod 744 collectlogsmanager.sh; ./collectlogsmanager.sh"
-
-    # Keep these commented lines around, useful to speed up development
-    # scp -q -i $IDENTITYFILE common.sh $AZUREUSER@$HOST:/home/$AZUREUSER/common.sh
-    # ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "sudo chmod 744 common.sh;"
-    # scp -q -i $IDENTITYFILE collectlogs.sh $AZUREUSER@$HOST:/home/$AZUREUSER/collectlogs.sh
-    # ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "sudo chmod 744 collectlogs.sh;"
-    # scp -q -i $IDENTITYFILE collectlogsmanager.sh $AZUREUSER@$HOST:/home/$AZUREUSER/collectlogsmanager.sh
-    # ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "sudo chmod 744 collectlogsmanager.sh; ./collectlogsmanager.sh;"  
+    # Backup .ssh/config
+    if [ -f ~/.ssh/config ]; then cp ~/.ssh/config ~/.ssh/config.$NOW; fi
     
-    # Copy logs back to local machine
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
-    scp -q -i $IDENTITYFILE $AZUREUSER@$HOST:"/home/$AZUREUSER/cluster_logs.tar.gz" $LOGFILEFOLDER/cluster_logs.tar.gz   
+    # Configure SSH bastion host. Technically only needed for worker nodes.
+    for host in $(cat $LOGFILEFOLDER/host.list)
+    do
+        # https://en.wikibooks.org/wiki/OpenSSH/Cookbook/Proxies_and_Jump_Hosts#Passing_Through_One_or_More_Gateways_Using_ProxyJump
+        echo "Host $host" >> ~/.ssh/config
+        echo "    ProxyJump $USER@$MASTER_HOST" >> ~/.ssh/config
+    done
+    
+    for host in $(cat $LOGFILEFOLDER/host.list)
+    do
+        echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host $host"
 
-    # Restore id_rsa
-    ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "if [ -f $IDENTITYFILEBACKUP ] ; then mv -f $IDENTITYFILEBACKUP .ssh/id_rsa; else rm -f .ssh/id_rsa; fi;"
-    ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "if [ -f $IDENTITYFILEBACKUP ]; then sudo rm -f $IDENTITYFILEBACKUP; fi;"
+        echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
+        scp -q -i $IDENTITYFILE common.sh $USER@$host:/home/$USER/common.sh
+        ssh -tq -i $IDENTITYFILE $USER@$host "sudo chmod 744 common.sh;"
+        scp -q -i $IDENTITYFILE collectlogs.sh $USER@$host:/home/$USER/collectlogs.sh
+        ssh -tq -i $IDENTITYFILE $USER@$host "sudo chmod 744 collectlogs.sh; ./collectlogs.sh;"
+        
+        echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
+        scp -q -i $IDENTITYFILE $USER@$host:"/home/$USER/kube_logs.tar.gz" $LOGFILEFOLDER/kube_logs.tar.gz
+        tar -xzf $LOGFILEFOLDER/kube_logs.tar.gz -C $LOGFILEFOLDER
+        rm $LOGFILEFOLDER/kube_logs.tar.gz
 
-    # Delete scripts
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Removing temp files from cluster"
-    ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "if [ -f common.sh ]; then sudo rm -f common.sh; fi;"
-    ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "if [ -f collectlogs.sh ]; then sudo rm -f collectlogs.sh; fi;"
-    ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "if [ -f collectlogsmanager.sh ]; then sudo rm -f collectlogsmanager.sh; fi;"
+        # Removing temp files from node
+        ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f common.sh ]; then rm -f common.sh; fi;"
+        ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f collectlogs.sh ]; then rm -f collectlogs.sh; fi;"
+        ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f kube_logs.tar.gz ]; then rm -f kube_logs.tar.gz; fi;"
+    done
 
-    # Delete logs
-    ssh -tq -i $IDENTITYFILE $AZUREUSER@$HOST "sudo rm -f cluster_logs.tar.gz "
+    #Restore .ssh/config
+    rm ~/.ssh/config; 
+    if [ -f ~/.ssh/config.$NOW ]; then mv ~/.ssh/config.$NOW ~/.ssh/config; fi
+
+    rm $LOGFILEFOLDER/host.list
 fi
 
-if [ -n "$DVMHOST" ]
+if [ -n "$DVM_HOST" ]
 then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect VMD logs"
 
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
-    ssh -tq -i $IDENTITYFILE $AZUREUSER@$DVMHOST "curl -s -O $ARTIFACTSURL/diagnosis/collectlogsdvm.sh;"
-    ssh -tq -i $IDENTITYFILE $AZUREUSER@$DVMHOST "sudo chmod 744 collectlogsdvm.sh; ./collectlogsdvm.sh;"
-    
-    # Keep these commented lines around, useful to speed up development
-    # scp -q -i $IDENTITYFILE common.sh $AZUREUSER@$DVMHOST:/home/$AZUREUSER/common.sh
-    # ssh -tq -i $IDENTITYFILE $AZUREUSER@$DVMHOST "sudo chmod 744 common.sh;"
-    # scp -q -i $IDENTITYFILE collectlogsdvm.sh $AZUREUSER@$DVMHOST:/home/$AZUREUSER/collectlogsdvm.sh
-    # ssh -tq -i $IDENTITYFILE $AZUREUSER@$DVMHOST "sudo chmod 744 collectlogsdvm.sh; ./collectlogsdvm.sh;"
+    scp -q -i $IDENTITYFILE common.sh $USER@$DVM_HOST:/home/$USER/common.sh
+    ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "sudo chmod 744 common.sh;"
+    scp -q -i $IDENTITYFILE collectlogsdvm.sh $USER@$DVM_HOST:/home/$USER/collectlogsdvm.sh
+    ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "sudo chmod 744 collectlogsdvm.sh; ./collectlogsdvm.sh;"
 
-    # Copy logs back to local machine
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
-    scp -q -i $IDENTITYFILE $AZUREUSER@$DVMHOST:"/home/$AZUREUSER/dvm_logs.tar.gz" $LOGFILEFOLDER/dvm_logs.tar.gz
+    scp -q -i $IDENTITYFILE $USER@$DVM_HOST:"/home/$USER/dvm_logs.tar.gz" $LOGFILEFOLDER/dvm_logs.tar.gz
+    tar -xzf $LOGFILEFOLDER/dvm_logs.tar.gz -C $LOGFILEFOLDER
+    rm $LOGFILEFOLDER/dvm_logs.tar.gz
 
-    # Delete scripts
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Removing temp files from DVM"
-    ssh -tq -i $IDENTITYFILE $AZUREUSER@$DVMHOST "if [ -f common.sh ]; then sudo rm -f common.sh; fi;"
-    ssh -tq -i $IDENTITYFILE $AZUREUSER@$DVMHOST "if [ -f collectlogsdvm.sh ]; then sudo rm -f collectlogsdvm.sh; fi;"
+    ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "if [ -f common.sh ]; then rm -f common.sh; fi;"
+    ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "if [ -f collectlogsdvm.sh ]; then rm -f collectlogsdvm.sh; fi;"
+    ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "if [ -f dvm_logs.tar.gz ]; then rm -f dvm_logs.tar.gz; fi;"
+fi
 
-    # Delete logs
-    ssh -tq -i $IDENTITYFILE $AZUREUSER@$DVMHOST "sudo rm -f dvm_logs.tar.gz"
+# Aggregate ERRORS.txt
+if [ `find $LOGFILEFOLDER -name ERRORS.txt | wc -w` -ne "0" ]; 
+then 
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Known issues found. Details: $LOGFILEFOLDER/ALL_ERRORS.txt"
+    cat $LOGFILEFOLDER/*/ERRORS.txt &> $LOGFILEFOLDER/ALL_ERRORS.txt
 fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Done collecting Kubernetes logs"

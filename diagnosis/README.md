@@ -6,7 +6,7 @@ Please refer to this [article](https://docs.microsoft.com/en-us/azure/azure-stac
 
 ## Gathering logs
 
-The Bash scripts on this directory are aim to simplify the log collection process. Instead of SSH-ing into the cluster nodes, you can simply download and execute script `getkuberneteslogs.sh` and wait for the logs to be saved back into your workstation.  
+The Bash scripts on this directory are aim to simplify the collection of relevant logs from your Kubernetes cluster. Instead of SSH-ing into the cluster nodes, you can simply download and execute script `getkuberneteslogs.sh` and wait for the logs to be saved back into your workstation.  
 
 These are the logs retrieved by the script:
 
@@ -19,6 +19,6 @@ These are the logs retrieved by the script:
 - Etcd service status and journal
 - Gallery item's DVM logs
 
-Take into account that the current version of `getkuberneteslogs.sh` will momentarily upload your private SSH key to the cluster.
+Please be aware that the log collector script needs to update file `~/.ssh/config` in order to connect to the cluster's worker nodes. While the script will try to back it up and then restore it once the process is complete, it may be a good a idea to create your own copy.
 
-The script will also try to look for common issues or misconfigurations. If any of those are found, they will be saved in file `ALL_ERRORS.txt`.
+After the log collection process is complete, the script will also try to look for common issues or misconfigurations. If any of those are found, they will be saved in file `ALL_ERRORS.txt`.
