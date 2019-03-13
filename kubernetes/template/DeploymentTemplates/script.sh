@@ -1,4 +1,22 @@
+#! /bin/bash
 set -e
+
+function collect_deployment_and_operations {
+    DEPLOYLOGSDIR=/var/log/azure/arm-deployments/
+    sudo mkdir -p /var/log/azure/arm-deployments/
+
+    DEPLOYMENTS=$(az group deployment list --resource-group $RESOURCE_GROUP_NAME --query '[].name' --output tsv)
+
+    for deploy in $DEPLOYMENTS; do
+        az group deployment show --resource-group blah-rg --name $deploy | sudo tee $DEPLOYLOGSDIR/$deploy.deploy > /dev/null
+        az group deployment operation list --resource-group blah-rg --name $deploy | sudo tee $DEPLOYLOGSDIR/$deploy.operations > /dev/null
+    done
+
+    sudo chown -R $ADMIN_USERNAME:$ADMIN_USERNAME $DEPLOYLOGSDIR
+}
+
+# Collect deployment logs always, even if the script ends with an error
+trap collect_deployment_and_operations EXIT
 
 ### 
 #   <summary>
@@ -382,4 +400,4 @@ cd $PWD/_output/$MASTER_DNS_PREFIX
 log_level -i "Deploy the template."
 az group deployment create -g $RESOURCE_GROUP_NAME --template-file azuredeploy.json --parameters azuredeploy.parameters.json --output none
 
-log_level -i "Kubernetes cluster deployment went through fine."
+log_level -i "Kubernetes cluster deployment complete."
