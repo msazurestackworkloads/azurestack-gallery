@@ -19,6 +19,7 @@ sudo rm -f $LOGFILENAME
 
 # Loading common functions
 source ./common.sh $ERRFILENAME
+source ./detectors.sh $ERRFILENAME
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Starting DVM log collection" | tee -a $TRACEFILENAME
 

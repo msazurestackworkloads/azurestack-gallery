@@ -17,29 +17,22 @@ function download_scripts
 {
     ARTIFACTSURL=$1
 
-    curl -fs $ARTIFACTSURL/diagnosis/common.sh -o $LOGFILEFOLDER/scripts/common.sh
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Pulling dependencies from this repo: $ARTIFACTSURL"
 
-    if [ ! -f $LOGFILEFOLDER/scripts/common.sh ]
-    then
-        echo "[$(date +%Y%m%d%H%M%S)][ERROR] Required script not available. URL: $ARTIFACTSURL/diagnosis/common.sh"
-        exit 1
-    fi
+    for script in common detectors collectlogs collectlogsdvm
+    do
+        if [ -f $LOGFILEFOLDER/scripts/$script.sh ]; then
+            echo "[$(date +%Y%m%d%H%M%S)][INFO] Dependency '$script.sh' already in local file system"
+        fi
 
-    curl -fs $ARTIFACTSURL/diagnosis/collectlogs.sh -o $LOGFILEFOLDER/scripts/collectlogs.sh
+        curl -fs $ARTIFACTSURL/diagnosis/$script.sh -o $LOGFILEFOLDER/scripts/$script.sh
 
-    if [ ! -f $LOGFILEFOLDER/scripts/collectlogs.sh ]
-    then
-        echo "[$(date +%Y%m%d%H%M%S)][ERROR] Required script not available. URL: $ARTIFACTSURL/diagnosis/collectlogs.sh"
-        exit 1
-    fi
-    
-    curl -fs $ARTIFACTSURL/diagnosis/collectlogsdvm.sh -o $LOGFILEFOLDER/scripts/collectlogsdvm.sh
-
-    if [ ! -f $LOGFILEFOLDER/scripts/collectlogsdvm.sh ]
-    then
-        echo "[$(date +%Y%m%d%H%M%S)][ERROR] Required script not available. URL: $ARTIFACTSURL/diagnosis/collectlogsdvm.sh"
-        exit 1
-    fi
+        if [ ! -f $LOGFILEFOLDER/scripts/$script.sh ]; then
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR] Required script not available. URL: $ARTIFACTSURL/diagnosis/$script.sh"
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR] You may be running an older version. Download the latest script from github: https://aka.ms/AzsK8sLogCollectorScript"
+            exit 1
+        fi
+    done
 }
 
 function printUsage
@@ -180,9 +173,9 @@ then
 
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
         scp -q -i $IDENTITYFILE common.sh $USER@$host:/home/$USER/common.sh
-        ssh -tq -i $IDENTITYFILE $USER@$host "sudo chmod 744 common.sh;"
+        scp -q -i $IDENTITYFILE detectors.sh $USER@$host:/home/$USER/detectors.sh
         scp -q -i $IDENTITYFILE collectlogs.sh $USER@$host:/home/$USER/collectlogs.sh
-        ssh -tq -i $IDENTITYFILE $USER@$host "sudo chmod 744 collectlogs.sh; ./collectlogs.sh;"
+        ssh -tq -i $IDENTITYFILE $USER@$host "sudo chmod 744 common.sh detectors.sh collectlogs.sh; ./collectlogs.sh;"
         
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
         scp -q -i $IDENTITYFILE $USER@$host:"/home/$USER/kube_logs.tar.gz" $LOGFILEFOLDER/kube_logs.tar.gz
@@ -191,6 +184,7 @@ then
 
         # Removing temp files from node
         ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f common.sh ]; then rm -f common.sh; fi;"
+        ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f detectors.sh ]; then rm -f detectors.sh; fi;"
         ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f collectlogs.sh ]; then rm -f collectlogs.sh; fi;"
         ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f kube_logs.tar.gz ]; then rm -f kube_logs.tar.gz; fi;"
     done
@@ -204,9 +198,9 @@ then
 
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
     scp -q -i $IDENTITYFILE common.sh $USER@$DVM_HOST:/home/$USER/common.sh
-    ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "sudo chmod 744 common.sh;"
+    scp -q -i $IDENTITYFILE detectors.sh $USER@$DVM_HOST:/home/$USER/detectors.sh
     scp -q -i $IDENTITYFILE collectlogsdvm.sh $USER@$DVM_HOST:/home/$USER/collectlogsdvm.sh
-    ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "sudo chmod 744 collectlogsdvm.sh; ./collectlogsdvm.sh;"
+    ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "sudo chmod 744 common.sh detectors.sh collectlogsdvm.sh; ./collectlogsdvm.sh;"
 
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
     scp -q -i $IDENTITYFILE $USER@$DVM_HOST:"/home/$USER/dvm_logs.tar.gz" $LOGFILEFOLDER/dvm_logs.tar.gz
@@ -215,6 +209,7 @@ then
 
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Removing temp files from DVM"
     ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "if [ -f common.sh ]; then rm -f common.sh; fi;"
+    ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "if [ -f detectors.sh ]; then rm -f detectors.sh; fi;"
     ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "if [ -f collectlogsdvm.sh ]; then rm -f collectlogsdvm.sh; fi;"
     ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "if [ -f dvm_logs.tar.gz ]; then rm -f dvm_logs.tar.gz; fi;"
 fi
