@@ -2,9 +2,11 @@
 
 function restore_ssh_config {
     # Restore only if previously backed up
-    if [ -f $SSH_CONFIG_BAK ]; then 
-        rm ~/.ssh/config
-        mv $SSH_CONFIG_BAK ~/.ssh/config
+    if [[ -v SSH_CONFIG_BAK ]]; then
+        if [ -f $SSH_CONFIG_BAK ]; then 
+            rm ~/.ssh/config
+            mv $SSH_CONFIG_BAK ~/.ssh/config
+        fi
     fi
 }
 
@@ -44,10 +46,10 @@ function printUsage
 {
     echo ""
     echo "Usage:"    
-    echo "  $FILENAME -i id_rsa -m 192.168.102.34 -u azureuser"
-    echo "  $FILENAME --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32"
-    echo "  $FILENAME --identity-file id_rsa --master-host 192.168.102.34 --user azureuser --vmd-host 192.168.102.32"
-    echo "  $FILENAME --identity-file id_rsa --master-host 192.168.102.34 --user azureuser --vmd-host 192.168.102.32"
+    echo "  $0 -i id_rsa -m 192.168.102.34 -u azureuser"
+    echo "  $0 --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32"
+    echo "  $0 --identity-file id_rsa --master-host 192.168.102.34 --user azureuser --vmd-host 192.168.102.32"
+    echo "  $0 --identity-file id_rsa --master-host 192.168.102.34 --user azureuser --vmd-host 192.168.102.32"
     echo "" 
     echo "Options:"
     echo "  -u, --user              User name associated to the identifity-file"
@@ -58,7 +60,6 @@ function printUsage
     exit 1
 }
 
-FILENAME=$0
 
 if [ "$#" -eq 0 ]
 then
@@ -145,7 +146,7 @@ LOGFILEFOLDER="./KubernetesLogs_$CURRENTDATE"
 mkdir -p $LOGFILEFOLDER/scripts
 
 # Download scripts from github
-ARTIFACTSURL="https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master"
+ARTIFACTSURL="${ARTIFACTSURL:-https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master}"
 download_scripts $ARTIFACTSURL
 
 if [ -n "$MASTER_HOST" ]
