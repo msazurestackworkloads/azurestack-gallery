@@ -1,4 +1,15 @@
-#! /bin/bash
+#!/bin/bash
+
+function restore_ssh_config {
+    # Restore only if previously backed up
+    if [ -f $SSH_CONFIG_BAK ]; then 
+        rm ~/.ssh/config
+        mv $SSH_CONFIG_BAK ~/.ssh/config
+    fi
+}
+
+# Restorey SSH config file always, even if the script ends with an error
+trap restore_ssh_config EXIT
 
 function download_scripts
 {
@@ -150,8 +161,10 @@ then
     rm $LOGFILEFOLDER/cluster-info.tar.gz
 
     # Backup .ssh/config
-    if [ -f ~/.ssh/config ]; then cp ~/.ssh/config ~/.ssh/config.$NOW; fi
-    
+    SSH_CONFIG_BAK=~/.ssh/config.$NOW
+    if [ ! -f ~/.ssh/config ]; then touch ~/.ssh/config; fi
+    mv ~/.ssh/config $SSH_CONFIG_BAK;
+
     # Configure SSH bastion host. Technically only needed for worker nodes.
     for host in $(cat $LOGFILEFOLDER/host.list)
     do
@@ -180,10 +193,6 @@ then
         ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f collectlogs.sh ]; then rm -f collectlogs.sh; fi;"
         ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f kube_logs.tar.gz ]; then rm -f kube_logs.tar.gz; fi;"
     done
-
-    #Restore .ssh/config
-    rm ~/.ssh/config; 
-    if [ -f ~/.ssh/config.$NOW ]; then mv ~/.ssh/config.$NOW ~/.ssh/config; fi
 
     rm $LOGFILEFOLDER/host.list
 fi
