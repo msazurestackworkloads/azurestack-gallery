@@ -65,7 +65,7 @@ ERRFILE="$LOGDIRECTORY/ISSUES.txt"
 ARTIFACTSURL="${ARTIFACTSURL:-https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master}"
 download_scripts $ARTIFACTSURL
 
-source scripts/detectors.sh $ERRFILENAME
+source scripts/detectors.sh $ERRFILE
 
 find_dvm_issues
 find_node_issues
