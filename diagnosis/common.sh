@@ -114,7 +114,7 @@ find_spn_errors()
         if [ "$ERROR403" ]; then
             echo "====================" | tee -a $ERRFILENAME
             echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME][AuthorizationFailed] $ERROR403" | tee -a $ERRFILENAME
-            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Hint: Double-check the entered Service Principal has write permissions to the target subscription" | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Hint: Double-check the entered Service Principal has write permissions to the target subscription (contributor role)" | tee -a $ERRFILENAME
             echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Help: https://aka.ms/AzsK8sSpn" | tee -a $ERRFILENAME        
             echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Log file source: $1" | tee -a $ERRFILENAME
         fi
@@ -134,6 +134,16 @@ find_spn_errors()
             echo "====================" | tee -a $ERRFILENAME
             echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME][InvalidClient] $ERROR400" | tee -a $ERRFILENAME
             echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Hint: double-check the entered Service Principal name is correct" | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Log file source: $1" | tee -a $ERRFILENAME
+        fi
+
+        ERROR400=$(grep "unauthorized_client" $1 | grep "Application with identifier" | grep "was not found in the directory")
+        
+        if [ "$ERROR400" ]; then
+            echo "====================" | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME][AuthorizationFailed] $ERROR400" | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Hint: double-check the entered Service Principal has access to the subscription" | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Help: https://aka.ms/AzsK8sSpn" | tee -a $ERRFILENAME        
             echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] Log file source: $1" | tee -a $ERRFILENAME
         fi
     fi
