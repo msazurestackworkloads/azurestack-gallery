@@ -49,37 +49,25 @@ do
     sudo cp -f $clog $LOGDIRECTORY/containers/$cid.log
 done
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Dumping kubelet service status and journal" | tee -a $TRACEFILENAME
-if systemctl list-units | grep -q kubelet.service; then
-    sudo systemctl show kubelet &> $LOGDIRECTORY/kubelet_status.log
-    # journal can be long, do not collect everything
-    # TODO make this smarter
-    sudo journalctl -u kubelet | head -n 10000 &> $LOGDIRECTORY/kubelet_journal_head.log
-    sudo journalctl -u kubelet | tail -n 10000 &> $LOGDIRECTORY/kubelet_journal_tail.log
+if is_master_node; then SERVICES="docker kubelet etcd"; else SERVICES="docker kubelet"; fi
 
-    if systemctl is-active --quiet kubelet.service | grep inactive; then
-        echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] The kubelet service is not running" | tee -a $ERRFILENAME
-    fi
-else
-    echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] The kubelet service is not installed" | tee -a $ERRFILENAME
-fi
-
-if is_master_node; then
-    if systemctl list-units | grep -q etcd.service; then
-        echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Dumping etcd service status and journal" | tee -a $TRACEFILENAME
-        sudo systemctl show etcd &> $LOGDIRECTORY/etcd_status.log
+for service in $SERVICES 
+do
+    echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Dumping $service service status and journal" | tee -a $TRACEFILENAME
+    if systemctl list-units | grep -q $service.service; then
+        sudo systemctl show $service &> $LOGDIRECTORY/${service}_status.log
         # journal can be long, do not collect everything
         # TODO make this smarter
-        sudo journalctl -u etcd | head -n 10000 &> $LOGDIRECTORY/etcd_journal_head.log
-        sudo journalctl -u etcd | tail -n 10000 &> $LOGDIRECTORY/etcd_journal_tail.log
+        sudo journalctl -u $service | head -n 10000 &> $LOGDIRECTORY/${service}_journal_head.log
+        sudo journalctl -u $service | tail -n 10000 &> $LOGDIRECTORY/${service}_journal_tail.log
 
-        if systemctl is-active --quiet etcd.service | grep inactive; then
-            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] The etcd service is not running" | tee -a $ERRFILENAME
+        if systemctl is-active --quiet $service.service | grep inactive; then
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] The $service service is not running" | tee -a $ERRFILENAME
         fi
     else
-        echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] The etcd service is not installed" | tee -a $ERRFILENAME        
+        echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] The $service service is not installed" | tee -a $ERRFILENAME
     fi
-fi
+done
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for known issues and misconfigurations" | tee -a $TRACEFILENAME
 find_cse_errors $LOGDIRECTORY/cse/cluster-provision.log 

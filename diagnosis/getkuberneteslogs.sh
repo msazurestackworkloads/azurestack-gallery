@@ -16,18 +16,19 @@ trap restore_ssh_config EXIT
 function download_scripts
 {
     ARTIFACTSURL=$1
+    mkdir -p $SCRIPTSFOLDER
 
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Pulling dependencies from this repo: $ARTIFACTSURL"
 
     for script in common detectors collectlogs collectlogsdvm hosts
     do
-        if [ -f $LOGFILEFOLDER/scripts/$script.sh ]; then
+        if [ -f $SCRIPTSFOLDER/$script.sh ]; then
             echo "[$(date +%Y%m%d%H%M%S)][INFO] Dependency '$script.sh' already in local file system"
         fi
 
-        curl -fs $ARTIFACTSURL/diagnosis/$script.sh -o $LOGFILEFOLDER/scripts/$script.sh
+        curl -fs $ARTIFACTSURL/diagnosis/$script.sh -o $SCRIPTSFOLDER/$script.sh
 
-        if [ ! -f $LOGFILEFOLDER/scripts/$script.sh ]; then
+        if [ ! -f $SCRIPTSFOLDER/$script.sh ]; then
             echo "[$(date +%Y%m%d%H%M%S)][ERROR] Required script not available. URL: $ARTIFACTSURL/diagnosis/$script.sh"
             echo "[$(date +%Y%m%d%H%M%S)][ERROR] You may be running an older version. Download the latest script from github: https://aka.ms/AzsK8sLogCollectorScript"
             exit 1
@@ -136,6 +137,7 @@ echo ""
 NOW=`date +%Y%m%d%H%M%S`
 CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
 LOGFILEFOLDER="./KubernetesLogs_$CURRENTDATE"
+SCRIPTSFOLDER="$LOGFILEFOLDER/scripts"
 mkdir -p $LOGFILEFOLDER/scripts
 
 # Download scripts from github
@@ -147,7 +149,7 @@ then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect cluster logs"
 
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Looking for cluster hosts"
-    scp -q -i $IDENTITYFILE hosts.sh $USER@$MASTER_HOST:/home/$USER/hosts.sh
+    scp -q -i $IDENTITYFILE $SCRIPTSFOLDER/hosts.sh $USER@$MASTER_HOST:/home/$USER/hosts.sh
     ssh -tq -i $IDENTITYFILE $USER@$MASTER_HOST "sudo chmod 744 hosts.sh; ./hosts.sh $NOW"
     scp -q -i $IDENTITYFILE $USER@$MASTER_HOST:"/home/$USER/cluster-info.$NOW" $LOGFILEFOLDER/cluster-info.tar.gz
     ssh -tq -i $IDENTITYFILE $USER@$MASTER_HOST "sudo rm -f cluster-info.$NOW hosts.sh"
@@ -172,9 +174,7 @@ then
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host $host"
 
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
-        scp -q -i $IDENTITYFILE common.sh $USER@$host:/home/$USER/common.sh
-        scp -q -i $IDENTITYFILE detectors.sh $USER@$host:/home/$USER/detectors.sh
-        scp -q -i $IDENTITYFILE collectlogs.sh $USER@$host:/home/$USER/collectlogs.sh
+        scp -q -i $IDENTITYFILE -r $SCRIPTSFOLDER/*.sh $USER@$host:/home/$USER/
         ssh -tq -i $IDENTITYFILE $USER@$host "sudo chmod 744 common.sh detectors.sh collectlogs.sh; ./collectlogs.sh;"
         
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
@@ -186,6 +186,7 @@ then
         ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f common.sh ]; then rm -f common.sh; fi;"
         ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f detectors.sh ]; then rm -f detectors.sh; fi;"
         ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f collectlogs.sh ]; then rm -f collectlogs.sh; fi;"
+        ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f collectlogsdvm.sh ]; then rm -f collectlogsdvm.sh; fi;"
         ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f kube_logs.tar.gz ]; then rm -f kube_logs.tar.gz; fi;"
     done
 
@@ -197,9 +198,7 @@ then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect VMD logs"
 
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
-    scp -q -i $IDENTITYFILE common.sh $USER@$DVM_HOST:/home/$USER/common.sh
-    scp -q -i $IDENTITYFILE detectors.sh $USER@$DVM_HOST:/home/$USER/detectors.sh
-    scp -q -i $IDENTITYFILE collectlogsdvm.sh $USER@$DVM_HOST:/home/$USER/collectlogsdvm.sh
+    scp -q -i $IDENTITYFILE -r $SCRIPTSFOLDER/*.sh $USER@$DVM_HOST:/home/$USER/
     ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "sudo chmod 744 common.sh detectors.sh collectlogsdvm.sh; ./collectlogsdvm.sh;"
 
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
@@ -210,6 +209,7 @@ then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Removing temp files from DVM"
     ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "if [ -f common.sh ]; then rm -f common.sh; fi;"
     ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "if [ -f detectors.sh ]; then rm -f detectors.sh; fi;"
+    ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "if [ -f collectlogs.sh ]; then rm -f collectlogs.sh; fi;"
     ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "if [ -f collectlogsdvm.sh ]; then rm -f collectlogsdvm.sh; fi;"
     ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "if [ -f dvm_logs.tar.gz ]; then rm -f dvm_logs.tar.gz; fi;"
 fi
