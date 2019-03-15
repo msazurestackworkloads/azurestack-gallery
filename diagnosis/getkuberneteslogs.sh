@@ -19,7 +19,7 @@ function download_scripts
 
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Pulling dependencies from this repo: $ARTIFACTSURL"
 
-    for script in common detectors collectlogs collectlogsdvm
+    for script in common detectors collectlogs collectlogsdvm hosts
     do
         if [ -f $LOGFILEFOLDER/scripts/$script.sh ]; then
             echo "[$(date +%Y%m%d%H%M%S)][INFO] Dependency '$script.sh' already in local file system"
