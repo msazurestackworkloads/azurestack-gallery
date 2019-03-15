@@ -26,7 +26,7 @@ done
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Dumping cluster-info"    
 kubectl cluster-info &> $WD/cluster-info.log
 kubectl cluster-info dump &> $WD/cluster-info-dump.log
-kubectl get events --kube-system &> $WD/kube-system.events
+kubectl get events -n kube-system &> $WD/kube-system.events
 
 cd $WD/ && tar -czf ../cluster-info.$WD . && cd
 rm -rf $WD
