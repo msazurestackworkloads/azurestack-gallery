@@ -48,9 +48,11 @@ mkdir -p $LOGDIRECTORY/containers/
 for cid in $(docker ps -a -q --no-trunc)
 do
     # TODO Check size
-    sudo docker inspect $cid &> $LOGDIRECTORY/containers/$cid.json
-    clog=`docker inspect --format='{{.LogPath}}' $cid`
-    sudo cp -f $clog $LOGDIRECTORY/containers/$cid.log
+    cname=`docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.name" }}' $cid`
+    clog=`docker inspect --format='{{ .LogPath }}' $cid`
+
+    sudo docker inspect $cid &> $LOGDIRECTORY/containers/$cname.json
+    sudo cp -f $clog $LOGDIRECTORY/containers/$cname.log
 done
 
 if is_master_node; then SERVICES="docker kubelet etcd"; else SERVICES="docker kubelet"; fi
