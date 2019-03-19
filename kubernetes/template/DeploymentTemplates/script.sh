@@ -203,50 +203,39 @@ log_level -i "TENANT_ID:                        $TENANT_ID"
 log_level -i "TENANT_SUBSCRIPTION_ID:           $TENANT_SUBSCRIPTION_ID"
 log_level -i "------------------------------------------------------------------------"
 
-#####################################################################################
-# Install all prequisite. 
-log_level -i "Update the system to latest."
-retrycmd_if_failure 5 10 sudo apt-get update -y
-
-log_level -i "Installing pax for string manipulation."
-retrycmd_if_failure 5 10 sudo apt-get install pax -y
-
-log_level -i "Installing jq for JSON manipulation."
-retrycmd_if_failure 5 10 sudo apt-get install jq -y
-
-log_level -i "Installing curl."
-retrycmd_if_failure 5 10 sudo apt-get install curl -y
-
-log_level -i "Installing apt-transport-https and lsb-release required for Azure CLI."
-retrycmd_if_failure 5 10 sudo apt-get install apt-transport-https lsb-release -y
-
-log_level -i "Installing software-properties-common and dirmngr required for Azure CLI."
-retrycmd_if_failure 5 10 sudo apt-get install software-properties-common dirmngr -y
-
-log_level -i "Update system again to latest."
-retrycmd_if_failure 5 10 sudo apt-get update -y
-
 ####################################################################################
-#Section to install Azure CLI.
-#https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-version-profiles-azurecli2#connect-to-azure-stack
-#https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-apt?view=azure-cli-latest 
+# Configure Azure CLI repository
+# https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-version-profiles-azurecli2#connect-to-azure-stack
+# https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-apt?view=azure-cli-latest
 
+# Add Azure CLI source
 AZ_REPO=$(lsb_release -cs)
-RECV_KEY=BC528686B50D79E339D3721CEB3E94ADBE1229CF
-
-# Modify your sources list
 echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" | \
 sudo tee /etc/apt/sources.list.d/azure-cli.list
 
-#Get Microsoft signing key
+# Download Microsoft signing key
 log_level -i "Get the Microsoft signing key."
+RECV_KEY=BC528686B50D79E339D3721CEB3E94ADBE1229CF
 retrycmd_if_failure 5 10 sudo apt-key --keyring /etc/apt/trusted.gpg.d/Microsoft.gpg adv --keyserver packages.microsoft.com --recv-keys $RECV_KEY
 
-log_level -i "Update system again to latest."
-retrycmd_if_failure 5 10 sudo apt-get update 
+log_level -i "Update package information from sources."
+retrycmd_if_failure 5 10 sudo apt-get update
 
-log_level -i "Installing azure cli...."
-retrycmd_if_failure 5 10 sudo apt-get install azure-cli
+#####################################################################################
+# Install all prerequisites
+log_level -i "Installing azure-cli and its dependencies."
+retrycmd_if_failure 5 10 sudo apt-get install -y \
+pax \
+jq \
+curl \
+# azure-cli dependencies
+apt-transport-https \
+lsb-release \
+software-properties-common \
+dirmngr \
+# azure-cli
+azure-cli
+
 log_level -i "Azure CLI version : $(az --version)"
 
 #####################################################################################
