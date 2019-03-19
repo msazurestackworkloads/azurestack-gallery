@@ -36,6 +36,10 @@ mkdir -p $LOGDIRECTORY/cse/
 try_copy_directory_content /var/log/azure/ $LOGDIRECTORY/cse
 try_copy_file /opt/m $LOGDIRECTORY/cse/
 
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for apt logs" | tee -a $TRACEFILENAME
+mkdir -p $LOGDIRECTORY/apt/
+try_copy_directory_content /var/log/apt/ $LOGDIRECTORY/apt
+
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Dumping running container list" | tee -a $TRACEFILENAME
 sudo docker ps &> $LOGDIRECTORY/containers.list
 
