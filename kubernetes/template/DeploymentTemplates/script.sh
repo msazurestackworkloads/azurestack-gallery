@@ -4,21 +4,21 @@ set -e
 function collect_deployment_and_operations {
     DEPLOYLOGSDIR=/var/log/azure/arm-deployments/
     sudo mkdir -p /var/log/azure/arm-deployments/
-
+    
     DEPLOYMENTS=$(az group deployment list --resource-group $RESOURCE_GROUP_NAME --query '[].name' --output tsv)
-
+    
     for deploy in $DEPLOYMENTS; do
         az group deployment show --resource-group blah-rg --name $deploy | sudo tee $DEPLOYLOGSDIR/$deploy.deploy > /dev/null
         az group deployment operation list --resource-group blah-rg --name $deploy | sudo tee $DEPLOYLOGSDIR/$deploy.operations > /dev/null
     done
-
+    
     sudo chown -R $ADMIN_USERNAME:$ADMIN_USERNAME $DEPLOYLOGSDIR
 }
 
 # Collect deployment logs always, even if the script ends with an error
 trap collect_deployment_and_operations EXIT
 
-### 
+###
 #   <summary>
 #       Logs output by prepending date and log level type(Error, warning, info or verbose).
 #   </summary>
@@ -28,21 +28,21 @@ trap collect_deployment_and_operations EXIT
 #   <exception>None</exception>
 #   <remarks>Called within same scripts.</remarks>
 ###
-log_level() 
-{ 
+log_level()
+{
     case "$1" in
-       -e) echo "$(date) [Error]  : " ${@:2}
-          ;;
-       -w) echo "$(date) [Warning]: " ${@:2}
-          ;;       
-       -i) echo "$(date) [Info]   : " ${@:2}
-          ;;
-       *)  echo "$(date) [Verbose]: " ${@:2}
-          ;;
+        -e) echo "$(date) [Error]  : " ${@:2}
+        ;;
+        -w) echo "$(date) [Warning]: " ${@:2}
+        ;;
+        -i) echo "$(date) [Info]   : " ${@:2}
+        ;;
+        *)  echo "$(date) [Verbose]: " ${@:2}
+        ;;
     esac
 }
 
-### 
+###
 #   <summary>
 #       Retry given command by given number of times in case we have hit any failure.
 #   </summary>
@@ -53,17 +53,43 @@ log_level()
 #   <exception>None</exception>
 #   <remarks>Called within same scripts.</remarks>
 ###
-retrycmd_if_failure() 
-{ 
-    retries=$1; 
-    wait=$2; 
-    for i in $(seq 1 $retries); do 
-        ${@:3}; [ $? -eq 0  ] && break || sleep $wait; 
-    done; 
-    log_level -i "Command Executed $i times."; 
+retrycmd_if_failure()
+{
+    retries=$1;
+    wait=$2;
+    for i in $(seq 1 $retries); do
+        ${@:3}; [ $? -eq 0  ] && break || sleep $wait;
+    done;
+    log_level -i "Command Executed $i times.";
 }
 
-### 
+###
+#   <summary>
+#       Retry given command by given number of times in case we have hit any failure.
+#   </summary>
+#   <param name="1">Number of retries</param>
+#   <param name="2">Wait time between attempts</param>
+#   <param name="3">Command timeout</param>
+#   <param name="...">Command to execute.</param>
+###
+retrycmd_if_failure_exit_code() {
+    retries=$1; wait_sleep=$2; timeout=$3;
+    shift && shift && shift;
+    
+    for i in $(seq 1 $retries); do
+        timeout $timeout ${@}
+        [ $? -eq 0  ] && break || \
+        if [ $i -eq $retries ]; then
+            return 1
+        else
+            sleep $wait_sleep
+        fi
+    done
+    
+    log_level -i "Command Executed $i times.";
+}
+
+###
 #   <summary>
 #      Validate if file exist and it has non zero bytes. If validation passes moves file to new location.
 #   </summary>
@@ -74,20 +100,20 @@ retrycmd_if_failure()
 #   <remarks>Called within same scripts.</remarks>
 ###
 check_and_move_azurestack_configuration() {
-
+    
     if [ -s $1 ] ; then
         log_level -i "Found '$1' in path '$PWD' and is greater than zero bytes."
     else
         log_level -e "File '$1' does not exist in '$PWD' or is zero length. Error happend during building input API model or cluster definition."
         exit 1
     fi
-       
+    
     log_level -i "Moving file '$1' to '$2'"
     sudo mv $1 $2
     log_level -i "Completed creating API model file with given stamp information."
 }
 
-### 
+###
 #   <summary>
 #      Create PEM file based on given secret.
 #   </summary>
@@ -99,21 +125,21 @@ check_and_move_azurestack_configuration() {
 #   <remarks>Called within same scripts.</remarks>
 ###
 convert_to_cert() {
-
+    
     log_level -i "Decoding secret to json."
     echo $1 | base64 --decode > cert.json
-       
-    log_level -i "Saving data value to $2."       
+    
+    log_level -i "Saving data value to $2."
     cat cert.json | jq '.data' | tr -d \" | base64 --decode > $2
-       
+    
     log_level -i "Extracting the password."
     PASSWORD=$(cat cert.json | jq '.password' | tr -d \")
-
+    
     log_level -i "Converting data into pem format."
     openssl pkcs12 -in $2 -nodes -passin pass:$PASSWORD -out $3
 }
 
-### 
+###
 #   <summary>
 #       Copying AzureStack root certificate to appropriate store.
 #   </summary>
@@ -124,57 +150,57 @@ convert_to_cert() {
 ensureCertificates()
 {
     log_level -i "Updating certificates to appropriate store"
-
+    
     AZURESTACK_ROOT_CERTIFICATE_SOURCE_PATH="/var/lib/waagent/Certificates.pem"
     AZURESTACK_ROOT_CERTIFICATE_DEST_PATH="/usr/local/share/ca-certificates/azsCertificate.crt"
-       
+    
     log_level -i "Copy cert from '$AZURESTACK_ROOT_CERTIFICATE_SOURCE_PATH' to '$AZURESTACK_ROOT_CERTIFICATE_DEST_PATH' "
     sudo cp $AZURESTACK_ROOT_CERTIFICATE_SOURCE_PATH $AZURESTACK_ROOT_CERTIFICATE_DEST_PATH
-       
-    AZURESTACK_ROOT_CERTIFICATE_SOURCE_FINGERPRINT=`openssl x509 -in $AZURESTACK_ROOT_CERTIFICATE_SOURCE_PATH -noout -fingerprint`       
+    
+    AZURESTACK_ROOT_CERTIFICATE_SOURCE_FINGERPRINT=`openssl x509 -in $AZURESTACK_ROOT_CERTIFICATE_SOURCE_PATH -noout -fingerprint`
     AZURESTACK_ROOT_CERTIFICATE_DEST_FINGERPRINT=`openssl x509 -in $AZURESTACK_ROOT_CERTIFICATE_DEST_PATH -noout -fingerprint`
-
+    
     log_level -i "AZURESTACK_ROOT_CERTIFICATE_SOURCE_FINGERPRINT: $AZURESTACK_ROOT_CERTIFICATE_SOURCE_FINGERPRINT"
     log_level -i "AZURESTACK_ROOT_CERTIFICATE_DEST_FINGERPRINT: $AZURESTACK_ROOT_CERTIFICATE_DEST_FINGERPRINT"
-
+    
     update-ca-certificates
-
+    
     # Azure CLI specific changes.
     export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
     sudo sed -i -e "\$aREQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt" /etc/environment
-       
+    
     AZURESTACK_RESOURCE_METADATA_ENDPOINT="$TENANT_ENDPOINT/metadata/endpoints?api-version=2015-01-01"
     curl $AZURESTACK_RESOURCE_METADATA_ENDPOINT
 }
 
 # Basic details of the system
 log_level -i "Starting Kubernetes cluster deployment."
-log_level -i "Running  script as : $(whoami)"
-
+log_level -i "Running script as:  $(whoami)"
 log_level -i "System information: $(sudo uname -a)"
+
 WAIT_TIME_SECONDS=20
-log_level -i "Waiting for $WAIT_TIME_SECONDS seconds for system to get into stable state."
+log_level -i "Waiting for $WAIT_TIME_SECONDS seconds to allow the system to stabilize.";
 sleep $WAIT_TIME_SECONDS
 
-# Script parameters
+# ARM parameters
 log_level -i "------------------------------------------------------------------------"
-log_level -i "Input parameter details:"
-log_level -i "ADMIN_USERNAME: $ADMIN_USERNAME"
-log_level -i "AGENT_COUNT: $AGENT_COUNT"
-log_level -i "AGENT_SIZE: $AGENT_SIZE"
-log_level -i "IDENTITY_SYSTEM: $IDENTITY_SYSTEM" 
-log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION: $K8S_AZURE_CLOUDPROVIDER_VERSION"
-log_level -i "MASTER_COUNT: $MASTER_COUNT"
-log_level -i "MASTER_DNS_PREFIX: $MASTER_DNS_PREFIX"
-log_level -i "MASTER_SIZE: $MASTER_SIZE"
-log_level -i "PUBLICIP_DNS: $PUBLICIP_DNS"
-log_level -i "PUBLICIP_FQDN: $PUBLICIP_FQDN"
-log_level -i "REGION_NAME: $REGION_NAME"
-log_level -i "RESOURCE_GROUP_NAME: $RESOURCE_GROUP_NAME"
-log_level -i "SSH_PUBLICKEY: $SSH_PUBLICKEY"
-log_level -i "STORAGE_PROFILE: $STORAGE_PROFILE"
-log_level -i "TENANT_ID: $TENANT_ID"
-log_level -i "TENANT_SUBSCRIPTION_ID: $TENANT_SUBSCRIPTION_ID"
+log_level -i "ARM parameters"
+log_level -i "ADMIN_USERNAME:                   $ADMIN_USERNAME"
+log_level -i "AGENT_COUNT:                      $AGENT_COUNT"
+log_level -i "AGENT_SIZE:                       $AGENT_SIZE"
+log_level -i "IDENTITY_SYSTEM:                  $IDENTITY_SYSTEM"
+log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:  $K8S_AZURE_CLOUDPROVIDER_VERSION"
+log_level -i "MASTER_COUNT:                     $MASTER_COUNT"
+log_level -i "MASTER_DNS_PREFIX:                $MASTER_DNS_PREFIX"
+log_level -i "MASTER_SIZE:                      $MASTER_SIZE"
+log_level -i "PUBLICIP_DNS:                     $PUBLICIP_DNS"
+log_level -i "PUBLICIP_FQDN:                    $PUBLICIP_FQDN"
+log_level -i "REGION_NAME:                      $REGION_NAME"
+log_level -i "RESOURCE_GROUP_NAME:              $RESOURCE_GROUP_NAME"
+log_level -i "SSH_PUBLICKEY:                    $SSH_PUBLICKEY"
+log_level -i "STORAGE_PROFILE:                  $STORAGE_PROFILE"
+log_level -i "TENANT_ID:                        $TENANT_ID"
+log_level -i "TENANT_SUBSCRIPTION_ID:           $TENANT_SUBSCRIPTION_ID"
 log_level -i "------------------------------------------------------------------------"
 
 #####################################################################################
@@ -221,33 +247,28 @@ retrycmd_if_failure 5 10 sudo apt-get update
 
 log_level -i "Installing azure cli...."
 retrycmd_if_failure 5 10 sudo apt-get install azure-cli
-
 log_level -i "Azure CLI version : $(az --version)"
 
 #####################################################################################
 #Section to install/get AKS-Engine binary.
-log_level -i "Getting AKS-Engine binary."
+log_level -i "Downloading AKS-Engine binary."
 
 # Todo update release branch details: msazurestackworkloads, azsmaster
 retrycmd_if_failure 5 10 git clone https://github.com/msazurestackworkloads/aks-engine -b azsmaster
 cd aks-engine
 
-log_level -i "We are going to use an existing AKS-Engine binary."
-log_level -i "Extract zip file."
+log_level -i "Extracting tar file."
 sudo mkdir bin
 sudo tar -zxvf examples/azurestack/aks-engine.tgz
 sudo mv aks-engine bin/
 
-log_level -i "Checking if aks-engine binary is available."
-if [ -f "./bin/aks-engine" ] ; then
-    log_level -i "Found aks-engine.exe"
-else
-    log_level -e "Missing aks-engine.exe. Exiting!"
+if [ ! -f "./bin/aks-engine" ]; then
+    log_level -e "aks-engine binary not found. Exiting."
     exit 1
 fi
 
 #####################################################################################
-# Update certificates to right location as they are required 
+# Update certificates to right location as they are required
 # for CLI and AKS to connect to Azure Stack
 
 EXTERNAL_FQDN="${PUBLICIP_FQDN//$PUBLICIP_DNS.$REGION_NAME.cloudapp.}"
@@ -297,14 +318,14 @@ if [ $IDENTITY_SYSTEM == "ADFS" ] ; then
     log_level -i "In ADFS section to get(Active_Directory_Endpoint, SPN_CLIENT_SECRET) configurations."
     ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT=`echo $METADATA  | jq '.authentication.loginEndpoint' | tr -d \" | sed -e 's/adfs*$//' | tr -d \" `
     log_level -i "Active directory endpoint is: $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT"
-       
+    
     # Parse SPN_CLIENT_SECRET to get pfx and password and generate pem using PFX
     log_level -i "Parsing secret to get pem and pfx for ADFS scenario."
     CERTIFICATE_PFX_LOCATION="spnauth.pfx"
     CERTIFICATE_PEM_LOCATION="spnauth.pem"
     convert_to_cert $SPN_CLIENT_SECRET $CERTIFICATE_PFX_LOCATION $CERTIFICATE_PEM_LOCATION
     log_level -i "Able to get PFX value in : '$CERTIFICATE_PFX_LOCATION'  and pem value in '$CERTIFICATE_PEM_LOCATION'."
-       
+    
 else
     log_level -i "In AAD section to get(Active_Directory_Endpoint) configurations.."
     ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT=`echo $METADATA  | jq '.authentication.loginEndpoint' | tr -d \"`
@@ -315,17 +336,18 @@ fi
 STORAGE_PROFILE="${STORAGE_PROFILE:-blobdisk}"
 # use blobdisk and AvailabilitySet
 if [ "$STORAGE_PROFILE" == "blobdisk" ] ; then
-
+    
     log_level -i "Updating the API model file to include blob disk values."
     sudo cat $AZURESTACK_CONFIGURATION | jq --arg AvailabilitySet "AvailabilitySet" '.properties.agentPoolProfiles[0].availabilityProfile=$AvailabilitySet' | \
     jq --arg StorageAccount "StorageAccount" '.properties.agentPoolProfiles[0].storageProfile=$StorageAccount' | \
     jq --arg StorageAccount "StorageAccount" '.properties.masterProfile.storageProfile=$StorageAccount' > $AZURESTACK_CONFIGURATION_TEMP
-
+    
     log_level -i "Checking and moving 'use blobdisk and AvailabilitySet' info from temp file to main api model file."
     check_and_move_azurestack_configuration $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION
 fi
 
-sudo cat $AZURESTACK_CONFIGURATION | jq --arg ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID '.properties.customCloudProfile.environment.serviceManagementEndpoint = $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID'|\
+sudo cat $AZURESTACK_CONFIGURATION | \
+jq --arg ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID '.properties.customCloudProfile.environment.serviceManagementEndpoint = $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID'| \
 jq --arg ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT '.properties.customCloudProfile.environment.activeDirectoryEndpoint = $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT' | \
 jq --arg ENDPOINT_GRAPH_ENDPOINT $ENDPOINT_GRAPH_ENDPOINT '.properties.customCloudProfile.environment.graphEndpoint = $ENDPOINT_GRAPH_ENDPOINT' | \
 jq --arg TENANT_ENDPOINT $TENANT_ENDPOINT '.properties.customCloudProfile.environment.resourceManagerEndpoint = $TENANT_ENDPOINT' | \
@@ -346,7 +368,7 @@ log_level -i "Checking and moving temp file data to main api model file."
 check_and_move_azurestack_configuration $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION
 
 if [ $IDENTITY_SYSTEM == "ADFS" ] ; then
-
+    
     log_level -i "In ADFS section to update (servicePrincipalProfile, authenticationMethod ) configurations."
     IDENTITY_SYSTEM_LOWER=`echo "$IDENTITY_SYSTEM" | tr '[:upper:]' '[:lower:]'`
     sudo cat $AZURESTACK_CONFIGURATION | jq --arg IDENTITY_SYSTEM_LOWER $IDENTITY_SYSTEM_LOWER '.properties.customCloudProfile.identitySystem=$IDENTITY_SYSTEM_LOWER' | \
@@ -354,7 +376,7 @@ if [ $IDENTITY_SYSTEM == "ADFS" ] ; then
     jq --arg SPN_CLIENT_ID $SPN_CLIENT_ID '.properties.servicePrincipalProfile.clientId = $SPN_CLIENT_ID' | \
     jq --arg SPN_CLIENT_SECRET_KEYVAULT_ID $SPN_CLIENT_SECRET_KEYVAULT_ID '.properties.servicePrincipalProfile.keyvaultSecretRef.vaultID = $SPN_CLIENT_SECRET_KEYVAULT_ID' | \
     jq --arg SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME $SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME '.properties.servicePrincipalProfile.keyvaultSecretRef.secretName = $SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME' >  $AZURESTACK_CONFIGURATION_TEMP
-       
+    
     log_level -i "Append adfs back to Active directory endpoint as it is required in Azure CLI to register and login."
     ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT=${ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT}adfs
     log_level -i "Final ACTIVE_DIRECTORY endpoint value for adfs is: $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT."
@@ -395,7 +417,7 @@ log_level -i "Generate ARM template using AKS-Engine."
 retrycmd_if_failure 5 10 sudo ./bin/aks-engine generate $AZURESTACK_CONFIGURATION
 
 log_level -i "ARM template generated at $PWD/_output/$MASTER_DNS_PREFIX directory. Now changing current path to given arm template directory."
-cd $PWD/_output/$MASTER_DNS_PREFIX 
+cd $PWD/_output/$MASTER_DNS_PREFIX
 
 log_level -i "Deploy the template."
 az group deployment create -g $RESOURCE_GROUP_NAME --template-file azuredeploy.json --parameters azuredeploy.parameters.json --output none
