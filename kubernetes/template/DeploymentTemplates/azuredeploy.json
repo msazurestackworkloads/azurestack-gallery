@@ -89,7 +89,7 @@
         "ADFS"
       ],
       "metadata": {
-        "description": "The identity system of azure stack. The value could be AzureAD or ADFS"
+        "description": "The identity system of Azure Stack. The value could be AzureAD or ADFS"
       },
       "type": "string"
     },

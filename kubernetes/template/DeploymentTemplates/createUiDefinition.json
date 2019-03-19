@@ -348,7 +348,7 @@
         "type": "Microsoft.Common.DropDown",
         "label": "Azure Stack identity system",
         "defaultValue": "AzureAD",
-        "toolTip": "The identity sytem of azure stack.",
+        "toolTip": "The identity sytem of Azure Stack.",
         "constraints": {
           "allowedValues": [{
               "label": "AzureAD",
