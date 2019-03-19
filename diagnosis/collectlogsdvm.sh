@@ -40,6 +40,10 @@ echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for CSE directory" | tee 
 mkdir -p $LOGDIRECTORY/cse/
 try_copy_directory_content /var/log/azure/ $LOGDIRECTORY/cse
 
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for apt logs" | tee -a $TRACEFILENAME
+mkdir -p $LOGDIRECTORY/apt/
+try_copy_directory_content /var/log/apt/ $LOGDIRECTORY/apt
+
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for Gallery Item deployment log file" | tee -a $TRACEFILENAME
 try_copy_file /var/log/azure/acsengine-kubernetes-dvm.log $LOGDIRECTORY/
 
