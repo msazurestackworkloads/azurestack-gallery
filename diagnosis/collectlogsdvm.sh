@@ -51,10 +51,10 @@ echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Dumping system journal" | tee -a 
 sudo journalctl &> $LOGDIRECTORY/journalctl.log
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for known issues and misconfigurations" | tee -a $TRACEFILENAME
-find_cse_errors $LOGDIRECTORY/cse/cluster-provision.log 
+find_cse_errors $LOGDIRECTORY/cse/cluster-provision.log
 find_cse_errors $LOGDIRECTORY/cloud-init-output.log
 find_spn_errors $LOGDIRECTORY/deploy-script-dvm.log
-# This line goes away after gallery item v0.4.1 is available 
+# This line goes away after gallery item v0.4.1 is available
 find_spn_errors $LOGDIRECTORY/acsengine-kubernetes-dvm.log
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Compressing logs into $LOGFILENAME" | tee -a $TRACEFILENAME

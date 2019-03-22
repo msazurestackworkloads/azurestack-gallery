@@ -57,7 +57,7 @@ done
 
 if is_master_node; then SERVICES="docker kubelet etcd"; else SERVICES="docker kubelet"; fi
 
-for service in $SERVICES 
+for service in $SERVICES
 do
     echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Dumping $service service status and journal" | tee -a $TRACEFILENAME
     if systemctl list-units | grep -q $service.service; then
@@ -66,7 +66,7 @@ do
         # TODO make this smarter
         sudo journalctl -u $service | head -n 10000 &> $LOGDIRECTORY/${service}_journal_head.log
         sudo journalctl -u $service | tail -n 10000 &> $LOGDIRECTORY/${service}_journal_tail.log
-
+        
         if systemctl is-active --quiet $service.service | grep inactive; then
             echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] The $service service is not running" | tee -a $ERRFILENAME
         fi
@@ -76,8 +76,8 @@ do
 done
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for known issues and misconfigurations" | tee -a $TRACEFILENAME
-find_cse_errors $LOGDIRECTORY/cse/cluster-provision.log 
-find_cse_errors $LOGDIRECTORY/cloud-init-output.log 
+find_cse_errors $LOGDIRECTORY/cse/cluster-provision.log
+find_cse_errors $LOGDIRECTORY/cloud-init-output.log
 find_etcd_bad_cert_errors $LOGDIRECTORY/cse/cluster-provision.log $LOGDIRECTORY/etcd_status.log
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Compressing logs" | tee -a $TRACEFILENAME
