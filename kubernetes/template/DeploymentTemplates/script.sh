@@ -21,32 +21,35 @@ function collect_deployment_and_operations
     # Store main exit code
     EXIT_CODE=$?
     
-    if ! command az account show -o none; then
-        log_level -i "Won't collect deployment logs, azure-cli is not installed"
+    if [ $EXIT_CODE -ne 0 ]; then
+        log_level -i "CustomScript extension failed with exit code $EXIT_CODE"
+    fi
+    
+    if ! command az 1> /dev/null; then
+        log_level -w "Won't collect deployment logs, azure-cli is not installed"
         exit $EXIT_CODE
     fi
     
-    if ! az account show -o none; then
-        log_level -i "Won't collect deployment logs, azure-cli is not logged in"
+    if ! az account show -o none 2> /dev/null; then
+        log_level -w "Won't collect deployment logs, azure-cli is not logged in"
         exit $EXIT_CODE
     fi
     
-    if [ $? -eq 0 ];
-    then
-        log_level -i "Collecting deployment logs."
-        
-        DEPLOYLOGSDIR=/var/log/azure/arm-deployments
-        sudo mkdir -p $DEPLOYLOGSDIR
-        
-        DEPLOYMENTS=$(az group deployment list --resource-group $RESOURCE_GROUP_NAME --query '[].name' --output tsv)
-        
-        for deploy in $DEPLOYMENTS; do
-            az group deployment show --resource-group $RESOURCE_GROUP_NAME --name $deploy | sudo tee $DEPLOYLOGSDIR/$deploy.deploy > /dev/null
-            az group deployment operation list --resource-group $RESOURCE_GROUP_NAME --name $deploy | sudo tee $DEPLOYLOGSDIR/$deploy.operations > /dev/null
-        done
-        
-        sudo chown -R $ADMIN_USERNAME:$ADMIN_USERNAME $DEPLOYLOGSDIR
-    fi
+    log_level -i "Collecting deployment logs."
+    
+    DEPLOYLOGSDIR=/var/log/azure/arm-deployments
+    mkdir -p $DEPLOYLOGSDIR
+    
+    DEPLOYMENTS=$(az group deployment list --resource-group $RESOURCE_GROUP_NAME --query '[].name' --output tsv)
+    
+    for deploy in $DEPLOYMENTS; do
+        az group deployment show --resource-group $RESOURCE_GROUP_NAME --name $deploy | tee $DEPLOYLOGSDIR/$deploy.deploy > /dev/null
+        az group deployment operation list --resource-group $RESOURCE_GROUP_NAME --name $deploy | tee $DEPLOYLOGSDIR/$deploy.operations > /dev/null
+    done
+    
+    chown -R $ADMIN_USERNAME:$ADMIN_USERNAME $DEPLOYLOGSDIR
+    
+    log_level -i "CustomScript extension run to completion."
     exit $EXIT_CODE
 }
 
@@ -161,19 +164,19 @@ ensure_certificates()
     AZURESTACK_ROOT_CERTIFICATE_DEST_PATH="/usr/local/share/ca-certificates/azsCertificate.crt"
     
     log_level -i "Copy ca-cert from '$AZURESTACK_ROOT_CERTIFICATE_SOURCE_PATH' to '$AZURESTACK_ROOT_CERTIFICATE_DEST_PATH' "
-    sudo cp $AZURESTACK_ROOT_CERTIFICATE_SOURCE_PATH $AZURESTACK_ROOT_CERTIFICATE_DEST_PATH
+    cp $AZURESTACK_ROOT_CERTIFICATE_SOURCE_PATH $AZURESTACK_ROOT_CERTIFICATE_DEST_PATH
     
-    AZURESTACK_ROOT_CERTIFICATE_SOURCE_FINGERPRINT=`sudo openssl x509 -in $AZURESTACK_ROOT_CERTIFICATE_SOURCE_PATH -noout -fingerprint`
+    AZURESTACK_ROOT_CERTIFICATE_SOURCE_FINGERPRINT=`openssl x509 -in $AZURESTACK_ROOT_CERTIFICATE_SOURCE_PATH -noout -fingerprint`
     log_level -i "AZURESTACK_ROOT_CERTIFICATE_SOURCE_FINGERPRINT: $AZURESTACK_ROOT_CERTIFICATE_SOURCE_FINGERPRINT"
     
-    AZURESTACK_ROOT_CERTIFICATE_DEST_FINGERPRINT=`sudo openssl x509 -in $AZURESTACK_ROOT_CERTIFICATE_DEST_PATH -noout -fingerprint`
+    AZURESTACK_ROOT_CERTIFICATE_DEST_FINGERPRINT=`openssl x509 -in $AZURESTACK_ROOT_CERTIFICATE_DEST_PATH -noout -fingerprint`
     log_level -i "AZURESTACK_ROOT_CERTIFICATE_DEST_FINGERPRINT: $AZURESTACK_ROOT_CERTIFICATE_DEST_FINGERPRINT"
     
-    sudo update-ca-certificates
+    update-ca-certificates
     
     # Required by Azure CLI
     export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
-    echo "REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt" | sudo tee -a /etc/environment > /dev/null
+    echo "REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt" | tee -a /etc/environment > /dev/null
     
     if [ $IDENTITY_SYSTEM == "ADFS" ]; then
         # Trim "adfs" suffix
@@ -198,11 +201,11 @@ add_azurecli_source()
     
     log_level -i "Adding azure-cli apt source."
     AZ_REPO=$(lsb_release -cs)
-    echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" | sudo tee /etc/apt/sources.list.d/azure-cli.list
+    echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" | tee /etc/apt/sources.list.d/azure-cli.list
     
     log_level -i "Downloading the Microsoft signing key."
     RECV_KEY=BC528686B50D79E339D3721CEB3E94ADBE1229CF
-    retrycmd_if_failure 5 10 60 sudo apt-key \
+    retrycmd_if_failure 5 10 60 apt-key \
     --keyring /etc/apt/trusted.gpg.d/Microsoft.gpg adv \
     --keyserver packages.microsoft.com \
     --recv-keys $RECV_KEY \
@@ -218,22 +221,26 @@ download_akse()
     # Todo update release branch details: msazurestackworkloads, azsmaster
     retrycmd_if_failure 5 10 60 git clone https://github.com/msazurestackworkloads/aks-engine -b azsmaster || exit $ERR_AKSE_DOWNLOAD
     
-    mkdir -p ~/bin
-    tar -zxvf aks-engine/examples/azurestack/aks-engine.tgz -C ~/bin
+    mkdir -p ./bin
+    tar -zxvf aks-engine/examples/azurestack/aks-engine.tgz -C ./bin
     
-    if [ ! -f ~/bin/aks-engine ]; then
+    AKSE_LOCATION=./bin/aks-engine
+    if [ ! -f $AKSE_LOCATION ]; then
         log_level -e "aks-engine binary not found in expected location"
+        log_level -e "Expected location: $AKSE_LOCATION"
         exit 1
     fi
     
-    DEFINITION_TEMPLATE=~/aks-engine/examples/azurestack/azurestack-kubernetes$K8S_AZURE_CLOUDPROVIDER_VERSION.json
+    DEFINITION_TEMPLATE=./aks-engine/examples/azurestack/azurestack-kubernetes$K8S_AZURE_CLOUDPROVIDER_VERSION.json
     if [ ! -f $DEFINITION_TEMPLATE ]; then
         log_level -e "API model template for Kubernetes $K8S_AZURE_CLOUDPROVIDER_VERSION not found in expected location"
+        log_level -e "Expected location: $DEFINITION_TEMPLATE"
         exit 1
     fi
     
     if [ ! -s $DEFINITION_TEMPLATE ]; then
         log_level -e "Downloaded API model template for Kubernetes $K8S_AZURE_CLOUDPROVIDER_VERSION is an empty file."
+        log_level -e "Template location: $DEFINITION_TEMPLATE"
         exit 1
     fi
     
@@ -264,9 +271,9 @@ apt_get_update()
     
     for i in $(seq 1 $retries); do
         wait_for_apt_locks
-        sudo dpkg --configure -a
-        sudo apt-get -f -y install
-        sudo apt-get update 2>&1 | tee $apt_update_output | grep -E "^([WE]:.*)|([eE]rr.*)$"
+        dpkg --configure -a
+        apt-get -f -y install
+        apt-get update 2>&1 | tee $apt_update_output | grep -E "^([WE]:.*)|([eE]rr.*)$"
         [ $? -ne 0  ] && cat $apt_update_output && break || \
         cat $apt_update_output
         if [ $i -eq $retries ]; then
@@ -289,8 +296,8 @@ apt_get_install()
     
     for i in $(seq 1 $retries); do
         wait_for_apt_locks
-        sudo dpkg --configure -a
-        sudo apt-get install --no-install-recommends -y ${@}
+        dpkg --configure -a
+        apt-get install --no-install-recommends -y ${@}
         [ $? -eq 0  ] && break || \
         if [ $i -eq $retries ]; then
             return 1
@@ -309,7 +316,7 @@ apt_get_install()
 
 log_level -i "Starting Kubernetes cluster deployment."
 log_level -i "Running script as:  $(whoami)"
-log_level -i "System information: $(sudo uname -a)"
+log_level -i "System information: $(uname -a)"
 
 log_level -i "------------------------------------------------------------------------"
 log_level -i "ARM parameters"
@@ -317,7 +324,7 @@ log_level -i "------------------------------------------------------------------
 log_level -i "ADMIN_USERNAME:                   $ADMIN_USERNAME"
 log_level -i "AGENT_COUNT:                      $AGENT_COUNT"
 log_level -i "AGENT_SIZE:                       $AGENT_SIZE"
-log_level -i "IDENTITY_SYSTEM:                  *****"
+log_level -i "IDENTITY_SYSTEM:                  $IDENTITY_SYSTEM"
 log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:  $K8S_AZURE_CLOUDPROVIDER_VERSION"
 log_level -i "MASTER_COUNT:                     $MASTER_COUNT"
 log_level -i "MASTER_DNS_PREFIX:                $MASTER_DNS_PREFIX"
@@ -326,12 +333,12 @@ log_level -i "PUBLICIP_DNS:                     $PUBLICIP_DNS"
 log_level -i "PUBLICIP_FQDN:                    $PUBLICIP_FQDN"
 log_level -i "REGION_NAME:                      $REGION_NAME"
 log_level -i "RESOURCE_GROUP_NAME:              $RESOURCE_GROUP_NAME"
-log_level -i "SSH_PUBLICKEY:                    $SSH_PUBLICKEY"
+log_level -i "SSH_PUBLICKEY:                    ----"
 log_level -i "STORAGE_PROFILE:                  $STORAGE_PROFILE"
 log_level -i "TENANT_ID:                        $TENANT_ID"
 log_level -i "TENANT_SUBSCRIPTION_ID:           $TENANT_SUBSCRIPTION_ID"
-log_level -i "SPN_CLIENT_ID:                    *****"
-log_level -i "SPN_CLIENT_SECRET:                *****"
+log_level -i "SPN_CLIENT_ID:                    ----"
+log_level -i "SPN_CLIENT_SECRET:                ----"
 
 log_level -i "------------------------------------------------------------------------"
 log_level -i "Constants"
@@ -396,10 +403,10 @@ log_level -i "Azure CLI version: $(az --version)"
 
 log_level -i "Downloading AKS-Engine binary and cluster definition templates"
 
-mkdir -p ~/bin
+mkdir -p $PWD/bin
 
-AZURESTACK_CONFIGURATION=~/bin/azurestack.json
-AZURESTACK_CONFIGURATION_TEMP=~/bin/azurestack.tmp
+AZURESTACK_CONFIGURATION=$PWD/bin/azurestack.json
+AZURESTACK_CONFIGURATION_TEMP=$PWD/bin/azurestack.tmp
 
 download_akse || exit $ERR_AKSE_DOWNLOAD
 
@@ -530,19 +537,17 @@ retrycmd_if_failure 5 10 60 az account set --subscription $TENANT_SUBSCRIPTION_I
 #####################################################################################
 # aks-engine commands
 
-cd ~/bin/
-
 log_level -i "Generating ARM template using AKS-Engine."
 # No retry, generate does not call any external endpoint
-./aks-engine generate $AZURESTACK_CONFIGURATION || exit $ERR_AKSE_GENERATE
+./bin/aks-engine generate $AZURESTACK_CONFIGURATION || exit $ERR_AKSE_GENERATE
 
-log_level -i "ARM template saved in directory $PWD/bin/_output/$MASTER_DNS_PREFIX."
+log_level -i "ARM template saved in directory $PWD/_output/$MASTER_DNS_PREFIX."
 
 log_level -i "Deploying the template."
 retrycmd_if_failure 3 10 6000 az group deployment create \
 -g $RESOURCE_GROUP_NAME \
---template-file ~/bin/_output/$MASTER_DNS_PREFIX/azuredeploy.json \
---parameters ~/bin/_output/$MASTER_DNS_PREFIX/azuredeploy.parameters.json \
+--template-file _output/$MASTER_DNS_PREFIX/azuredeploy.json \
+--parameters _output/$MASTER_DNS_PREFIX/azuredeploy.parameters.json \
 --output none  \
 || exit $ERR_AKSE_DEPLOY
 
