@@ -45,14 +45,26 @@ sudo docker ps &> $LOGDIRECTORY/containers.list
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for containers logs" | tee -a $TRACEFILENAME
 mkdir -p $LOGDIRECTORY/containers/
+
+test $# -gt 0 && NAMESPACES=$@
+test -z "${NAMESPACES}" && echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collection logs from all namespaces"
+test -n "${NAMESPACES}" && echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collection logs from containers in these namespaces: $NAMESPACES."
+
 for cid in $(docker ps -a -q --no-trunc)
 do
-    # TODO Check size
-    cname=`docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.name" }}' $cid`
-    clog=`docker inspect --format='{{ .LogPath }}' $cid`
-
-    sudo docker inspect $cid &> $LOGDIRECTORY/containers/$cname.json
-    sudo cp -f $clog $LOGDIRECTORY/containers/$cname.log
+    cns=`docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.namespace" }}' $cid`
+    
+    # Only collect logs from requested namespaces
+    # if NAMESPACES not set, then collect everything
+    if [ -z "${NAMESPACES}" -o echo $NAMESPACES | grep -qw $cns ];
+    then
+        # TODO Check size
+        cname=`docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.name" }}' $cid`
+        clog=`docker inspect --format='{{ .LogPath }}' $cid`
+        
+        sudo docker inspect $cid &> $LOGDIRECTORY/containers/$cname.json
+        sudo cp -f $clog $LOGDIRECTORY/containers/$cname.log
+    fi
 done
 
 if is_master_node; then SERVICES="docker kubelet etcd"; else SERVICES="docker kubelet"; fi
