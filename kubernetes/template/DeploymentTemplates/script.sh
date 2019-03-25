@@ -531,17 +531,17 @@ retrycmd_if_failure 5 10 60 az cloud update --profile $HYBRID_PROFILE || exit $E
 
 if [ $IDENTITY_SYSTEM == "ADFS" ]; then
     log_level -i "Login to ADFS environment using Azure CLI."
-    retrycmd_if_failure 5 10 60 az login
-    --service-principal -u $SPN_CLIENT_ID -p $CERTIFICATE_PEM_LOCATION
-    --tenant $TENANT_ID
-    --output none
+    retrycmd_if_failure 5 10 60 az login \
+    --service-principal -u $SPN_CLIENT_ID -p $CERTIFICATE_PEM_LOCATION \
+    --tenant $TENANT_ID \
+    --output none \
     || exit $ERR_AZS_LOGIN_ADFS
 else
     log_level -i "Login to AAD environment using Azure CLI."
-    retrycmd_if_failure 5 10 60 az login
-    --service-principal -u $SPN_CLIENT_ID -p $SPN_CLIENT_SECRET
-    --tenant $TENANT_ID
-    --output none
+    retrycmd_if_failure 5 10 60 az login \
+    --service-principal -u $SPN_CLIENT_ID -p $SPN_CLIENT_SECRET \
+    --tenant $TENANT_ID \
+    --output none \
     || exit $ERR_AZS_LOGIN_AAD
 fi
 
