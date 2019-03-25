@@ -56,7 +56,7 @@ do
     
     # Only collect logs from requested namespaces
     # if NAMESPACES not set, then collect everything
-    if [ -z "${NAMESPACES}" -o echo $NAMESPACES | grep -qw $cns ];
+    if [ -z "${NAMESPACES}" ] || (echo $NAMESPACES | grep -qw $cns);
     then
         # TODO Check size
         cname=`docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.name" }}' $cid`
