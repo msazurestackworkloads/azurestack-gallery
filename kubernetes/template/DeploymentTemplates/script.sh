@@ -336,11 +336,11 @@ log_level -i "TENANT_ID:                                $TENANT_ID"
 log_level -i "TENANT_SUBSCRIPTION_ID:                   $TENANT_SUBSCRIPTION_ID"
 
 if [ $IDENTITY_SYSTEM == "ADFS" ]; then
-    log_level -i "SPN_CLIENT_ID:                            ----"
-    log_level -i "SPN_CLIENT_SECRET:                        ----"
-else
     log_level -i "SPN_CLIENT_SECRET_KEYVAULT_ID:            $SPN_CLIENT_SECRET_KEYVAULT_ID"
     log_level -i "SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME:   $SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME"
+else
+    log_level -i "SPN_CLIENT_ID:                            ----"
+    log_level -i "SPN_CLIENT_SECRET:                        ----"
 fi
 
 log_level -i "------------------------------------------------------------------------"
