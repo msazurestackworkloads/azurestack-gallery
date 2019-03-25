@@ -215,9 +215,6 @@ add_azurecli_source()
 # Clone msazurestackworkloads' AKSe fork and move relevant files to the working directory
 download_akse()
 {
-    # TODO REMOVE
-    rm -rf aks-engine/ bin/
-    
     # Todo update release branch details: msazurestackworkloads, azsmaster
     retrycmd_if_failure 5 10 60 git clone https://github.com/msazurestackworkloads/aks-engine -b azsmaster || exit $ERR_AKSE_DOWNLOAD
     
@@ -321,24 +318,30 @@ log_level -i "System information: $(uname -a)"
 log_level -i "------------------------------------------------------------------------"
 log_level -i "ARM parameters"
 log_level -i "------------------------------------------------------------------------"
-log_level -i "ADMIN_USERNAME:                   $ADMIN_USERNAME"
-log_level -i "AGENT_COUNT:                      $AGENT_COUNT"
-log_level -i "AGENT_SIZE:                       $AGENT_SIZE"
-log_level -i "IDENTITY_SYSTEM:                  $IDENTITY_SYSTEM"
-log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:  $K8S_AZURE_CLOUDPROVIDER_VERSION"
-log_level -i "MASTER_COUNT:                     $MASTER_COUNT"
-log_level -i "MASTER_DNS_PREFIX:                $MASTER_DNS_PREFIX"
-log_level -i "MASTER_SIZE:                      $MASTER_SIZE"
-log_level -i "PUBLICIP_DNS:                     $PUBLICIP_DNS"
-log_level -i "PUBLICIP_FQDN:                    $PUBLICIP_FQDN"
-log_level -i "REGION_NAME:                      $REGION_NAME"
-log_level -i "RESOURCE_GROUP_NAME:              $RESOURCE_GROUP_NAME"
-log_level -i "SSH_PUBLICKEY:                    ----"
-log_level -i "STORAGE_PROFILE:                  $STORAGE_PROFILE"
-log_level -i "TENANT_ID:                        $TENANT_ID"
-log_level -i "TENANT_SUBSCRIPTION_ID:           $TENANT_SUBSCRIPTION_ID"
-log_level -i "SPN_CLIENT_ID:                    ----"
-log_level -i "SPN_CLIENT_SECRET:                ----"
+log_level -i "ADMIN_USERNAME:                           $ADMIN_USERNAME"
+log_level -i "AGENT_COUNT:                              $AGENT_COUNT"
+log_level -i "AGENT_SIZE:                               $AGENT_SIZE"
+log_level -i "IDENTITY_SYSTEM:                          $IDENTITY_SYSTEM"
+log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:          $K8S_AZURE_CLOUDPROVIDER_VERSION"
+log_level -i "MASTER_COUNT:                             $MASTER_COUNT"
+log_level -i "MASTER_DNS_PREFIX:                        $MASTER_DNS_PREFIX"
+log_level -i "MASTER_SIZE:                              $MASTER_SIZE"
+log_level -i "PUBLICIP_DNS:                             $PUBLICIP_DNS"
+log_level -i "PUBLICIP_FQDN:                            $PUBLICIP_FQDN"
+log_level -i "REGION_NAME:                              $REGION_NAME"
+log_level -i "RESOURCE_GROUP_NAME:                      $RESOURCE_GROUP_NAME"
+log_level -i "SSH_PUBLICKEY:                            ----"
+log_level -i "STORAGE_PROFILE:                          $STORAGE_PROFILE"
+log_level -i "TENANT_ID:                                $TENANT_ID"
+log_level -i "TENANT_SUBSCRIPTION_ID:                   $TENANT_SUBSCRIPTION_ID"
+
+if [ $IDENTITY_SYSTEM == "ADFS" ]; then
+    log_level -i "SPN_CLIENT_ID:                            ----"
+    log_level -i "SPN_CLIENT_SECRET:                        ----"
+else
+    log_level -i "SPN_CLIENT_SECRET_KEYVAULT_ID:            $SPN_CLIENT_SECRET_KEYVAULT_ID"
+    log_level -i "SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME:   $SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME"
+fi
 
 log_level -i "------------------------------------------------------------------------"
 log_level -i "Constants"
@@ -394,7 +397,8 @@ apt-transport-https \
 lsb-release \
 software-properties-common \
 dirmngr \
-azure-cli || exit $ERR_APT_INSTALL_TIMEOUT
+azure-cli \
+|| exit $ERR_APT_INSTALL_TIMEOUT
 
 log_level -i "Azure CLI version: $(az --version)"
 
@@ -442,18 +446,6 @@ log_level -i "ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT: $ENDPOINT_ACTIVE_DIRECTORY_END
 
 log_level -i "Setting general cluster definition properties."
 
-if [ "$STORAGE_PROFILE" == "blobdisk" ]; then
-    log_level -w "Using blob disks requires AvailabilitySet, overriding availabilityProfile and storageProfile."
-    
-    cat $AZURESTACK_CONFIGURATION | \
-    jq --arg AvailabilitySet "AvailabilitySet" '.properties.agentPoolProfiles[0].availabilityProfile=$AvailabilitySet' | \
-    jq --arg StorageAccount "StorageAccount" '.properties.agentPoolProfiles[0].storageProfile=$StorageAccount' | \
-    jq --arg StorageAccount "StorageAccount" '.properties.masterProfile.storageProfile=$StorageAccount' \
-    > $AZURESTACK_CONFIGURATION_TEMP
-    
-    validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
-fi
-
 cat $AZURESTACK_CONFIGURATION | \
 jq --arg ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID '.properties.customCloudProfile.environment.serviceManagementEndpoint = $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID'| \
 jq --arg ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT '.properties.customCloudProfile.environment.activeDirectoryEndpoint = $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT' | \
@@ -474,6 +466,18 @@ jq --arg SSH_PUBLICKEY "${SSH_PUBLICKEY}" '.properties.linuxProfile.ssh.publicKe
 > $AZURESTACK_CONFIGURATION_TEMP
 
 validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
+
+if [ "$STORAGE_PROFILE" == "blobdisk" ]; then
+    log_level -w "Using blob disks requires AvailabilitySet, overriding availabilityProfile and storageProfile."
+    
+    cat $AZURESTACK_CONFIGURATION | \
+    jq --arg AvailabilitySet "AvailabilitySet" '.properties.agentPoolProfiles[0].availabilityProfile=$AvailabilitySet' | \
+    jq --arg StorageAccount "StorageAccount" '.properties.agentPoolProfiles[0].storageProfile=$StorageAccount' | \
+    jq --arg StorageAccount "StorageAccount" '.properties.masterProfile.storageProfile=$StorageAccount' \
+    > $AZURESTACK_CONFIGURATION_TEMP
+    
+    validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
+fi
 
 if [ $IDENTITY_SYSTEM == "ADFS" ]; then
     log_level -i "Setting ADFS specific cluster definition properties."
@@ -502,7 +506,9 @@ log_level -i "Done building cluster definition."
 # https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-version-profiles-azurecli2#connect-to-azure-stack
 
 # azure-cli needs the "adfs" suffix
-if [ $IDENTITY_SYSTEM == "ADFS" ]; then ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT=${ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT}adfs; fi;
+if [ $IDENTITY_SYSTEM == "ADFS" ]; then
+    ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT=${ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT}adfs;
+fi;
 
 log_level -i "Registering to Azure Stack cloud."
 retrycmd_if_failure 5 10 60 az cloud register \
