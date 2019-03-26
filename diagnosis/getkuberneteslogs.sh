@@ -144,6 +144,16 @@ mkdir -p $LOGFILEFOLDER/scripts
 ARTIFACTSURL="${ARTIFACTSURL:-https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master}"
 download_scripts $ARTIFACTSURL
 
+echo "[$(date +%Y%m%d%H%M%S)][INFO] Testing SSH keys"
+TEST_HOST="${MASTER_HOST:-$DVM_HOST}"
+ssh -i $IDENTITYFILE $USER@$TEST_HOST "exit"
+
+if [ $? -ne 0 ]; then
+    echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to the server"
+    echo "[$(date +%Y%m%d%H%M%S)][ERR] Aborting log collection process"
+    exit 1
+fi
+
 if [ -n "$MASTER_HOST" ]
 then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect cluster logs"
