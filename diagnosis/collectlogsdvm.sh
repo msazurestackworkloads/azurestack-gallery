@@ -7,11 +7,6 @@ TRACEFILENAME="$LOGDIRECTORY/collector_trace"
 ERRFILENAME="$LOGDIRECTORY/ERRORS.txt"
 CURRENTUSER=`whoami`
 
-# Download scripts
-ARTIFACTSURL="https://raw.githubusercontent.com/jadarsie/azurestack-gallery/log-collector"
-curl -s -O $ARTIFACTSURL/diagnosis/common.sh;
-sudo chmod 744 common.sh
-
 mkdir $LOGDIRECTORY
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Cleaning up old temp files" | tee -a $TRACEFILENAME
