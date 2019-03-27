@@ -311,7 +311,7 @@ apt_get_install()
 #####################################################################################
 # start
 
-log_level -i "Starting Kubernetes cluster deployment."
+log_level -i "Starting Kubernetes cluster deployment: v0.4.2"
 log_level -i "Running script as:  $(whoami)"
 log_level -i "System information: $(uname -a)"
 
@@ -426,6 +426,8 @@ ensure_certificates || exit $ERR_CACERT_INSTALL
 log_level -i "Computing cluster definition values."
 
 METADATA=`curl -s -f --retry 10 $AZURESTACK_RESOURCE_METADATA_ENDPOINT` || exit $ERR_METADATA_ENDPOINT
+echo $METADATA > metadata.json
+
 ENDPOINT_GRAPH_ENDPOINT=`echo $METADATA | jq '.graphEndpoint' | xargs`
 ENDPOINT_GALLERY=`echo $METADATA | jq '.galleryEndpoint' | xargs`
 ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID=`echo $METADATA | jq '.authentication.audiences'[0] | xargs`
