@@ -44,7 +44,7 @@ echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Dumping running container list" |
 sudo docker ps &> $LOGDIRECTORY/containers.list
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for containers logs" | tee -a $TRACEFILENAME
-mkdir -p $LOGDIRECTORY/containers/
+mkdir -p $LOGDIRECTORY/containers/manifests
 
 test $# -gt 0 && NAMESPACES=$@
 test -z "${NAMESPACES}" && echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collection logs from all namespaces"
@@ -66,6 +66,9 @@ do
         sudo cp -f $clog $LOGDIRECTORY/containers/$cname.log
     fi
 done
+
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for container manifests" | tee -a $TRACEFILENAME
+try_copy_directory_content /etc/kubernetes/manifests/ $LOGDIRECTORY/containers/manifests
 
 if is_master_node; then SERVICES="docker kubelet etcd"; else SERVICES="docker kubelet"; fi
 
