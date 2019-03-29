@@ -1,6 +1,7 @@
 #!/bin/bash
 
-function restore_ssh_config {
+function restore_ssh_config
+{
     # Restore only if previously backed up
     if [[ -v SSH_CONFIG_BAK ]]; then
         if [ -f $SSH_CONFIG_BAK ]; then
@@ -40,19 +41,20 @@ function printUsage
 {
     echo ""
     echo "Usage:"
-    echo "  $0 -i id_rsa -m 192.168.102.34 -u azureuser -n default -n monitoring"
+    echo "  $0 -i id_rsa -m 192.168.102.34 -u azureuser -n default -n monitoring --disable-host-key-checking"
     echo "  $0 --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32"
     echo "  $0 --identity-file id_rsa --master-host 192.168.102.34 --user azureuser --vmd-host 192.168.102.32"
     echo "  $0 --identity-file id_rsa --master-host 192.168.102.34 --user azureuser --vmd-host 192.168.102.32"
     echo ""
     echo "Options:"
-    echo "  -u, --user              User name associated to the identifity-file"
-    echo "  -i, --identity-file     RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')"
-    echo "  -m, --master-host       A master node's public IP or FQDN (host name starts with 'k8s-master-')"
-    echo "  -d, --vmd-host          The DVM's public IP or FQDN (host name starts with 'vmd-')"
-    echo "  -n, --user-namespace    Collect logs for containers in the passed namespace (kube-system logs are always collected)"
-    echo "  --all-namespaces        Collect logs for all containers. Overrides the user-namespace flag"
-    echo "  -h, --help              Print the command usage"
+    echo "  -u, --user                      User name associated to the identifity-file"
+    echo "  -i, --identity-file             RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')"
+    echo "  -m, --master-host               A master node's public IP or FQDN (host name starts with 'k8s-master-')"
+    echo "  -d, --vmd-host                  The DVM's public IP or FQDN (host name starts with 'vmd-')"
+    echo "  -n, --user-namespace            Collect logs for containers in the passed namespace (kube-system logs are always collected)"
+    echo "  --all-namespaces                Collect logs for all containers. Overrides the user-namespace flag"
+    echo "  --disable-host-key-checking     Sets SSH StrictHostKeyChecking option to \"no\" while the script executes. Use only when building automation in a save environment."
+    echo "  -h, --help                      Print the command usage"
     exit 1
 }
 
@@ -64,6 +66,7 @@ fi
 
 NAMESPACES="kube-system"
 ALLNAMESPACES=1
+STRICT_HOST_KEY_CHECKING="ask"
 
 # Handle named parameters
 while [[ "$#" -gt 0 ]]
@@ -91,6 +94,10 @@ do
         ;;
         --all-namespaces)
             ALLNAMESPACES=0
+            shift
+        ;;
+        --disable-host-key-checking)
+            STRICT_HOST_KEY_CHECKING="no"
             shift
         ;;
         -h|--help)
@@ -183,6 +190,9 @@ then
     SSH_CONFIG_BAK=~/.ssh/config.$NOW
     if [ ! -f ~/.ssh/config ]; then touch ~/.ssh/config; fi
     mv ~/.ssh/config $SSH_CONFIG_BAK;
+    
+    echo "Host *" >> ~/.ssh/config
+    echo "    StrictHostKeyChecking $STRICT_HOST_KEY_CHECKING" >> ~/.ssh/config
     
     # Configure SSH bastion host. Technically only needed for worker nodes.
     for host in $(cat $LOGFILEFOLDER/host.list)
