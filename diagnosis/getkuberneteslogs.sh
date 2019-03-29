@@ -66,7 +66,8 @@ fi
 
 NAMESPACES="kube-system"
 ALLNAMESPACES=1
-STRICT_HOST_KEY_CHECKING="ask"
+# Revert once CI passes the new flag => STRICT_HOST_KEY_CHECKING="ask"
+STRICT_HOST_KEY_CHECKING="no"
 
 # Handle named parameters
 while [[ "$#" -gt 0 ]]
