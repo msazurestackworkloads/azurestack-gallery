@@ -179,14 +179,6 @@ if [ -n "$MASTER_HOST" ]
 then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect cluster logs"
     
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Looking for cluster hosts"
-    scp -q -i $IDENTITYFILE $SCRIPTSFOLDER/hosts.sh $USER@$MASTER_HOST:/home/$USER/hosts.sh
-    ssh -tq -i $IDENTITYFILE $USER@$MASTER_HOST "sudo chmod 744 hosts.sh; ./hosts.sh $NOW"
-    scp -q -i $IDENTITYFILE $USER@$MASTER_HOST:"/home/$USER/cluster-info.$NOW" $LOGFILEFOLDER/cluster-info.tar.gz
-    ssh -tq -i $IDENTITYFILE $USER@$MASTER_HOST "sudo rm -f cluster-info.$NOW hosts.sh"
-    tar -xzf $LOGFILEFOLDER/cluster-info.tar.gz -C $LOGFILEFOLDER
-    rm $LOGFILEFOLDER/cluster-info.tar.gz
-    
     # Backup .ssh/config
     SSH_CONFIG_BAK=~/.ssh/config.$NOW
     if [ ! -f ~/.ssh/config ]; then touch ~/.ssh/config; fi
@@ -194,6 +186,14 @@ then
     
     echo "Host *" >> ~/.ssh/config
     echo "    StrictHostKeyChecking $STRICT_HOST_KEY_CHECKING" >> ~/.ssh/config
+    
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Looking for cluster hosts"
+    scp -q -i $IDENTITYFILE $SCRIPTSFOLDER/hosts.sh $USER@$MASTER_HOST:/home/$USER/hosts.sh
+    ssh -tq -i $IDENTITYFILE $USER@$MASTER_HOST "sudo chmod 744 hosts.sh; ./hosts.sh $NOW"
+    scp -q -i $IDENTITYFILE $USER@$MASTER_HOST:"/home/$USER/cluster-info.$NOW" $LOGFILEFOLDER/cluster-info.tar.gz
+    ssh -tq -i $IDENTITYFILE $USER@$MASTER_HOST "sudo rm -f cluster-info.$NOW hosts.sh"
+    tar -xzf $LOGFILEFOLDER/cluster-info.tar.gz -C $LOGFILEFOLDER
+    rm $LOGFILEFOLDER/cluster-info.tar.gz
     
     # Configure SSH bastion host. Technically only needed for worker nodes.
     for host in $(cat $LOGFILEFOLDER/host.list)
