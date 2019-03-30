@@ -85,6 +85,9 @@
     [string] $RepairManager = "No",
 
     [Parameter(Mandatory = $false)]
+    [Int] $diagLogAge = 7,
+
+    [Parameter(Mandatory = $false)]
     [AllowEmptyString()]
     [string[]] $adminClientCertificateThumbprint = @(),
 
@@ -96,10 +99,24 @@
     [string] $ClientConnectionEndpoint
     )
 
-    Import-DscResource -ModuleName PSDesiredStateConfiguration, xServiceFabricSecureCluster
+    Import-DscResource -ModuleName PSDesiredStateConfiguration,xServiceFabricSecureCluster,xDisk
 
     Node localhost {
 
+        xWaitforDisk Disk2
+        {
+             DiskNumber = 2
+             RetryIntervalSec = 30
+             RetryCount = 100
+        }
+        
+		xDisk DataDisk
+        {
+            DiskNumber = 2
+            DriveLetter = "F"
+            DependsOn = '[xWaitforDisk]Disk2'
+        }
+		
         xServiceFabricSecureClusterDeployment DeployServiceFabricSecureConfiguration
         {
             DeploymentNodeIndex = $DeploymentNodeIndex
@@ -132,6 +149,8 @@
             PsDscRunAsCredential = $Credential
             DNSService = $DNSService
             RepairManager = $RepairManager
+            diagLogAge = $diagLogAge
+            DependsOn = '[xDisk]DataDisk'
         }
 
         LocalConfigurationManager 

@@ -193,6 +193,13 @@
             "metadata": {
                 "description": "Repair Manager Optional Feature"
             }
+        },        
+        "diagLogAge": {
+            "type": "int",
+            "metadata": {
+                "description": "The age of days to keep the Service Fabric diagnostic log in diagnostics store."
+            },
+            "defaultValue": 7
         },
         "serviceFabricUrl": {
             "type": "string",
@@ -522,6 +529,9 @@
                     "RepairManager": {
                         "value": "[parameters('RepairManager')]"
                     },
+                    "diagLogAge": {
+                        "value": "[parameters('diagLogAge')]"
+                    },                    
                     "serviceFabricUrl": {
                         "value": "[parameters('serviceFabricUrl')]"
                     },
