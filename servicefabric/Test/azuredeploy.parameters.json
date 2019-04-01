@@ -65,6 +65,9 @@
     "RepairManager": {
       "value": "No"
     },
+    "diagLogAge": {
+      "value": 15
+    },
     "serviceFabricUrl": {
       "value": "http://go.microsoft.com/fwlink/?LinkId=730690"
     },
