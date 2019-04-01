@@ -67,7 +67,7 @@ do
         #sudo docker inspect $cid &> $LOGDIRECTORY/containers/$cname.json
         #sudo cp $clog $LOGDIRECTORY/containers/$cname.log
         
-        docker logs $cid > $LOGDIRECTORY/containers/$cname.log
+        docker logs $cid &> $LOGDIRECTORY/containers/$cname.log
     fi
 done
 
