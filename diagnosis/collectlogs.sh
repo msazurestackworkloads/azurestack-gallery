@@ -60,15 +60,24 @@ do
     then
         # TODO Check size
         cname=`docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.name" }}' $cid`
-        clog=`docker inspect --format='{{ .LogPath }}' $cid`
         
-        sudo docker inspect $cid &> $LOGDIRECTORY/containers/$cname.json
-        sudo cp -f $clog $LOGDIRECTORY/containers/$cname.log
+        # I have no idea why the `cp` command below copies an empty file.
+        # Going back to `docker logs` until I figure out WTH is going on.
+        #clog=`docker inspect --format='{{ .LogPath }}' $cid`
+        #sudo docker inspect $cid &> $LOGDIRECTORY/containers/$cname.json
+        #sudo cp $clog $LOGDIRECTORY/containers/$cname.log
+        
+        docker logs $cid > $LOGDIRECTORY/containers/$cname.log
     fi
 done
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for container manifests" | tee -a $TRACEFILENAME
-try_copy_directory_content /etc/kubernetes/manifests/ $LOGDIRECTORY/containers/manifests
+sync
+
+if is_master_node;
+then
+    echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for static pod manifests" | tee -a $TRACEFILENAME
+    try_copy_directory_content /etc/kubernetes/manifests/ $LOGDIRECTORY/containers/manifests
+fi
 
 if is_master_node; then SERVICES="docker kubelet etcd"; else SERVICES="docker kubelet"; fi
 
