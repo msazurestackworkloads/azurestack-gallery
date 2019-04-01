@@ -84,11 +84,11 @@
           "parameters": [
             {
               "name": "FabricDataRoot",
-              "value": "D:\\SF"
+              "value": "F:\\SF"
             },
             {
               "name": "FabricLogRoot",
-              "value": "D:\\SF\\Log"
+              "value": "F:\\SF\\Log"
             }
           ]
         },

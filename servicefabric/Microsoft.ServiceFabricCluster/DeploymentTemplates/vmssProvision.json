@@ -200,6 +200,9 @@
         "RepairManager": {
             "type": "string"
         },
+        "diagLogAge": {
+            "type": "int"
+        },        
         "serviceFabricUrl": {
             "type": "string",
             "metadata": {
@@ -222,7 +225,7 @@
     "variables": {
 
         "apiVersion": {
-            "vmssApiVersion": "2016-03-30",
+            "vmssApiVersion": "2017-03-30",
             "lbApiVersion": "2015-06-15",
             "vNetApiVersion": "2015-06-15",
             "storageApiVersion": "2016-01-01",
@@ -231,9 +234,6 @@
         },
 
         "location": "[resourceGroup().location]",
-
-        "storageAccountName": "[toLower(concat('SA', uniqueString(resourceGroup().id), parameters('nodeTypeIndex')))]",
-        "storageAccountType": "Standard_LRS",
 
         "nicName": "[concat(parameters('vmScaleSetName'), 'nic')]",
         "lbName": "[concat(parameters('vmScaleSetName'), 'lb')]",
@@ -292,6 +292,7 @@
                             "ClientConnectionEndpoint": "[parameters('adminClientConnectionEndpoint')]",
                             "DNSService": "[parameters('DNSService')]",
                             "RepairManager": "[parameters('RepairManager')]",
+                            "diagLogAge":"[parameters('diagLogAge')]",
                             "ConfigPath": "[variables('serviceFabricConfigPath')]",
                             "serviceFabricUrl": "[parameters('serviceFabricUrl')]",
                             "serviceFabricRuntimeUrl": "[variables('serviceFabricRuntimeUrl')]",
@@ -394,27 +395,12 @@
             }
         },
         {
-            "type": "Microsoft.Storage/storageAccounts",
-            "name": "[concat(variables('storageAccountName'), copyIndex())]",
-            "copy": {
-                  "name": "VmssStorages",
-                  "count": 5
-            },
-            "apiVersion": "[variables('apiVersion').storageApiVersion]",
-            "location": "[variables('location')]",
-            "sku": {
-                "name": "[variables('storageAccountType')]"
-            },
-            "kind": "Storage"
-        },
-        {
             "apiVersion": "[variables('apiVersion').vmssApiVersion]",
             "type": "Microsoft.Compute/virtualMachineScaleSets",
             "name": "[parameters('vmScaleSetName')]",
             "location": "[variables('location')]",
             "dependsOn": [
-                "[variables('lbID')]",
-                "VmssStorages"
+                "[variables('lbID')]"
             ],
             "properties": {
                 "overprovision": "[parameters('overProvision')]",
@@ -481,18 +467,16 @@
                             "sku": "[parameters('vmImageSku')]",
                             "version": "[parameters('vmImageVersion')]"
                         },
-                      "osDisk": {
-                        "name": "[parameters('osDiskName')]",
-                        "caching": "ReadOnly",
-                        "createOption": "FromImage",
-                        "vhdContainers": [
-                                "[concat(reference(concat('Microsoft.Storage/storageAccounts/', concat(variables('storageAccountName'), 0)), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob, parameters('vhdContainerName'))]",
-                                "[concat(reference(concat('Microsoft.Storage/storageAccounts/', concat(variables('storageAccountName'), 1)), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob, parameters('vhdContainerName'))]",
-                                "[concat(reference(concat('Microsoft.Storage/storageAccounts/', concat(variables('storageAccountName'), 2)), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob, parameters('vhdContainerName'))]",
-                                "[concat(reference(concat('Microsoft.Storage/storageAccounts/', concat(variables('storageAccountName'), 3)), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob, parameters('vhdContainerName'))]",
-                                "[concat(reference(concat('Microsoft.Storage/storageAccounts/', concat(variables('storageAccountName'), 4)), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob, parameters('vhdContainerName'))]"
+                        "osDisk": {
+                            "createOption": "FromImage"
+                        },
+						"dataDisks": [
+                            {
+                                "diskSizeGB": 100,
+                                "lun": 1,
+                                "createOption": "Empty"
+                            }
                         ]
-                      }
                     },
                     "extensionProfile": {
                         "extensions": "[variables('vmssExtensions')]"
