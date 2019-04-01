@@ -64,9 +64,8 @@ do
         # I have no idea why the `cp` command below copies an empty file.
         # Going back to `docker logs` until I figure out WTH is going on.
         #clog=`docker inspect --format='{{ .LogPath }}' $cid`
-        #sudo docker inspect $cid &> $LOGDIRECTORY/containers/$cname.json
+        sudo docker inspect $cid &> $LOGDIRECTORY/containers/$cname.json
         #sudo cp $clog $LOGDIRECTORY/containers/$cname.log
-        
         docker logs $cid &> $LOGDIRECTORY/containers/$cname.log
     fi
 done
