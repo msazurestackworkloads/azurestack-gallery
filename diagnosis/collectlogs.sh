@@ -58,17 +58,23 @@ do
     # if NAMESPACES not set, then collect everything
     if [ -z "${NAMESPACES}" ] || (echo $NAMESPACES | grep -qw $cns);
     then
-        # TODO Check size
-        cname=`docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.name" }}' $cid`
-        clog=`docker inspect --format='{{ .LogPath }}' $cid`
-        
-        sudo docker inspect $cid &> $LOGDIRECTORY/containers/$cname.json
-        sudo cp -f $clog $LOGDIRECTORY/containers/$cname.log
+        # Ignore the pod's Pause container
+        if docker inspect --format='{{ .Config.Image }}' $cid | grep -v pause-amd64;
+        then
+            # TODO Check size
+            cname=`docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.name" }}' $cid`
+            clog=`docker inspect --format='{{ .LogPath }}' $cid`
+            sudo docker inspect $cid &> $LOGDIRECTORY/containers/$cname.json
+            sudo cp $clog $LOGDIRECTORY/containers/$cname.log
+        fi
     fi
 done
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for container manifests" | tee -a $TRACEFILENAME
-try_copy_directory_content /etc/kubernetes/manifests/ $LOGDIRECTORY/containers/manifests
+if is_master_node;
+then
+    echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for static pod manifests" | tee -a $TRACEFILENAME
+    try_copy_directory_content /etc/kubernetes/manifests/ $LOGDIRECTORY/containers/manifests
+fi
 
 if is_master_node; then SERVICES="docker kubelet etcd"; else SERVICES="docker kubelet"; fi
 
@@ -89,6 +95,8 @@ do
         echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] The $service service is not installed" | tee -a $ERRFILENAME
     fi
 done
+
+sync
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for known issues and misconfigurations" | tee -a $TRACEFILENAME
 find_cse_errors $LOGDIRECTORY/cse/cluster-provision.log

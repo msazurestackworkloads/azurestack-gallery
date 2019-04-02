@@ -9,6 +9,14 @@ function restore_ssh_config
             mv $SSH_CONFIG_BAK ~/.ssh/config
         fi
     fi
+    
+    # Restore only if previously backed up
+    if [[ -v SSH_KNOWNHOSTS_BAK ]]; then
+        if [ -f $SSH_KNOWNHOSTS_BAK ]; then
+            rm ~/.ssh/known_hosts
+            mv $SSH_KNOWNHOSTS_BAK ~/.ssh/known_hosts
+        fi
+    fi
 }
 
 # Restorey SSH config file always, even if the script ends with an error
@@ -165,9 +173,22 @@ mkdir -p $LOGFILEFOLDER/scripts
 ARTIFACTSURL="${ARTIFACTSURL:-https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master}"
 download_scripts $ARTIFACTSURL
 
+# Backup .ssh/config
+SSH_CONFIG_BAK=~/.ssh/config.$NOW
+if [ ! -f ~/.ssh/config ]; then touch ~/.ssh/config; fi
+mv ~/.ssh/config $SSH_CONFIG_BAK;
+
+# Backup .ssh/known_hosts
+SSH_KNOWNHOSTS_BAK=~/.ssh/known_hosts.$NOW
+if [ ! -f ~/.ssh/known_hosts ]; then touch ~/.ssh/known_hosts; fi
+mv ~/.ssh/known_hosts $SSH_KNOWNHOSTS_BAK;
+
+echo "Host *" >> ~/.ssh/config
+echo "    StrictHostKeyChecking $STRICT_HOST_KEY_CHECKING" >> ~/.ssh/config
+
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Testing SSH keys"
 TEST_HOST="${MASTER_HOST:-$DVM_HOST}"
-ssh -i $IDENTITYFILE $USER@$TEST_HOST "exit"
+ssh -q -i $IDENTITYFILE $USER@$TEST_HOST "exit"
 
 if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to the server"
@@ -178,14 +199,6 @@ fi
 if [ -n "$MASTER_HOST" ]
 then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect cluster logs"
-    
-    # Backup .ssh/config
-    SSH_CONFIG_BAK=~/.ssh/config.$NOW
-    if [ ! -f ~/.ssh/config ]; then touch ~/.ssh/config; fi
-    mv ~/.ssh/config $SSH_CONFIG_BAK;
-    
-    echo "Host *" >> ~/.ssh/config
-    echo "    StrictHostKeyChecking $STRICT_HOST_KEY_CHECKING" >> ~/.ssh/config
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Looking for cluster hosts"
     scp -q -i $IDENTITYFILE $SCRIPTSFOLDER/hosts.sh $USER@$MASTER_HOST:/home/$USER/hosts.sh
