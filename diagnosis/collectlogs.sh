@@ -58,19 +58,17 @@ do
     # if NAMESPACES not set, then collect everything
     if [ -z "${NAMESPACES}" ] || (echo $NAMESPACES | grep -qw $cns);
     then
-        # TODO Check size
-        cname=`docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.name" }}' $cid`
-        
-        # I have no idea why the `cp` command below copies an empty file.
-        # Going back to `docker logs` until I figure out WTH is going on.
-        #clog=`docker inspect --format='{{ .LogPath }}' $cid`
-        sudo docker inspect $cid &> $LOGDIRECTORY/containers/$cname.json
-        #sudo cp $clog $LOGDIRECTORY/containers/$cname.log
-        docker logs $cid &> $LOGDIRECTORY/containers/$cname.log
+        # Ignore the pod's Pause container
+        if docker inspect --format='{{ .Config.Image }}' $cid | grep -v pause-amd64;
+        then
+            # TODO Check size
+            cname=`docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.name" }}' $cid`
+            clog=`docker inspect --format='{{ .LogPath }}' $cid`
+            sudo docker inspect $cid &> $LOGDIRECTORY/containers/$cname.json
+            sudo cp $clog $LOGDIRECTORY/containers/$cname.log
+        fi
     fi
 done
-
-sync
 
 if is_master_node;
 then
@@ -97,6 +95,8 @@ do
         echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] The $service service is not installed" | tee -a $ERRFILENAME
     fi
 done
+
+sync
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for known issues and misconfigurations" | tee -a $TRACEFILENAME
 find_cse_errors $LOGDIRECTORY/cse/cluster-provision.log
