@@ -362,6 +362,28 @@
         },
         "visible": true
       },
+	  {
+        "name": "aksEngineRepo",
+        "type": "Microsoft.Common.TextBox",
+        "label": "AKS engine repository",
+        "defaultValue": "msazurestackworkloads/aks-engine",
+        "toolTip": "AKS engine repository name",
+        "constraints": {
+          "required": true
+        },
+        "visible": false
+      },
+	  {
+        "name": "aksEngineBranch",
+        "type": "Microsoft.Common.TextBox",
+        "label": "AKS engine branch",
+        "defaultValue": "azsmaster",
+        "toolTip": "AKS engine branch name",
+        "constraints": {
+          "required": true
+        },
+        "visible": false
+      },
       {
         "name": "servicePrincipalClientId",
         "type": "Microsoft.Common.TextBox",
@@ -442,6 +464,8 @@
       "masterPoolProfileCount": "[int(steps('KubernetesClusterSettings').masterPoolProfileCount)]",
       "masterPoolProfileVMSize": "[steps('KubernetesClusterSettings').masterPoolProfileVMSize]",
       "storageProfile": "[steps('KubernetesClusterSettings').storageProfile]",
+      "aksEngineRepo": "[steps('KubernetesClusterSettings').aksEngineRepo]",
+      "aksEngineBranch": "[steps('KubernetesClusterSettings').aksEngineBranch]",
       "servicePrincipalClientId": "[steps('KubernetesClusterSettings').servicePrincipalClientId]",
       "identitySystem": "[steps('KubernetesClusterSettings').identitySystem]",
       "servicePrincipalClientSecret": "[steps('KubernetesClusterSettings').servicePrincipalClientSecret]",

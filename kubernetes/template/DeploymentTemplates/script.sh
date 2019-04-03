@@ -216,7 +216,7 @@ add_azurecli_source()
 download_akse()
 {
     # Todo update release branch details: msazurestackworkloads, azsmaster
-    retrycmd_if_failure 5 10 60 git clone https://github.com/msazurestackworkloads/aks-engine -b azsmaster || exit $ERR_AKSE_DOWNLOAD
+    retrycmd_if_failure 5 10 60 git clone https://github.com/$AKS_ENGINE_REPO -b $AKS_ENGINE_BRANCH || exit $ERR_AKSE_DOWNLOAD
     
     mkdir -p ./bin
     tar -zxvf aks-engine/examples/azurestack/aks-engine.tgz -C ./bin
@@ -321,6 +321,8 @@ log_level -i "------------------------------------------------------------------
 log_level -i "ADMIN_USERNAME:                           $ADMIN_USERNAME"
 log_level -i "AGENT_COUNT:                              $AGENT_COUNT"
 log_level -i "AGENT_SIZE:                               $AGENT_SIZE"
+log_level -i "AKS_ENGINE_REPO:                          $AKS_ENGINE_REPO"
+log_level -i "AKS_ENGINE_BRANCH:                        $AKS_ENGINE_BRANCH"
 log_level -i "IDENTITY_SYSTEM:                          $IDENTITY_SYSTEM"
 log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:          $K8S_AZURE_CLOUDPROVIDER_VERSION"
 log_level -i "MASTER_COUNT:                             $MASTER_COUNT"
