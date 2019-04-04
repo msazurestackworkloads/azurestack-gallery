@@ -363,7 +363,7 @@
         "visible": true
       },
 	  {
-        "name": "aksEngineRepo",
+        "name": "aksEngineRepository",
         "type": "Microsoft.Common.TextBox",
         "label": "AKS engine repository",
         "defaultValue": "msazurestackworkloads/aks-engine",
@@ -464,7 +464,7 @@
       "masterPoolProfileCount": "[int(steps('KubernetesClusterSettings').masterPoolProfileCount)]",
       "masterPoolProfileVMSize": "[steps('KubernetesClusterSettings').masterPoolProfileVMSize]",
       "storageProfile": "[steps('KubernetesClusterSettings').storageProfile]",
-      "aksEngineRepo": "[steps('KubernetesClusterSettings').aksEngineRepo]",
+      "aksEngineRepository": "[steps('KubernetesClusterSettings').aksEngineRepository]",
       "aksEngineBranch": "[steps('KubernetesClusterSettings').aksEngineBranch]",
       "servicePrincipalClientId": "[steps('KubernetesClusterSettings').servicePrincipalClientId]",
       "identitySystem": "[steps('KubernetesClusterSettings').identitySystem]",

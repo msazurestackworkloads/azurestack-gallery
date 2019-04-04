@@ -44,7 +44,7 @@
     "servicePrincipalCertificateKeyVaultSecretName": {
       "value": ""
     },
-    "aksEngineRepo": {
+    "aksEngineRepository": {
       "value": ""
     },
     "aksEngineBranch": {
