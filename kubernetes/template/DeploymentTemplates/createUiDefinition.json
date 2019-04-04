@@ -362,7 +362,7 @@
         },
         "visible": true
       },
-	  {
+      {
         "name": "aksEngineRepository",
         "type": "Microsoft.Common.TextBox",
         "label": "AKS engine repository",
@@ -373,7 +373,7 @@
         },
         "visible": false
       },
-	  {
+      {
         "name": "aksEngineBranch",
         "type": "Microsoft.Common.TextBox",
         "label": "AKS engine branch",
