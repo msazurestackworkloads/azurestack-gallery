@@ -59,14 +59,14 @@
     "aksEngineRepo": {
       "defaultValue": "msazurestackworkloads/aks-engine",
       "metadata": {
-        "description": "The Storage Profile"
+        "description": "AKS engine repository"
       },
       "type": "string"
     },
     "aksEngineBranch": {
       "defaultValue": "azsmaster",
       "metadata": {
-        "description": "The Storage Profile"
+        "description": "AKS engine branch"
       },
       "type": "string"
     },
