@@ -59,7 +59,7 @@ do
     if [ -z "${NAMESPACES}" ] || (echo $NAMESPACES | grep -qw $cns);
     then
         # Ignore the pod's Pause container
-        if docker inspect --format='{{ .Config.Image }}' $cid | grep -v pause-amd64;
+        if docker inspect --format='{{ .Config.Image }}' $cid | grep -q -v pause-amd64;
         then
             # TODO Check size
             cname=`docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.name" }}' $cid`
