@@ -258,7 +258,7 @@ then
     rm $LOGFILEFOLDER/dvm_logs.tar.gz
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Removing temp files from DVM"
-    ssh -q -t $USER@$host "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh dvm_logs.tar.gz"
+    ssh -q -t $USER@$DVM_HOST "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh dvm_logs.tar.gz"
 fi
 
 # Aggregate ERRORS.txt
