@@ -11,10 +11,14 @@ function restore_ssh_config
     fi
     
     # Restore only if previously backed up
-    if [[ -v SSH_KNOWNHOSTS_BAK ]]; then
-        if [ -f $SSH_KNOWNHOSTS_BAK ]; then
-            rm ~/.ssh/known_hosts
-            mv $SSH_KNOWNHOSTS_BAK ~/.ssh/known_hosts
+    if [[ -v SSH_KEY_BAK ]]; then
+        if [ -f $SSH_KEY_BAK ]; then
+            rm ~/.ssh/id_rsa
+            mv $SSH_KEY_BAK ~/.ssh/id_rsa
+            # Remove if empty
+            if [ -a ~/.ssh/id_rsa -a ! -s ~/.ssh/id_rsa ]; then
+                rm ~/.ssh/id_rsa
+            fi
         fi
     fi
 }
@@ -168,6 +172,7 @@ CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
 LOGFILEFOLDER="./KubernetesLogs_$CURRENTDATE"
 SCRIPTSFOLDER="$LOGFILEFOLDER/scripts"
 mkdir -p $LOGFILEFOLDER/scripts
+mkdir -p ~/.ssh
 
 # Download scripts from github
 ARTIFACTSURL="${ARTIFACTSURL:-https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master}"
@@ -178,17 +183,20 @@ SSH_CONFIG_BAK=~/.ssh/config.$NOW
 if [ ! -f ~/.ssh/config ]; then touch ~/.ssh/config; fi
 mv ~/.ssh/config $SSH_CONFIG_BAK;
 
-# Backup .ssh/known_hosts
-SSH_KNOWNHOSTS_BAK=~/.ssh/known_hosts.$NOW
-if [ ! -f ~/.ssh/known_hosts ]; then touch ~/.ssh/known_hosts; fi
-mv ~/.ssh/known_hosts $SSH_KNOWNHOSTS_BAK;
+# Backup .ssh/id_rsa
+SSH_KEY_BAK=~/.ssh/id_rsa.$NOW
+if [ ! -f ~/.ssh/id_rsa ]; then touch ~/.ssh/id_rsa; fi
+mv ~/.ssh/id_rsa $SSH_KEY_BAK;
+cp $IDENTITYFILE ~/.ssh/id_rsa
 
 echo "Host *" >> ~/.ssh/config
 echo "    StrictHostKeyChecking $STRICT_HOST_KEY_CHECKING" >> ~/.ssh/config
+echo "    UserKnownHostsFile /dev/null" >> ~/.ssh/config
+echo "    LogLevel ERROR" >> ~/.ssh/config
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Testing SSH keys"
 TEST_HOST="${MASTER_HOST:-$DVM_HOST}"
-ssh -q -i $IDENTITYFILE $USER@$TEST_HOST "exit"
+ssh -q $USER@$TEST_HOST "exit"
 
 if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to the server"
@@ -201,10 +209,10 @@ then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect cluster logs"
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Looking for cluster hosts"
-    scp -q -i $IDENTITYFILE $SCRIPTSFOLDER/hosts.sh $USER@$MASTER_HOST:/home/$USER/hosts.sh
-    ssh -tq -i $IDENTITYFILE $USER@$MASTER_HOST "sudo chmod 744 hosts.sh; ./hosts.sh $NOW"
-    scp -q -i $IDENTITYFILE $USER@$MASTER_HOST:"/home/$USER/cluster-info.$NOW" $LOGFILEFOLDER/cluster-info.tar.gz
-    ssh -tq -i $IDENTITYFILE $USER@$MASTER_HOST "sudo rm -f cluster-info.$NOW hosts.sh"
+    scp -q $SCRIPTSFOLDER/hosts.sh $USER@$MASTER_HOST:/home/$USER/hosts.sh
+    ssh -tq $USER@$MASTER_HOST "sudo chmod 744 hosts.sh; ./hosts.sh $NOW"
+    scp -q $USER@$MASTER_HOST:"/home/$USER/cluster-info.$NOW" $LOGFILEFOLDER/cluster-info.tar.gz
+    ssh -tq $USER@$MASTER_HOST "sudo rm -f cluster-info.$NOW hosts.sh"
     tar -xzf $LOGFILEFOLDER/cluster-info.tar.gz -C $LOGFILEFOLDER
     rm $LOGFILEFOLDER/cluster-info.tar.gz
     
@@ -221,20 +229,16 @@ then
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host $host"
         
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
-        scp -q -i $IDENTITYFILE -r $SCRIPTSFOLDER/*.sh $USER@$host:/home/$USER/
-        ssh -tq -i $IDENTITYFILE $USER@$host "sudo chmod 744 common.sh detectors.sh collectlogs.sh; ./collectlogs.sh $NAMESPACES;"
+        scp -q -r $SCRIPTSFOLDER/*.sh $USER@$host:/home/$USER/
+        ssh -q -t $USER@$host "sudo chmod 744 common.sh detectors.sh collectlogs.sh; ./collectlogs.sh $NAMESPACES;"
         
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
-        scp -q -i $IDENTITYFILE $USER@$host:"/home/$USER/kube_logs.tar.gz" $LOGFILEFOLDER/kube_logs.tar.gz
+        scp -q $USER@$host:"/home/$USER/kube_logs.tar.gz" $LOGFILEFOLDER/kube_logs.tar.gz
         tar -xzf $LOGFILEFOLDER/kube_logs.tar.gz -C $LOGFILEFOLDER
         rm $LOGFILEFOLDER/kube_logs.tar.gz
         
         # Removing temp files from node
-        ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f common.sh ]; then rm -f common.sh; fi;"
-        ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f detectors.sh ]; then rm -f detectors.sh; fi;"
-        ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f collectlogs.sh ]; then rm -f collectlogs.sh; fi;"
-        ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f collectlogsdvm.sh ]; then rm -f collectlogsdvm.sh; fi;"
-        ssh -tq -i $IDENTITYFILE $USER@$host "if [ -f kube_logs.tar.gz ]; then rm -f kube_logs.tar.gz; fi;"
+        ssh -q -t $USER@$host "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh kube_logs.tar.gz"
     done
     
     rm $LOGFILEFOLDER/host.list
@@ -245,20 +249,16 @@ then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect VMD logs"
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
-    scp -q -i $IDENTITYFILE -r $SCRIPTSFOLDER/*.sh $USER@$DVM_HOST:/home/$USER/
-    ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "sudo chmod 744 common.sh detectors.sh collectlogsdvm.sh; ./collectlogsdvm.sh;"
+    scp -q -r $SCRIPTSFOLDER/*.sh $USER@$DVM_HOST:/home/$USER/
+    ssh -q -t $USER@$DVM_HOST "sudo chmod 744 common.sh detectors.sh collectlogsdvm.sh; ./collectlogsdvm.sh;"
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
-    scp -q -i $IDENTITYFILE $USER@$DVM_HOST:"/home/$USER/dvm_logs.tar.gz" $LOGFILEFOLDER/dvm_logs.tar.gz
+    scp -q $USER@$DVM_HOST:"/home/$USER/dvm_logs.tar.gz" $LOGFILEFOLDER/dvm_logs.tar.gz
     tar -xzf $LOGFILEFOLDER/dvm_logs.tar.gz -C $LOGFILEFOLDER
     rm $LOGFILEFOLDER/dvm_logs.tar.gz
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Removing temp files from DVM"
-    ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "if [ -f common.sh ]; then rm -f common.sh; fi;"
-    ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "if [ -f detectors.sh ]; then rm -f detectors.sh; fi;"
-    ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "if [ -f collectlogs.sh ]; then rm -f collectlogs.sh; fi;"
-    ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "if [ -f collectlogsdvm.sh ]; then rm -f collectlogsdvm.sh; fi;"
-    ssh -tq -i $IDENTITYFILE $USER@$DVM_HOST "if [ -f dvm_logs.tar.gz ]; then rm -f dvm_logs.tar.gz; fi;"
+    ssh -q -t $USER@$DVM_HOST "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh dvm_logs.tar.gz"
 fi
 
 # Aggregate ERRORS.txt
