@@ -16,7 +16,7 @@ function restore_ssh_config
             rm ~/.ssh/id_rsa
             mv $SSH_KEY_BAK ~/.ssh/id_rsa
             # Remove if empty
-            if [ ! -s ~/.ssh/id_rsa ]; then
+            if [ -a ~/.ssh/id_rsa -a ! -s ~/.ssh/id_rsa ]; then
                 rm ~/.ssh/id_rsa
             fi
         fi
