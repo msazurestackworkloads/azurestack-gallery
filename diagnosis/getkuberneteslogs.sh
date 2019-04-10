@@ -153,7 +153,8 @@ then
     printUsage
     exit 1
 else
-    cat $IDENTITYFILE | grep -q "BEGIN RSA PRIVATE KEY" || { echo "The identity file $IDENTITYFILE is not a RSA Private Key file."; echo "A RSA private key file starts with '-----BEGIN RSA PRIVATE KEY-----''"; exit 1; }
+    cat $IDENTITYFILE | grep -q "BEGIN \(RSA\|OPENSSH\) PRIVATE KEY" \
+    || { echo "The identity file $IDENTITYFILE is not a RSA Private Key file."; echo "A RSA private key file starts with '-----BEGIN [RSA|OPENSSH] PRIVATE KEY-----''"; exit 1; }
 fi
 
 test $ALLNAMESPACES -eq 0 && unset NAMESPACES
