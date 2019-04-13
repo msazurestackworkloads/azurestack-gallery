@@ -341,11 +341,11 @@ log_level -i "PUBLICIP_FQDN:                            $PUBLICIP_FQDN"
 log_level -i "REGION_NAME:                              $REGION_NAME"
 log_level -i "RESOURCE_GROUP_NAME:                      $RESOURCE_GROUP_NAME"
 log_level -i "SSH_PUBLICKEY:                            ----"
+log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:          $K8S_AZURE_CLOUDPROVIDER_VERSION" 
+log_level -i "STORAGE_PROFILE:                          $STORAGE_PROFILE"
 log_level -i "TENANT_ID:                                $TENANT_ID"
 log_level -i "TENANT_SUBSCRIPTION_ID:                   $TENANT_SUBSCRIPTION_ID"
 
-K8S_AZURE_CLOUDPROVIDER_VERSION=1.11
-STORAGE_PROFILE="ManagedDisk"
 
 if [ $IDENTITY_SYSTEM == "ADFS" ]; then
     log_level -i "SPN_CLIENT_SECRET_KEYVAULT_ID:            $SPN_CLIENT_SECRET_KEYVAULT_ID"
@@ -375,7 +375,6 @@ SUFFIXES_STORAGE_ENDPOINT=$REGION_NAME.$EXTERNAL_FQDN
 SUFFIXES_KEYVAULT_DNS=.vault.$REGION_NAME.$EXTERNAL_FQDN
 FQDN_ENDPOINT_SUFFIX=cloudapp.$EXTERNAL_FQDN
 AZURESTACK_RESOURCE_METADATA_ENDPOINT="$TENANT_ENDPOINT/metadata/endpoints?api-version=2015-01-01"
-STORAGE_PROFILE="${STORAGE_PROFILE:-blobdisk}"
 
 log_level -i "EXTERNAL_FQDN:                            $EXTERNAL_FQDN"
 log_level -i "TENANT_ENDPOINT:                          $TENANT_ENDPOINT"
@@ -440,6 +439,9 @@ log_level -i "Computing cluster definition values."
 METADATA=`curl -s -f --retry 10 $AZURESTACK_RESOURCE_METADATA_ENDPOINT` || exit $ERR_METADATA_ENDPOINT
 echo $METADATA > metadata.json
 
+ENDPOINT_GRAPH_ENDPOINT=`echo $METADATA | jq '.graphEndpoint' | xargs`
+ENDPOINT_GALLERY=`echo $METADATA | jq '.galleryEndpoint' | xargs`
+ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID=`echo $METADATA | jq '.authentication.audiences'[0] | xargs`
 ENDPOINT_PORTAL=`echo $METADATA | jq '.portalEndpoint' | xargs`
 
 log_level -i "ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID: $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID"
