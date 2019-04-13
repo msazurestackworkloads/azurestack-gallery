@@ -227,10 +227,10 @@ add_azurecli_source()
 download_akse()
 {
     # Todo update release branch details: msazurestackworkloads, azsmaster
-    retrycmd_if_failure 5 10 60 git clone https://github.com/msazurestackworkloads/aks-engine -b azsmaster || exit $ERR_AKSE_DOWNLOAD
+    retrycmd_if_failure 5 10 60 git clone https://github.com/msazurestackworkloads/aks-engine -b -azsmaster-akse-releasev0.34.0 || exit $ERR_AKSE_DOWNLOAD
     
     mkdir -p ./bin
-    tar -zxvf aks-engine/examples/azurestack/releasev0.34.0/aks-engine.tgz -C ./bin
+    tar -xf aks-engine/examples/azurestack/releasev0.34.0/aks-engine.gz -C ./bin
     
     AKSE_LOCATION=./bin/aks-engine
     if [ ! -f $AKSE_LOCATION ]; then
