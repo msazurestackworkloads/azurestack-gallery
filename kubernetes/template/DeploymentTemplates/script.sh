@@ -232,7 +232,7 @@ download_akse()
     mkdir -p ./bin
     tar -xf aks-engine/examples/azurestack/releasev0.34.0/aks-engine.gz -C ./bin
     
-    AKSE_LOCATION=./bin/aks-engine
+    AKSE_LOCATION=./bin/aks-engine-v0.34.0-linux-amd64/aks-engine
     if [ ! -f $AKSE_LOCATION ]; then
         log_level -e "aks-engine binary not found in expected location"
         log_level -e "Expected location: $AKSE_LOCATION"
