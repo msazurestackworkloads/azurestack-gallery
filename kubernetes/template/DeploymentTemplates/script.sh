@@ -147,6 +147,12 @@ convert_secret_to_cert()
     PASSWORD=$(cat cert.json | jq '.password' | tr -d \")
     
     openssl pkcs12 -in $2 -nodes -passin pass:$PASSWORD -out $3
+    
+    log_level -i "Converting to certificate"
+    openssl pkcs12 -in $2 -clcerts -nokeys -out $4 -passin pass:$PASSWORD
+
+    log_level -i "Converting into key"
+    openssl pkcs12 -in $2 -nocerts -nodes  -out $5 -passin pass:$PASSWORD
 }
 
 ###
@@ -185,11 +191,16 @@ ensure_certificates()
         
         CERTIFICATE_PFX_LOCATION="spnauth.pfx"
         CERTIFICATE_PEM_LOCATION="spnauth.pem"
+        KEY_LOCATION="spnauth.key"
+        CERTIFICATE_LOCATION="spnauth.crt"  
         
-        convert_secret_to_cert $SPN_CLIENT_SECRET $CERTIFICATE_PFX_LOCATION $CERTIFICATE_PEM_LOCATION
+        convert_secret_to_cert $SPN_CLIENT_SECRET $CERTIFICATE_PFX_LOCATION $CERTIFICATE_PEM_LOCATION $CERTIFICATE_LOCATION $KEY_LOCATION
         
         log_level -i "PFX path: '$CERTIFICATE_PFX_LOCATION'"
         log_level -i "PEM path: '$CERTIFICATE_PEM_LOCATION'"
+        log_level -i "CRT path: '$CERTIFICATE_LOCATION'"
+        log_level -i "KEY path: '$KEY_LOCATION'"
+        
     fi
 }
 
@@ -219,7 +230,7 @@ download_akse()
     retrycmd_if_failure 5 10 60 git clone https://github.com/msazurestackworkloads/aks-engine -b azsmaster || exit $ERR_AKSE_DOWNLOAD
     
     mkdir -p ./bin
-    tar -zxvf aks-engine/examples/azurestack/aks-engine.tgz -C ./bin
+    tar -zxvf aks-engine/examples/azurestack/releasev0.34.0/aks-engine.tgz -C ./bin
     
     AKSE_LOCATION=./bin/aks-engine
     if [ ! -f $AKSE_LOCATION ]; then
@@ -228,7 +239,7 @@ download_akse()
         exit 1
     fi
     
-    DEFINITION_TEMPLATE=./aks-engine/examples/azurestack/azurestack-kubernetes$K8S_AZURE_CLOUDPROVIDER_VERSION.json
+    DEFINITION_TEMPLATE=./aks-engine/examples/azurestack/releasev0.34.0/$K8S_AZURE_CLOUDPROVIDER_VERSION.json
     if [ ! -f $DEFINITION_TEMPLATE ]; then
         log_level -e "API model template for Kubernetes $K8S_AZURE_CLOUDPROVIDER_VERSION not found in expected location"
         log_level -e "Expected location: $DEFINITION_TEMPLATE"
@@ -322,7 +333,6 @@ log_level -i "ADMIN_USERNAME:                           $ADMIN_USERNAME"
 log_level -i "AGENT_COUNT:                              $AGENT_COUNT"
 log_level -i "AGENT_SIZE:                               $AGENT_SIZE"
 log_level -i "IDENTITY_SYSTEM:                          $IDENTITY_SYSTEM"
-log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:          $K8S_AZURE_CLOUDPROVIDER_VERSION"
 log_level -i "MASTER_COUNT:                             $MASTER_COUNT"
 log_level -i "MASTER_DNS_PREFIX:                        $MASTER_DNS_PREFIX"
 log_level -i "MASTER_SIZE:                              $MASTER_SIZE"
@@ -331,9 +341,11 @@ log_level -i "PUBLICIP_FQDN:                            $PUBLICIP_FQDN"
 log_level -i "REGION_NAME:                              $REGION_NAME"
 log_level -i "RESOURCE_GROUP_NAME:                      $RESOURCE_GROUP_NAME"
 log_level -i "SSH_PUBLICKEY:                            ----"
-log_level -i "STORAGE_PROFILE:                          $STORAGE_PROFILE"
 log_level -i "TENANT_ID:                                $TENANT_ID"
 log_level -i "TENANT_SUBSCRIPTION_ID:                   $TENANT_SUBSCRIPTION_ID"
+
+K8S_AZURE_CLOUDPROVIDER_VERSION=1.11
+STORAGE_PROFILE="ManagedDisk"
 
 if [ $IDENTITY_SYSTEM == "ADFS" ]; then
     log_level -i "SPN_CLIENT_SECRET_KEYVAULT_ID:            $SPN_CLIENT_SECRET_KEYVAULT_ID"
@@ -428,9 +440,7 @@ log_level -i "Computing cluster definition values."
 METADATA=`curl -s -f --retry 10 $AZURESTACK_RESOURCE_METADATA_ENDPOINT` || exit $ERR_METADATA_ENDPOINT
 echo $METADATA > metadata.json
 
-ENDPOINT_GRAPH_ENDPOINT=`echo $METADATA | jq '.graphEndpoint' | xargs`
-ENDPOINT_GALLERY=`echo $METADATA | jq '.galleryEndpoint' | xargs`
-ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID=`echo $METADATA | jq '.authentication.audiences'[0] | xargs`
+ENDPOINT_PORTAL=`echo $METADATA | jq '.portalEndpoint' | xargs`
 
 log_level -i "ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID: $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID"
 
@@ -449,14 +459,7 @@ log_level -i "ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT: $ENDPOINT_ACTIVE_DIRECTORY_END
 log_level -i "Setting general cluster definition properties."
 
 cat $AZURESTACK_CONFIGURATION | \
-jq --arg ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID '.properties.customCloudProfile.environment.serviceManagementEndpoint = $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID'| \
-jq --arg ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT '.properties.customCloudProfile.environment.activeDirectoryEndpoint = $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT' | \
-jq --arg ENDPOINT_GRAPH_ENDPOINT $ENDPOINT_GRAPH_ENDPOINT '.properties.customCloudProfile.environment.graphEndpoint = $ENDPOINT_GRAPH_ENDPOINT' | \
-jq --arg TENANT_ENDPOINT $TENANT_ENDPOINT '.properties.customCloudProfile.environment.resourceManagerEndpoint = $TENANT_ENDPOINT' | \
-jq --arg ENDPOINT_GALLERY $ENDPOINT_GALLERY '.properties.customCloudProfile.environment.galleryEndpoint = $ENDPOINT_GALLERY' | \
-jq --arg SUFFIXES_STORAGE_ENDPOINT $SUFFIXES_STORAGE_ENDPOINT '.properties.customCloudProfile.environment.storageEndpointSuffix = $SUFFIXES_STORAGE_ENDPOINT' | \
-jq --arg SUFFIXES_KEYVAULT_DNS $SUFFIXES_KEYVAULT_DNS '.properties.customCloudProfile.environment.keyVaultDNSSuffix = $SUFFIXES_KEYVAULT_DNS' | \
-jq --arg FQDN_ENDPOINT_SUFFIX $FQDN_ENDPOINT_SUFFIX '.properties.customCloudProfile.environment.resourceManagerVMDNSSuffix = $FQDN_ENDPOINT_SUFFIX' | \
+jq --arg ENDPOINT_PORTAL '.properties.customCloudProfile.portalUrl = $ENDPOINT_PORTAL'| \
 jq --arg REGION_NAME $REGION_NAME '.location = $REGION_NAME' | \
 jq --arg MASTER_DNS_PREFIX $MASTER_DNS_PREFIX '.properties.masterProfile.dnsPrefix = $MASTER_DNS_PREFIX' | \
 jq '.properties.agentPoolProfiles[0].count'=$AGENT_COUNT | \
@@ -468,18 +471,6 @@ jq --arg SSH_PUBLICKEY "${SSH_PUBLICKEY}" '.properties.linuxProfile.ssh.publicKe
 > $AZURESTACK_CONFIGURATION_TEMP
 
 validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
-
-if [ "$STORAGE_PROFILE" == "blobdisk" ]; then
-    log_level -w "Using blob disks requires AvailabilitySet, overriding availabilityProfile and storageProfile."
-    
-    cat $AZURESTACK_CONFIGURATION | \
-    jq --arg AvailabilitySet "AvailabilitySet" '.properties.agentPoolProfiles[0].availabilityProfile=$AvailabilitySet' | \
-    jq --arg StorageAccount "StorageAccount" '.properties.agentPoolProfiles[0].storageProfile=$StorageAccount' | \
-    jq --arg StorageAccount "StorageAccount" '.properties.masterProfile.storageProfile=$StorageAccount' \
-    > $AZURESTACK_CONFIGURATION_TEMP
-    
-    validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
-fi
 
 if [ $IDENTITY_SYSTEM == "ADFS" ]; then
     log_level -i "Setting ADFS specific cluster definition properties."
