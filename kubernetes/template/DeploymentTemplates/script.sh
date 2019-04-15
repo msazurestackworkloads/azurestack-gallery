@@ -546,6 +546,22 @@ retrycmd_if_failure 5 10 60 az account set --subscription $TENANT_SUBSCRIPTION_I
 #####################################################################################
 # aks-engine commands
 
+
+log_level -i "Deploying using AKS Engine."
+
+./bin/aks-engine-v0.34.0-linux-amd64/aks-engine deploy \
+-g $RESOURCE_GROUP_NAME \
+--api-model \
+--location $REGION_NAME \
+--azure-env \
+--ca-certificate-path \
+--ca-private-key-path \
+--certificate-path \
+--client-id \
+--identity-system \
+--private-key-path \
+
+
 log_level -i "Generating ARM template using AKS-Engine."
 # No retry, generate does not call any external endpoint
 ./bin/aks-engine generate $AZURESTACK_CONFIGURATION || exit $ERR_AKSE_GENERATE
