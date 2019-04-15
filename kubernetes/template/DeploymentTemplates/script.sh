@@ -571,9 +571,9 @@ else
     ./bin/aks-engine-v0.34.0-linux-amd64/aks-engine deploy \
     -g $RESOURCE_GROUP_NAME \
     --api-model $AZURESTACK_CONFIGURATION \
-    --location $REGION_NAME \
-    --azure-env $AZURE_ENV \
     --auth-method $AUTH_METHOD \
+    --azure-env $AZURE_ENV \
+    --location $REGION_NAME \
     --client-id $SPN_CLIENT_ID \
     --client-secret $SPN_CLIENT_SECRET \
     --identity-system $IDENTITY_SYSTEM_LOWER \
