@@ -557,7 +557,7 @@ log_level -i "Deploying using AKS Engine."
 
 if [ $IDENTITY_SYSTEM == "ADFS" ]; then
 
-    ./bin/aks-engine-v0.34.0-linux-amd64/aks-engine deploy \
+    ./bin/aks-engine deploy \
     -g $RESOURCE_GROUP_NAME \
     --api-model $AZURESTACK_CONFIGURATION \
     --auth-method $AUTH_METHOD \
@@ -569,7 +569,7 @@ if [ $IDENTITY_SYSTEM == "ADFS" ]; then
     --identity-system $IDENTITY_SYSTEM_LOWER \
     --subscription-id $TENANT_SUBSCRIPTION_ID || exit $ERR_AKSE_DEPLOY
 else
-    ./bin/aks-engine-v0.34.0-linux-amd64/aks-engine deploy \
+    ./bin/aks-engine deploy \
     -g $RESOURCE_GROUP_NAME \
     --api-model $AZURESTACK_CONFIGURATION \
     --auth-method $AUTH_METHOD \
