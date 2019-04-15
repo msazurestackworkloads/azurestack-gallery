@@ -444,6 +444,8 @@ ENDPOINT_GALLERY=`echo $METADATA | jq '.galleryEndpoint' | xargs`
 ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID=`echo $METADATA | jq '.authentication.audiences'[0] | xargs`
 ENDPOINT_PORTAL=`echo $METADATA | jq '.portalEndpoint' | xargs`
 AZURE_ENV="AzureStackCloud"
+AUTH_METHOD="client_secret"
+IDENTITY_SYSTEM_LOWER="azure_ad"
 
 log_level -i "ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID: $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID"
 
@@ -478,6 +480,8 @@ validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTA
 if [ $IDENTITY_SYSTEM == "ADFS" ]; then
     log_level -i "Setting ADFS specific cluster definition properties."
     ADFS="adfs"
+    IDENTITY_SYSTEM_LOWER=$ADFS
+    AUTH_METHOD="client_certificate"
     cat $AZURESTACK_CONFIGURATION | \
     jq --arg ADFS $ADFS '.properties.customCloudProfile.identitySystem=$ADFS' | \
     jq --arg authenticationMethod "client_certificate" '.properties.customCloudProfile.authenticationMethod=$authenticationMethod' | \
@@ -555,37 +559,25 @@ if [ $IDENTITY_SYSTEM == "ADFS" ]; then
     ./bin/aks-engine-v0.34.0-linux-amd64/aks-engine deploy \
     -g $RESOURCE_GROUP_NAME \
     --api-model $AZURESTACK_CONFIGURATION \
-    --location $REGION_NAME \
-    --azure-env $AZURE_ENV\
+    --auth-method $AUTH_METHOD \
+    --azure-env $AZURE_ENV \
     --certificate-path $CERTIFICATE_LOCATION \
     --client-id $SPN_CLIENT_ID \
-    --identity-system adfs \
-    --private-key-path $KEY_LOCATION 
-    --auth-method client_certificate
+    --private-key-path $KEY_LOCATION \
+    --location $REGION_NAME \
+    --identity-system $IDENTITY_SYSTEM_LOWER \
+    --subscription-id $TENANT_SUBSCRIPTION_ID || exit $ERR_AKSE_DEPLOY
 else
     ./bin/aks-engine-v0.34.0-linux-amd64/aks-engine deploy \
     -g $RESOURCE_GROUP_NAME \
     --api-model $AZURESTACK_CONFIGURATION \
     --location $REGION_NAME \
-    --azure-env $AZURE_ENV\
-    --auth-method client_secret \
+    --azure-env $AZURE_ENV \
+    --auth-method $AUTH_METHOD \
     --client-id $SPN_CLIENT_ID \
     --client-secret $SPN_CLIENT_SECRET \
-    --identity-system azure_ad 
+    --identity-system $IDENTITY_SYSTEM_LOWER \
+    --subscription-id $TENANT_SUBSCRIPTION_ID || exit $ERR_AKSE_DEPLOY
 fi 
-
-log_level -i "Generating ARM template using AKS-Engine."
-# No retry, generate does not call any external endpoint
-./bin/aks-engine generate $AZURESTACK_CONFIGURATION || exit $ERR_AKSE_GENERATE
-
-log_level -i "ARM template saved in directory $PWD/_output/$MASTER_DNS_PREFIX."
-
-log_level -i "Deploying the template."
-retrycmd_if_failure 3 10 6000 az group deployment create \
--g $RESOURCE_GROUP_NAME \
---template-file _output/$MASTER_DNS_PREFIX/azuredeploy.json \
---parameters _output/$MASTER_DNS_PREFIX/azuredeploy.parameters.json \
---output none  \
-|| exit $ERR_AKSE_DEPLOY
 
 log_level -i "Kubernetes cluster deployment complete."
