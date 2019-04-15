@@ -443,6 +443,7 @@ ENDPOINT_GRAPH_ENDPOINT=`echo $METADATA | jq '.graphEndpoint' | xargs`
 ENDPOINT_GALLERY=`echo $METADATA | jq '.galleryEndpoint' | xargs`
 ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID=`echo $METADATA | jq '.authentication.audiences'[0] | xargs`
 ENDPOINT_PORTAL=`echo $METADATA | jq '.portalEndpoint' | xargs`
+AZURE_ENV="AzureStackCloud"
 
 log_level -i "ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID: $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID"
 
@@ -461,7 +462,7 @@ log_level -i "ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT: $ENDPOINT_ACTIVE_DIRECTORY_END
 log_level -i "Setting general cluster definition properties."
 
 cat $AZURESTACK_CONFIGURATION | \
-jq --arg ENDPOINT_PORTAL '.properties.customCloudProfile.portalUrl = $ENDPOINT_PORTAL'| \
+jq --arg ENDPOINT_PORTAL $ENDPOINT_PORTAL '.properties.customCloudProfile.portalUrl = $ENDPOINT_PORTAL'| \
 jq --arg REGION_NAME $REGION_NAME '.location = $REGION_NAME' | \
 jq --arg MASTER_DNS_PREFIX $MASTER_DNS_PREFIX '.properties.masterProfile.dnsPrefix = $MASTER_DNS_PREFIX' | \
 jq '.properties.agentPoolProfiles[0].count'=$AGENT_COUNT | \
@@ -549,18 +550,29 @@ retrycmd_if_failure 5 10 60 az account set --subscription $TENANT_SUBSCRIPTION_I
 
 log_level -i "Deploying using AKS Engine."
 
-./bin/aks-engine-v0.34.0-linux-amd64/aks-engine deploy \
--g $RESOURCE_GROUP_NAME \
---api-model \
---location $REGION_NAME \
---azure-env \
---ca-certificate-path \
---ca-private-key-path \
---certificate-path \
---client-id \
---identity-system \
---private-key-path \
+if [ $IDENTITY_SYSTEM == "ADFS" ]; then
 
+    ./bin/aks-engine-v0.34.0-linux-amd64/aks-engine deploy \
+    -g $RESOURCE_GROUP_NAME \
+    --api-model $AZURESTACK_CONFIGURATION \
+    --location $REGION_NAME \
+    --azure-env $AZURE_ENV\
+    --certificate-path $CERTIFICATE_LOCATION \
+    --client-id $SPN_CLIENT_ID \
+    --identity-system adfs \
+    --private-key-path $KEY_LOCATION 
+    --auth-method client_certificate
+else
+    ./bin/aks-engine-v0.34.0-linux-amd64/aks-engine deploy \
+    -g $RESOURCE_GROUP_NAME \
+    --api-model $AZURESTACK_CONFIGURATION \
+    --location $REGION_NAME \
+    --azure-env $AZURE_ENV\
+    --auth-method client_secret \
+    --client-id $SPN_CLIENT_ID \
+    --client-secret $SPN_CLIENT_SECRET \
+    --identity-system azure_ad 
+fi 
 
 log_level -i "Generating ARM template using AKS-Engine."
 # No retry, generate does not call any external endpoint
