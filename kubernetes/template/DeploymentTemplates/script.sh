@@ -240,7 +240,7 @@ download_akse()
         exit 1
     fi
     
-    DEFINITION_TEMPLATE=./aks-engine/examples/azurestack/releasev0.34.0/azurestack-kubernetes$K8S_AZURE_CLOUDPROVIDER_VERSION.json   
+    DEFINITION_TEMPLATE=./aks-engine/examples/azurestack/azurestack-kubernetes$K8S_AZURE_CLOUDPROVIDER_VERSION.json   
     if [ ! -f $DEFINITION_TEMPLATE ]; then
         log_level -e "API model template for Kubernetes $K8S_AZURE_CLOUDPROVIDER_VERSION not found in expected location"
         log_level -e "Expected location: $DEFINITION_TEMPLATE"
