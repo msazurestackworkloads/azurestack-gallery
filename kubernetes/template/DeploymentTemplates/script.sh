@@ -2,19 +2,20 @@
 
 ERR_APT_INSTALL_TIMEOUT=9 # Timeout installing required apt packages
 ERR_AKSE_DOWNLOAD=10 # Failure downloading AKS-Engine binaries
-ERR_AKSE_GENERATE=11 # Failure calling AKS-Engine's generate operation
 ERR_AKSE_DEPLOY=12 # Failure calling AKS-Engine's deploy operation
 ERR_CACERT_INSTALL=20 # Failure moving CA certificate
-ERR_MS_GPG_KEY_DOWNLOAD_TIMEOUT=26 # Timeout waiting for Microsoft's GPG key download
 ERR_METADATA_ENDPOINT=30 # Failure calling the metadata endpoint
 ERR_API_MODEL=40 # Failure building API model using user input
 ERR_AZS_CLOUD_REGISTER=50 # Failure calling az cloud register
-ERR_AZS_CLOUD_ENVIRONMENT=51 # Failure setting az cloud environment
-ERR_AZS_CLOUD_PROFILE=52 # Failure setting az cloud profile
-ERR_AZS_LOGIN_AAD=53 # Failure to log in to AAD environment
-ERR_AZS_LOGIN_ADFS=54 # Failure to log in to ADFS environment
-ERR_AZS_ACCOUNT_SUB=55 # Failure setting account default subscription
 ERR_APT_UPDATE_TIMEOUT=99 # Timeout waiting for apt-get update to complete
+#ERR_AKSE_GENERATE=11 # Failure calling AKS-Engine's generate operation
+#ERR_MS_GPG_KEY_DOWNLOAD_TIMEOUT=26 # Timeout waiting for Microsoft's GPG key download
+#ERR_AZS_CLOUD_ENVIRONMENT=51 # Failure setting az cloud environment
+#ERR_AZS_CLOUD_PROFILE=52 # Failure setting az cloud profile
+#ERR_AZS_LOGIN_AAD=53 # Failure to log in to AAD environment
+#ERR_AZS_LOGIN_ADFS=54 # Failure to log in to ADFS environment
+#ERR_AZS_ACCOUNT_SUB=55 # Failure setting account default subscription
+
 
 function collect_deployment_and_operations
 {
@@ -133,6 +134,8 @@ validate_and_restore_cluster_definition()
 #   <param name="1">Service principle secret.</param>
 #   <param name="2">Certificate PFX file name.</param>
 #   <param name="3">Certificate PEM file name.</param>
+#   <param name="4">Certificate CRT file name.</param>
+#   <param name="5">Certificate KEY file name.</param>
 #   <returns>None</returns>
 #   <exception>None</exception>
 #   <remarks>Called within same scripts.</remarks>
@@ -202,25 +205,6 @@ ensure_certificates()
         log_level -i "KEY path: '$KEY_LOCATION'"
         
     fi
-}
-
-# Add azure-cli apt source
-add_azurecli_source()
-{
-    # https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-version-profiles-azurecli2#connect-to-azure-stack
-    # https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-apt?view=azure-cli-latest
-    
-    log_level -i "Adding azure-cli apt source."
-    AZ_REPO=$(lsb_release -cs)
-    echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" | tee /etc/apt/sources.list.d/azure-cli.list
-    
-    log_level -i "Downloading the Microsoft signing key."
-    RECV_KEY=BC528686B50D79E339D3721CEB3E94ADBE1229CF
-    retrycmd_if_failure 5 10 60 apt-key \
-    --keyring /etc/apt/trusted.gpg.d/Microsoft.gpg adv \
-    --keyserver packages.microsoft.com \
-    --recv-keys $RECV_KEY \
-    || exit $ERR_MS_GPG_KEY_DOWNLOAD_TIMEOUT
 }
 
 # Clone msazurestackworkloads' AKSe fork and move relevant files to the working directory
@@ -334,6 +318,7 @@ log_level -i "ADMIN_USERNAME:                           $ADMIN_USERNAME"
 log_level -i "AGENT_COUNT:                              $AGENT_COUNT"
 log_level -i "AGENT_SIZE:                               $AGENT_SIZE"
 log_level -i "IDENTITY_SYSTEM:                          $IDENTITY_SYSTEM"
+log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:          $K8S_AZURE_CLOUDPROVIDER_VERSION" 
 log_level -i "MASTER_COUNT:                             $MASTER_COUNT"
 log_level -i "MASTER_DNS_PREFIX:                        $MASTER_DNS_PREFIX"
 log_level -i "MASTER_SIZE:                              $MASTER_SIZE"
@@ -342,7 +327,6 @@ log_level -i "PUBLICIP_FQDN:                            $PUBLICIP_FQDN"
 log_level -i "REGION_NAME:                              $REGION_NAME"
 log_level -i "RESOURCE_GROUP_NAME:                      $RESOURCE_GROUP_NAME"
 log_level -i "SSH_PUBLICKEY:                            ----"
-log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:          $K8S_AZURE_CLOUDPROVIDER_VERSION" 
 log_level -i "STORAGE_PROFILE:                          $STORAGE_PROFILE"
 log_level -i "TENANT_ID:                                $TENANT_ID"
 log_level -i "TENANT_SUBSCRIPTION_ID:                   $TENANT_SUBSCRIPTION_ID"
@@ -361,10 +345,11 @@ log_level -i "Constants"
 log_level -i "------------------------------------------------------------------------"
 
 ENVIRONMENT_NAME=AzureStackCloud
-HYBRID_PROFILE=2018-03-01-hybrid
+AUTH_METHOD="client_secret"
+IDENTITY_SYSTEM_LOWER="azure_ad"
 
+log_level -i "AZURE_ENV: $AZURE_ENV"
 log_level -i "ENVIRONMENT_NAME: $ENVIRONMENT_NAME"
-log_level -i "HYBRID_PROFILE:   $HYBRID_PROFILE"
 
 log_level -i "------------------------------------------------------------------------"
 log_level -i "Inner variables"
@@ -372,19 +357,14 @@ log_level -i "------------------------------------------------------------------
 
 EXTERNAL_FQDN="${PUBLICIP_FQDN//$PUBLICIP_DNS.$REGION_NAME.cloudapp.}"
 TENANT_ENDPOINT="https://management.$REGION_NAME.$EXTERNAL_FQDN"
-SUFFIXES_STORAGE_ENDPOINT=$REGION_NAME.$EXTERNAL_FQDN
-SUFFIXES_KEYVAULT_DNS=.vault.$REGION_NAME.$EXTERNAL_FQDN
-FQDN_ENDPOINT_SUFFIX=cloudapp.$EXTERNAL_FQDN
 AZURESTACK_RESOURCE_METADATA_ENDPOINT="$TENANT_ENDPOINT/metadata/endpoints?api-version=2015-01-01"
 
-log_level -i "EXTERNAL_FQDN:                            $EXTERNAL_FQDN"
-log_level -i "TENANT_ENDPOINT:                          $TENANT_ENDPOINT"
-log_level -i "SUFFIXES_STORAGE_ENDPOINT:                $SUFFIXES_STORAGE_ENDPOINT"
-log_level -i "SUFFIXES_KEYVAULT_DNS:                    $SUFFIXES_KEYVAULT_DNS"
-log_level -i "FQDN_ENDPOINT_SUFFIX:                     $FQDN_ENDPOINT_SUFFIX"
-log_level -i "ENVIRONMENT_NAME:                         $ENVIRONMENT_NAME"
 log_level -i "AZURESTACK_RESOURCE_METADATA_ENDPOINT:    $AZURESTACK_RESOURCE_METADATA_ENDPOINT"
+log_level -i "ENVIRONMENT_NAME:                         $ENVIRONMENT_NAME"
+log_level -i "EXTERNAL_FQDN:                            $EXTERNAL_FQDN"
 log_level -i "STORAGE_PROFILE:                          $STORAGE_PROFILE"
+log_level -i "TENANT_ENDPOINT:                          $TENANT_ENDPOINT"
+
 log_level -i "------------------------------------------------------------------------"
 
 WAIT_TIME_SECONDS=20
@@ -393,9 +373,6 @@ sleep $WAIT_TIME_SECONDS
 
 #####################################################################################
 # apt packages
-
-log_level -i "Configuring azure-cli source."
-add_azurecli_source
 
 log_level -i "Updating apt cache."
 apt_get_update || exit $ERR_APT_UPDATE_TIMEOUT
@@ -409,10 +386,7 @@ apt-transport-https \
 lsb-release \
 software-properties-common \
 dirmngr \
-azure-cli \
 || exit $ERR_APT_INSTALL_TIMEOUT
-
-log_level -i "Azure CLI version: $(az --version)"
 
 #####################################################################################
 # aks-engine
@@ -429,7 +403,7 @@ download_akse || exit $ERR_AKSE_DOWNLOAD
 #####################################################################################
 # certificates
 
-log_level -i "Moving certificates to the expected locations as required by azure-cli and AKSe"
+log_level -i "Moving certificates to the expected locations as required by AKSe"
 ensure_certificates || exit $ERR_CACERT_INSTALL
 
 #####################################################################################
@@ -444,9 +418,7 @@ ENDPOINT_GRAPH_ENDPOINT=`echo $METADATA | jq '.graphEndpoint' | xargs`
 ENDPOINT_GALLERY=`echo $METADATA | jq '.galleryEndpoint' | xargs`
 ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID=`echo $METADATA | jq '.authentication.audiences'[0] | xargs`
 ENDPOINT_PORTAL=`echo $METADATA | jq '.portalEndpoint' | xargs`
-AZURE_ENV="AzureStackCloud"
-AUTH_METHOD="client_secret"
-IDENTITY_SYSTEM_LOWER="azure_ad"
+
 
 log_level -i "ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID: $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID"
 
@@ -503,55 +475,7 @@ validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTA
 log_level -i "Done building cluster definition."
 
 #####################################################################################
-# azure-cli cloud
-# https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-version-profiles-azurecli2#connect-to-azure-stack
-
-# azure-cli needs the "adfs" suffix
-if [ $IDENTITY_SYSTEM == "ADFS" ]; then
-    ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT=${ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT}adfs;
-fi;
-
-log_level -i "Registering to Azure Stack cloud."
-retrycmd_if_failure 5 10 60 az cloud register \
--n $ENVIRONMENT_NAME \
---endpoint-resource-manager $TENANT_ENDPOINT \
---suffix-storage-endpoint $SUFFIXES_STORAGE_ENDPOINT \
---suffix-keyvault-dns $SUFFIXES_KEYVAULT_DNS \
---endpoint-active-directory-resource-id $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID \
---endpoint-active-directory $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT \
---endpoint-active-directory-graph-resource-id $ENDPOINT_GRAPH_ENDPOINT || exit $ERR_AZS_CLOUD_REGISTER
-
-log_level -i "Setting Azure Stack environment."
-retrycmd_if_failure 5 10 60 az cloud set -n $ENVIRONMENT_NAME || exit $ERR_AZS_CLOUD_ENVIRONMENT
-
-log_level -i "Updating cloud profile with value: $HYBRID_PROFILE."
-retrycmd_if_failure 5 10 60 az cloud update --profile $HYBRID_PROFILE || exit $ERR_AZS_CLOUD_PROFILE
-
-#####################################################################################
-# azure-cli login
-
-if [ $IDENTITY_SYSTEM == "ADFS" ]; then
-    log_level -i "Login to ADFS environment using Azure CLI."
-    retrycmd_if_failure 5 10 60 az login \
-    --service-principal -u $SPN_CLIENT_ID -p $CERTIFICATE_PEM_LOCATION \
-    --tenant $TENANT_ID \
-    --output none \
-    || exit $ERR_AZS_LOGIN_ADFS
-else
-    log_level -i "Login to AAD environment using Azure CLI."
-    retrycmd_if_failure 5 10 60 az login \
-    --service-principal -u $SPN_CLIENT_ID -p $SPN_CLIENT_SECRET \
-    --tenant $TENANT_ID \
-    --output none \
-    || exit $ERR_AZS_LOGIN_AAD
-fi
-
-log_level -i "Setting subscription to $TENANT_SUBSCRIPTION_ID"
-retrycmd_if_failure 5 10 60 az account set --subscription $TENANT_SUBSCRIPTION_ID --output none || exit $ERR_AZS_ACCOUNT_SUB
-
-#####################################################################################
 # aks-engine commands
-
 
 log_level -i "Deploying using AKS Engine."
 
@@ -561,7 +485,7 @@ if [ $IDENTITY_SYSTEM == "ADFS" ]; then
     -g $RESOURCE_GROUP_NAME \
     --api-model $AZURESTACK_CONFIGURATION \
     --auth-method $AUTH_METHOD \
-    --azure-env $AZURE_ENV \
+    --azure-env $ENVIRONMENT_NAME \
     --certificate-path $CERTIFICATE_LOCATION \
     --client-id $SPN_CLIENT_ID \
     --private-key-path $KEY_LOCATION \
@@ -573,7 +497,7 @@ else
     -g $RESOURCE_GROUP_NAME \
     --api-model $AZURESTACK_CONFIGURATION \
     --auth-method $AUTH_METHOD \
-    --azure-env $AZURE_ENV \
+    --azure-env $ENVIRONMENT_NAME \
     --location $REGION_NAME \
     --client-id $SPN_CLIENT_ID \
     --client-secret $SPN_CLIENT_SECRET \
