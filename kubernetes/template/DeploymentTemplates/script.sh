@@ -211,7 +211,7 @@ ensure_certificates()
 download_akse()
 {
     # Todo update release branch details: msazurestackworkloads, azsmaster
-    retrycmd_if_failure 5 10 60 git clone https://github.com/msazurestackworkloads/aks-engine -b azsmaster-akse-releasev0.34.0 || exit $ERR_AKSE_DOWNLOAD
+    retrycmd_if_failure 5 10 60 git clone https://github.com/msazurestackworkloads/aks-engine -b patch-v0.34.1-azs-1904-15 || exit $ERR_AKSE_DOWNLOAD
     
     mkdir -p ./bin
     tar -xf aks-engine/examples/azurestack/aks-engine-patch-v0.34.1-azs-1904-15.gz
@@ -414,13 +414,9 @@ log_level -i "Computing cluster definition values."
 METADATA=`curl -s -f --retry 10 $AZURESTACK_RESOURCE_METADATA_ENDPOINT` || exit $ERR_METADATA_ENDPOINT
 echo $METADATA > metadata.json
 
-ENDPOINT_GRAPH_ENDPOINT=`echo $METADATA | jq '.graphEndpoint' | xargs`
-ENDPOINT_GALLERY=`echo $METADATA | jq '.galleryEndpoint' | xargs`
-ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID=`echo $METADATA | jq '.authentication.audiences'[0] | xargs`
 ENDPOINT_PORTAL=`echo $METADATA | jq '.portalEndpoint' | xargs`
 
-
-log_level -i "ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID: $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID"
+log_level -i "ENDPOINT_PORTAL: $ENDPOINT_PORTAL"
 
 if [ $IDENTITY_SYSTEM == "ADFS" ]; then
     # Trim "adfs" suffix
