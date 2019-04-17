@@ -26,30 +26,6 @@ function collect_deployment_and_operations
         log_level -i "CustomScript extension failed with exit code $EXIT_CODE"
     fi
     
-    if ! command az 1> /dev/null; then
-        log_level -w "Won't collect deployment logs, azure-cli is not installed"
-        exit $EXIT_CODE
-    fi
-    
-    if ! az account show -o none 2> /dev/null; then
-        log_level -w "Won't collect deployment logs, azure-cli is not logged in"
-        exit $EXIT_CODE
-    fi
-    
-    log_level -i "Collecting deployment logs."
-    
-    DEPLOYLOGSDIR=/var/log/azure/arm-deployments
-    mkdir -p $DEPLOYLOGSDIR
-    
-    DEPLOYMENTS=$(az group deployment list --resource-group $RESOURCE_GROUP_NAME --query '[].name' --output tsv)
-    
-    for deploy in $DEPLOYMENTS; do
-        az group deployment show --resource-group $RESOURCE_GROUP_NAME --name $deploy | tee $DEPLOYLOGSDIR/$deploy.deploy > /dev/null
-        az group deployment operation list --resource-group $RESOURCE_GROUP_NAME --name $deploy | tee $DEPLOYLOGSDIR/$deploy.operations > /dev/null
-    done
-    
-    chown -R $ADMIN_USERNAME:$ADMIN_USERNAME $DEPLOYLOGSDIR
-    
     log_level -i "CustomScript extension run to completion."
     exit $EXIT_CODE
 }
