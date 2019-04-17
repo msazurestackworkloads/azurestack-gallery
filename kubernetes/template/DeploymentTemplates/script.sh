@@ -211,11 +211,11 @@ ensure_certificates()
 download_akse()
 {
     # Todo update release branch details: msazurestackworkloads, azsmaster
-    retrycmd_if_failure 5 10 60 git clone https://github.com/msazurestackworkloads/aks-engine -b patch-v0.34.1-azs-1904-15 || exit $ERR_AKSE_DOWNLOAD
+    retrycmd_if_failure 5 10 60 git clone https://github.com/msazurestackworkloads/aks-engine -b patch-release-v0.34.2-azs-1904-17 || exit $ERR_AKSE_DOWNLOAD
     
     mkdir -p ./bin
-    tar -xf aks-engine/examples/azurestack/aks-engine-patch-v0.34.1-azs-1904-15.gz
-    cp ./aks-engine-patch-v0.34.1-azs-1904-15-linux-amd64/aks-engine ./bin
+    tar -xf aks-engine/examples/azurestack/aks-engine-patch-release-v0.34.2-azs-1904-17-linux-amd64.gz
+    cp ./aks-engine-patch-release-v0.34.2-azs-1904-17-linux-amd64/aks-engine ./bin
     
     AKSE_LOCATION=./bin/aks-engine
     if [ ! -f $AKSE_LOCATION ]; then
