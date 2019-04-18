@@ -26,30 +26,6 @@ function collect_deployment_and_operations
         log_level -i "CustomScript extension failed with exit code $EXIT_CODE"
     fi
     
-    if ! command az 1> /dev/null; then
-        log_level -w "Won't collect deployment logs, azure-cli is not installed"
-        exit $EXIT_CODE
-    fi
-    
-    if ! az account show -o none 2> /dev/null; then
-        log_level -w "Won't collect deployment logs, azure-cli is not logged in"
-        exit $EXIT_CODE
-    fi
-    
-    log_level -i "Collecting deployment logs."
-    
-    DEPLOYLOGSDIR=/var/log/azure/arm-deployments
-    mkdir -p $DEPLOYLOGSDIR
-    
-    DEPLOYMENTS=$(az group deployment list --resource-group $RESOURCE_GROUP_NAME --query '[].name' --output tsv)
-    
-    for deploy in $DEPLOYMENTS; do
-        az group deployment show --resource-group $RESOURCE_GROUP_NAME --name $deploy | tee $DEPLOYLOGSDIR/$deploy.deploy > /dev/null
-        az group deployment operation list --resource-group $RESOURCE_GROUP_NAME --name $deploy | tee $DEPLOYLOGSDIR/$deploy.operations > /dev/null
-    done
-    
-    chown -R $ADMIN_USERNAME:$ADMIN_USERNAME $DEPLOYLOGSDIR
-    
     log_level -i "CustomScript extension run to completion."
     exit $EXIT_CODE
 }
@@ -211,11 +187,11 @@ ensure_certificates()
 download_akse()
 {
     # Todo update release branch details: msazurestackworkloads, azsmaster
-    retrycmd_if_failure 5 10 60 git clone https://github.com/msazurestackworkloads/aks-engine -b patch-v0.34.1-azs-1904-15 || exit $ERR_AKSE_DOWNLOAD
+    retrycmd_if_failure 5 10 60 git clone https://github.com/msazurestackworkloads/aks-engine -b patch-release-v0.34.2-azs-1904-17 || exit $ERR_AKSE_DOWNLOAD
     
     mkdir -p ./bin
-    tar -xf aks-engine/examples/azurestack/aks-engine-patch-v0.34.1-azs-1904-15.gz
-    cp ./aks-engine-patch-v0.34.1-azs-1904-15-linux-amd64/aks-engine ./bin
+    tar -xf aks-engine/examples/azurestack/aks-engine-patch-release-v0.34.2-azs-1904-17-linux-amd64.gz
+    cp ./aks-engine-patch-release-v0.34.2-azs-1904-17-linux-amd64/aks-engine ./bin
     
     AKSE_LOCATION=./bin/aks-engine
     if [ ! -f $AKSE_LOCATION ]; then
