@@ -104,6 +104,20 @@
       },
       "type": "string"
     },
+    "aksEngineReleaseFileName": {
+      "defaultValue": "aks-engine-patch-release-v0.34.2-azs-1904-17-linux-amd64.gz",
+      "metadata": {
+        "description": "AKS engine release file name"
+      },
+      "type": "string"
+    },
+    "aksEngineAPIModelPrefix": {
+      "defaultValue": "azurestack-kubernetes",
+      "metadata": {
+        "description": "AKS engine API Model Prefix name"
+      },
+      "type": "string"
+    },
     "identitySystem": {
       "defaultValue": "AzureAD",
       "allowedValues": [
@@ -168,7 +182,7 @@
     "servicePrincipalClientSecretJSON":"[json(concat('{\"value\": \"', parameters('servicePrincipalClientSecret'), '\"}'))]",
     "scriptName": "script",
     "singleQuote": "'",
-    "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' AKS_ENGINE_REPO=','\"',parameters('aksEngineRepository'),'\"',' AKS_ENGINE_BRANCH=','\"',parameters('aksEngineBranch'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"')]"
+    "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' AKS_ENGINE_REPOSITORY=','\"',parameters('aksEngineRepository'),'\"',' AKS_ENGINE_BRANCH=','\"',parameters('aksEngineBranch'),'\"',' AKS_ENGINE_APIMODEL_PREFIX=','\"',parameters('aksEngineAPIModelPrefix'),'\"',' AKS_ENGINE_RELEASE_FILE_NAME=','\"',parameters('aksEngineReleaseFileName'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"')]"
   },
   "resources": [
     {
@@ -224,6 +238,12 @@
           },
           "aksEngineBranch": {
             "value": "[parameters('aksEngineBranch')]"
+          },
+          "aksEngineReleaseFileName": {
+            "value": "[parameters('aksEngineReleaseFileName')]"
+          },          
+          "aksEngineAPIModelPrefix": {
+            "value": "[parameters('aksEngineAPIModelPrefix')]"
           },
           "identitySystem": {
             "value": "[parameters('identitySystem')]"

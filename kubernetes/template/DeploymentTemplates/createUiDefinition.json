@@ -385,6 +385,28 @@
         "visible": false
       },
       {
+        "name": "aksEngineReleaseFileName",
+        "type": "Microsoft.Common.TextBox",
+        "label": "AKS engine released file name",
+        "defaultValue": "aks-engine-patch-release-v0.34.2-azs-1904-17-linux-amd64.gz",
+        "toolTip": "AKS engine released file name",
+        "constraints": {
+          "required": true
+        },
+        "visible": false
+      },      
+      {
+        "name": "aksEngineAPIModelPrefix",
+        "type": "Microsoft.Common.TextBox",
+        "label": "AKS engine APIModel prefix",
+        "defaultValue": "azurestack-kubernetes",
+        "toolTip": "AKS engine APIModel prefix",
+        "constraints": {
+          "required": true
+        },
+        "visible": false
+      },
+      {
         "name": "servicePrincipalClientId",
         "type": "Microsoft.Common.TextBox",
         "label": "Service principal clientId",
@@ -478,6 +500,8 @@
       "storageProfile": "[steps('KubernetesClusterSettings').storageProfile]",
       "aksEngineRepository": "[steps('KubernetesClusterSettings').aksEngineRepository]",
       "aksEngineBranch": "[steps('KubernetesClusterSettings').aksEngineBranch]",
+      "aksEngineAPIModelPrefix": "[steps('KubernetesClusterSettings').aksEngineAPIModelPrefix]",
+      "aksEngineReleaseFileName": "[steps('KubernetesClusterSettings').aksEngineReleaseFileName]",      
       "servicePrincipalClientId": "[steps('KubernetesClusterSettings').servicePrincipalClientId]",
       "identitySystem": "[steps('KubernetesClusterSettings').identitySystem]",
       "servicePrincipalClientSecret": "[steps('KubernetesClusterSettings').servicePrincipalClientSecret]",

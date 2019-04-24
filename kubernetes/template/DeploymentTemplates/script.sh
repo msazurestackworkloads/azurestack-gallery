@@ -186,12 +186,13 @@ ensure_certificates()
 # Clone msazurestackworkloads' AKSe fork and move relevant files to the working directory
 download_akse()
 {
-    # Todo update release branch details: msazurestackworkloads, azsmaster
     retrycmd_if_failure 5 10 60 git clone https://github.com/$AKS_ENGINE_REPOSITORY -b $AKS_ENGINE_BRANCH || exit $ERR_AKSE_DOWNLOAD
     
     mkdir -p ./bin
-    tar -xf aks-engine/examples/azurestack/aks-engine-patch-release-v0.34.2-azs-1904-17-linux-amd64.gz
-    cp ./aks-engine-patch-release-v0.34.2-azs-1904-17-linux-amd64/aks-engine ./bin
+    tar -xf aks-engine/examples/azurestack/$AKS_ENGINE_RELEASE_FILE_NAME
+    # Incase the file name changed to tar.gz we need to add one more %
+    folderName="${AKS_ENGINE_RELEASE_FILE_NAME%.*}"
+    cp ./$folderName/aks-engine ./bin
     
     AKSE_LOCATION=./bin/aks-engine
     if [ ! -f $AKSE_LOCATION ]; then
@@ -200,7 +201,7 @@ download_akse()
         exit 1
     fi
     
-    DEFINITION_TEMPLATE=./aks-engine/examples/azurestack/azurestack-kubernetes$K8S_AZURE_CLOUDPROVIDER_VERSION.json   
+    DEFINITION_TEMPLATE=./aks-engine/examples/azurestack/$AKS_ENGINE_APIMODEL_PREFIX$K8S_AZURE_CLOUDPROVIDER_VERSION.json
     if [ ! -f $DEFINITION_TEMPLATE ]; then
         log_level -e "API model template for Kubernetes $K8S_AZURE_CLOUDPROVIDER_VERSION not found in expected location"
         log_level -e "Expected location: $DEFINITION_TEMPLATE"
@@ -293,8 +294,10 @@ log_level -i "------------------------------------------------------------------
 log_level -i "ADMIN_USERNAME:                           $ADMIN_USERNAME"
 log_level -i "AGENT_COUNT:                              $AGENT_COUNT"
 log_level -i "AGENT_SIZE:                               $AGENT_SIZE"
-log_level -i "AKS_ENGINE_REPOSITORY:                    $AKS_ENGINE_REPOSITORY"
+log_level -i "AKS_ENGINE_APIMODEL_PREFIX:               $AKS_ENGINE_APIMODEL_PREFIX"
 log_level -i "AKS_ENGINE_BRANCH:                        $AKS_ENGINE_BRANCH"
+log_level -i "AKS_ENGINE_RELEASE_FILE_NAME:             $AKS_ENGINE_RELEASE_FILE_NAME"
+log_level -i "AKS_ENGINE_REPOSITORY:                    $AKS_ENGINE_REPOSITORY"
 log_level -i "IDENTITY_SYSTEM:                          $IDENTITY_SYSTEM"
 log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:          $K8S_AZURE_CLOUDPROVIDER_VERSION" 
 log_level -i "MASTER_COUNT:                             $MASTER_COUNT"
