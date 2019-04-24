@@ -50,6 +50,12 @@
     "aksEngineBranch": {
       "value": ""
     },
+    "aksEngineReleaseFileName": {
+      "value": ""
+    },    
+    "aksEngineAPIModelPrefix": {
+      "value": ""
+    },
     "identitySystem": {
       "value": ""
     }
