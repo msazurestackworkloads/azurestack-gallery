@@ -64,7 +64,7 @@
       "type": "string"
     },
     "aksEngineBranch": {
-      "defaultValue": "azsmaster",
+      "defaultValue": "patch-release-v0.34.2-azs-1904-17",
       "metadata": {
         "description": "AKS engine branch"
       },

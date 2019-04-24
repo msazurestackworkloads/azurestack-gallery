@@ -377,7 +377,7 @@
         "name": "aksEngineBranch",
         "type": "Microsoft.Common.TextBox",
         "label": "AKS engine branch",
-        "defaultValue": "azsmaster",
+        "defaultValue": "patch-release-v0.34.2-azs-1904-17",
         "toolTip": "AKS engine branch name",
         "constraints": {
           "required": true
