@@ -50,7 +50,7 @@
     },
     {
         "displayName": "ms-resource:documentationLink4",
-        "uri": "https://github.com/msazurestackworkloads/acs-engine/tree/acs-engine-v0140-1804"
+        "uri": "https://github.com/Azure/aks-engine"
     }
   ],
   "products": [

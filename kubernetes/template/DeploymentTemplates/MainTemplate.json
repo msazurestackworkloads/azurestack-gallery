@@ -58,7 +58,7 @@
     },
     "servicePrincipalClientId": {
       "metadata": {
-        "description": "The Service Principal application ID (used by the Kubernetes Azure cloud provider). More help here: https://github.com/Azure/acs-engine/blob/master/docs/serviceprincipal.md"
+        "description": "The Service Principal application ID (used by the Kubernetes Azure cloud provider). More help here: https://github.com/Azure/aks-engine/blob/master/docs/topics/service-principals.md"
       },
       "type": "securestring"
     },

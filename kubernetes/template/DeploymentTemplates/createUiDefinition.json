@@ -367,7 +367,7 @@
         "type": "Microsoft.Common.TextBox",
         "label": "Service principal clientId",
         "defaultValue": null,
-        "toolTip": "The service principal application ID (used by the Kubernetes Azure cloud provider). More help here: https://github.com/Azure/acs-engine/blob/master/docs/serviceprincipal.md",
+        "toolTip": "The service principal application ID (used by the Kubernetes Azure cloud provider). More help here: https://github.com/Azure/aks-engine/blob/master/docs/topics/service-principals.md",
         "constraints": {
           "required": true
         }
