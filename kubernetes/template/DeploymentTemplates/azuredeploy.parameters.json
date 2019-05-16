@@ -52,11 +52,14 @@
     },
     "aksEngineReleaseFileName": {
       "value": ""
-    },    
+    },
     "aksEngineAPIModelPrefix": {
       "value": ""
     },
     "identitySystem": {
+      "value": ""
+    },
+    "nodesDistro": {
       "value": ""
     }
   }

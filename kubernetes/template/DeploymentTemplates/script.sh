@@ -1,21 +1,21 @@
-#!/bin/bash -e
+#!/bin/bash -ex
 
 ERR_APT_INSTALL_TIMEOUT=9 # Timeout installing required apt packages
 ERR_AKSE_DOWNLOAD=10 # Failure downloading AKS-Engine binaries
+#ERR_AKSE_GENERATE=11 # Failure calling AKS-Engine's generate operation
 ERR_AKSE_DEPLOY=12 # Failure calling AKS-Engine's deploy operation
+ERR_TEMPLATE_DOWNLOAD=13 # Failure downloading AKS-Engine template
 ERR_CACERT_INSTALL=20 # Failure moving CA certificate
+#ERR_MS_GPG_KEY_DOWNLOAD_TIMEOUT=26 # Timeout waiting for Microsoft's GPG key download
 ERR_METADATA_ENDPOINT=30 # Failure calling the metadata endpoint
 ERR_API_MODEL=40 # Failure building API model using user input
 ERR_AZS_CLOUD_REGISTER=50 # Failure calling az cloud register
-ERR_APT_UPDATE_TIMEOUT=99 # Timeout waiting for apt-get update to complete
-#ERR_AKSE_GENERATE=11 # Failure calling AKS-Engine's generate operation
-#ERR_MS_GPG_KEY_DOWNLOAD_TIMEOUT=26 # Timeout waiting for Microsoft's GPG key download
 #ERR_AZS_CLOUD_ENVIRONMENT=51 # Failure setting az cloud environment
 #ERR_AZS_CLOUD_PROFILE=52 # Failure setting az cloud profile
 #ERR_AZS_LOGIN_AAD=53 # Failure to log in to AAD environment
 #ERR_AZS_LOGIN_ADFS=54 # Failure to log in to ADFS environment
 #ERR_AZS_ACCOUNT_SUB=55 # Failure setting account default subscription
-
+ERR_APT_UPDATE_TIMEOUT=99 # Timeout waiting for apt-get update to complete
 
 function collect_deployment_and_operations
 {
@@ -129,7 +129,7 @@ convert_secret_to_cert()
     
     log_level -i "Converting to certificate"
     openssl pkcs12 -in $2 -clcerts -nokeys -out $4 -passin pass:$PASSWORD
-
+    
     log_level -i "Converting into key"
     openssl pkcs12 -in $2 -nocerts -nodes  -out $5 -passin pass:$PASSWORD
 }
@@ -171,7 +171,7 @@ ensure_certificates()
         CERTIFICATE_PFX_LOCATION="spnauth.pfx"
         CERTIFICATE_PEM_LOCATION="spnauth.pem"
         KEY_LOCATION="spnauth.key"
-        CERTIFICATE_LOCATION="spnauth.crt"  
+        CERTIFICATE_LOCATION="spnauth.crt"
         
         convert_secret_to_cert $SPN_CLIENT_SECRET $CERTIFICATE_PFX_LOCATION $CERTIFICATE_PEM_LOCATION $CERTIFICATE_LOCATION $KEY_LOCATION
         
@@ -179,29 +179,27 @@ ensure_certificates()
         log_level -i "PEM path: '$CERTIFICATE_PEM_LOCATION'"
         log_level -i "CRT path: '$CERTIFICATE_LOCATION'"
         log_level -i "KEY path: '$KEY_LOCATION'"
-        
     fi
 }
 
 # Clone msazurestackworkloads' AKSe fork and move relevant files to the working directory
 download_akse()
 {
-    retrycmd_if_failure 5 10 60 git clone https://github.com/$AKS_ENGINE_REPOSITORY -b $AKS_ENGINE_BRANCH || exit $ERR_AKSE_DOWNLOAD
+    AKSE_URL="https://raw.githubusercontent.com/$AKS_ENGINE_REPOSITORY/$AKS_ENGINE_BRANCH/kubernetes/template/bin/aks-engine"
+    retrycmd_if_failure 5 10 60 curl -O $AKSE_URL || exit $ERR_AKSE_DOWNLOAD
     
-    mkdir -p ./bin
-    tar -xf aks-engine/examples/azurestack/$AKS_ENGINE_RELEASE_FILE_NAME
-    # Incase the file name changed to tar.gz we need to add one more %
-    folderName="${AKS_ENGINE_RELEASE_FILE_NAME%.*}"
-    cp ./$folderName/aks-engine ./bin
+    TEMPLATE_FILE_NAME="$AKS_ENGINE_APIMODEL_PREFIX$K8S_AZURE_CLOUDPROVIDER_VERSION.json"
+    TEMPLATE_URL="https://raw.githubusercontent.com/$AKS_ENGINE_REPOSITORY/$AKS_ENGINE_BRANCH/kubernetes/template/DeploymentTemplates/$TEMPLATE_FILE_NAME"
+    retrycmd_if_failure 5 10 60 curl -O $TEMPLATE_URL || exit $ERR_TEMPLATE_DOWNLOAD
     
-    AKSE_LOCATION=./bin/aks-engine
+    AKSE_LOCATION=./aks-engine
     if [ ! -f $AKSE_LOCATION ]; then
         log_level -e "aks-engine binary not found in expected location"
         log_level -e "Expected location: $AKSE_LOCATION"
         exit 1
     fi
     
-    DEFINITION_TEMPLATE=./aks-engine/examples/azurestack/$AKS_ENGINE_APIMODEL_PREFIX$K8S_AZURE_CLOUDPROVIDER_VERSION.json
+    DEFINITION_TEMPLATE=./$TEMPLATE_FILE_NAME
     if [ ! -f $DEFINITION_TEMPLATE ]; then
         log_level -e "API model template for Kubernetes $K8S_AZURE_CLOUDPROVIDER_VERSION not found in expected location"
         log_level -e "Expected location: $DEFINITION_TEMPLATE"
@@ -216,7 +214,7 @@ download_akse()
     
     cp $DEFINITION_TEMPLATE $AZURESTACK_CONFIGURATION
     
-    log_level -i "aks-engine binary available in path $PWD/bin/aks-engine."
+    log_level -i "aks-engine binary available in path $AKSE_LOCATION"
     log_level -i "API model template available in path $AZURESTACK_CONFIGURATION."
 }
 
@@ -299,7 +297,7 @@ log_level -i "AKS_ENGINE_BRANCH:                        $AKS_ENGINE_BRANCH"
 log_level -i "AKS_ENGINE_RELEASE_FILE_NAME:             $AKS_ENGINE_RELEASE_FILE_NAME"
 log_level -i "AKS_ENGINE_REPOSITORY:                    $AKS_ENGINE_REPOSITORY"
 log_level -i "IDENTITY_SYSTEM:                          $IDENTITY_SYSTEM"
-log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:          $K8S_AZURE_CLOUDPROVIDER_VERSION" 
+log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:          $K8S_AZURE_CLOUDPROVIDER_VERSION"
 log_level -i "MASTER_COUNT:                             $MASTER_COUNT"
 log_level -i "MASTER_DNS_PREFIX:                        $MASTER_DNS_PREFIX"
 log_level -i "MASTER_SIZE:                              $MASTER_SIZE"
@@ -309,6 +307,7 @@ log_level -i "REGION_NAME:                              $REGION_NAME"
 log_level -i "RESOURCE_GROUP_NAME:                      $RESOURCE_GROUP_NAME"
 log_level -i "SSH_PUBLICKEY:                            ----"
 log_level -i "STORAGE_PROFILE:                          $STORAGE_PROFILE"
+log_level -i "NODES_DISTRO:                             $NODES_DISTRO"
 log_level -i "TENANT_ID:                                $TENANT_ID"
 log_level -i "TENANT_SUBSCRIPTION_ID:                   $TENANT_SUBSCRIPTION_ID"
 
@@ -374,10 +373,8 @@ dirmngr \
 
 log_level -i "Downloading AKS-Engine binary and cluster definition templates"
 
-mkdir -p $PWD/bin
-
-AZURESTACK_CONFIGURATION=$PWD/bin/azurestack.json
-AZURESTACK_CONFIGURATION_TEMP=$PWD/bin/azurestack.tmp
+AZURESTACK_CONFIGURATION=$PWD/azurestack.json
+AZURESTACK_CONFIGURATION_TEMP=$PWD/azurestack.tmp
 
 download_akse || exit $ERR_AKSE_DOWNLOAD
 
@@ -418,8 +415,10 @@ jq --arg ENDPOINT_PORTAL $ENDPOINT_PORTAL '.properties.customCloudProfile.portal
 jq --arg REGION_NAME $REGION_NAME '.location = $REGION_NAME' | \
 jq --arg MASTER_DNS_PREFIX $MASTER_DNS_PREFIX '.properties.masterProfile.dnsPrefix = $MASTER_DNS_PREFIX' | \
 jq '.properties.agentPoolProfiles[0].count'=$AGENT_COUNT | \
+jq --arg NODES_DISTRO $NODES_DISTRO '.properties.agentPoolProfiles[0].distro = $NODES_DISTRO' | \
 jq --arg AGENT_SIZE $AGENT_SIZE '.properties.agentPoolProfiles[0].vmSize=$AGENT_SIZE' | \
 jq '.properties.masterProfile.count'=$MASTER_COUNT | \
+jq --arg NODES_DISTRO $NODES_DISTRO '.properties.masterProfile.distro = $NODES_DISTRO' | \
 jq --arg MASTER_SIZE $MASTER_SIZE '.properties.masterProfile.vmSize=$MASTER_SIZE' | \
 jq --arg ADMIN_USERNAME $ADMIN_USERNAME '.properties.linuxProfile.adminUsername = $ADMIN_USERNAME' | \
 jq --arg SSH_PUBLICKEY "${SSH_PUBLICKEY}" '.properties.linuxProfile.ssh.publicKeys[0].keyData = $SSH_PUBLICKEY' \
@@ -456,9 +455,10 @@ log_level -i "Done building cluster definition."
 
 log_level -i "Deploying using AKS Engine."
 
-if [ $IDENTITY_SYSTEM == "ADFS" ]; then
+sudo chmod +x ./aks-engine
 
-    ./bin/aks-engine deploy \
+if [ $IDENTITY_SYSTEM == "ADFS" ]; then
+    sudo ./aks-engine deploy \
     -g $RESOURCE_GROUP_NAME \
     --api-model $AZURESTACK_CONFIGURATION \
     --auth-method $AUTH_METHOD \
@@ -468,9 +468,10 @@ if [ $IDENTITY_SYSTEM == "ADFS" ]; then
     --private-key-path $KEY_LOCATION \
     --location $REGION_NAME \
     --identity-system $IDENTITY_SYSTEM_LOWER \
-    --subscription-id $TENANT_SUBSCRIPTION_ID || exit $ERR_AKSE_DEPLOY
+    --subscription-id $TENANT_SUBSCRIPTION_ID \
+    --azure-env AzureStackCloud || exit $ERR_AKSE_DEPLOY
 else
-    ./bin/aks-engine deploy \
+    sudo ./aks-engine deploy \
     -g $RESOURCE_GROUP_NAME \
     --api-model $AZURESTACK_CONFIGURATION \
     --auth-method $AUTH_METHOD \
@@ -479,7 +480,8 @@ else
     --client-id $SPN_CLIENT_ID \
     --client-secret $SPN_CLIENT_SECRET \
     --identity-system $IDENTITY_SYSTEM_LOWER \
-    --subscription-id $TENANT_SUBSCRIPTION_ID || exit $ERR_AKSE_DEPLOY
-fi 
+    --subscription-id $TENANT_SUBSCRIPTION_ID \
+    --azure-env AzureStackCloud || exit $ERR_AKSE_DEPLOY
+fi
 
 log_level -i "Kubernetes cluster deployment complete."
