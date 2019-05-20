@@ -379,7 +379,7 @@
         "defaultValue": null,
         "toolTip": "The service principal client secret.",
         "constraints": {
-          "required": false
+          "required": true
         }
       },
       {
