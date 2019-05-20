@@ -377,41 +377,7 @@
         "type": "Microsoft.Common.TextBox",
         "label": "Service principal client secret",
         "defaultValue": null,
-        "visible": "[equals(steps('KubernetesClusterSettings').identitySystem, 'AzureAD')]",
         "toolTip": "The service principal client secret.",
-        "constraints": {
-          "required": false
-        }
-      },
-      {
-        "name": "servicePrincipalKeyVaultResourceGroup",
-        "type": "Microsoft.Common.TextBox",
-        "label": "Key Vault resource group",
-        "defaultValue": null,
-        "visible": "[equals(steps('KubernetesClusterSettings').identitySystem, 'ADFS')]",
-        "toolTip": "Resource Group where the key vault was created",
-        "constraints": {
-          "required": false
-        }
-      },
-      {
-        "name": "servicePrincipalKeyVaultName",
-        "type": "Microsoft.Common.TextBox",
-        "label": "Key Vault name",
-        "defaultValue": null,
-        "visible": "[equals(steps('KubernetesClusterSettings').identitySystem, 'ADFS')]",
-        "toolTip": "Name of the existing key vault where certificate was stored ",
-        "constraints": {
-          "required": false
-        }
-      },
-      {
-        "name": "servicePrincipalCertificateKeyVaultSecretName",
-        "type": "Microsoft.Common.TextBox",
-        "label": "Key Vault secret",
-        "defaultValue": null,
-        "visible": "[equals(steps('KubernetesClusterSettings').identitySystem, 'ADFS')]",
-        "toolTip": "Name of the existing key vault secret where certificate was stored",
         "constraints": {
           "required": false
         }
@@ -445,9 +411,6 @@
       "servicePrincipalClientId": "[steps('KubernetesClusterSettings').servicePrincipalClientId]",
       "identitySystem": "[steps('KubernetesClusterSettings').identitySystem]",
       "servicePrincipalClientSecret": "[steps('KubernetesClusterSettings').servicePrincipalClientSecret]",
-      "servicePrincipalKeyVaultName": "[steps('KubernetesClusterSettings').servicePrincipalKeyVaultName]",
-      "servicePrincipalKeyVaultResourceGroup": "[steps('KubernetesClusterSettings').servicePrincipalKeyVaultResourceGroup]",
-      "servicePrincipalCertificateKeyVaultSecretName": "[steps('KubernetesClusterSettings').servicePrincipalCertificateKeyVaultSecretName]",
       "kubernetesAzureCloudProviderVersion": "[steps('KubernetesClusterSettings').kubernetesAzureCloudProviderVersion]"
     }
   }

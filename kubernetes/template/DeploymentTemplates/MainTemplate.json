@@ -69,27 +69,6 @@
       },
       "type": "securestring"
     },
-    "servicePrincipalKeyVaultName": {
-      "defaultValue": "servicePrincipalKeyVaultName",
-      "metadata": {
-        "description": "the service Principal Certificate KeyVault Name"
-      },
-      "type": "string"
-    },
-    "servicePrincipalKeyVaultResourceGroup": {
-      "defaultValue": "servicePrincipalKeyVaultResourceGroup",
-      "metadata": {
-        "description": "the service Principal Certificate KeyVault Resource"
-      },
-      "type": "string"
-    },
-    "servicePrincipalCertificateKeyVaultSecretName": {
-      "defaultValue": "servicePrincipalCertificateKeyVaultSecretName",
-      "metadata": {
-        "description": "The service Principal Certificate KeyVault SecretName"
-      },
-      "type": "string"
-    },
     "identitySystem": {
       "defaultValue": "AzureAD",
       "allowedValues": [
@@ -142,16 +121,6 @@
     "networkSecurityGroupName": "[tolower(concat('vmd-nsg',uniquestring(resourceGroup().id)))]",
     "sshKeyPath": "[concat('/home/',parameters('linuxAdminUsername'),'/.ssh/authorized_keys')]",
     "tenantSubscriptionId": "[subscription().subscriptionId]",
-    "servicePrincipalCertificateKeyVaultId":"[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('servicePrincipalKeyVaultResourceGroup'),'/providers/Microsoft.KeyVault/vaults/',parameters('servicePrincipalKeyVaultName'))]",
-    "servicePrincipalClientSecretCert": {
-      "reference": {
-        "keyVault": {
-          "id": "[variables('servicePrincipalCertificateKeyVaultId')]"
-        },
-        "secretName": "[parameters('servicePrincipalCertificateKeyVaultSecretName')]"
-      }
-    },
-    "servicePrincipalClientSecretJSON":"[json(concat('{\"value\": \"', parameters('servicePrincipalClientSecret'), '\"}'))]",
     "scriptName": "script",
     "singleQuote": "'",
     "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"')]"
@@ -195,12 +164,8 @@
           "servicePrincipalClientId": {
             "value": "[parameters('servicePrincipalClientId')]"
           },
-          "servicePrincipalClientSecret": "[if(equals(parameters('identitySystem'), 'AzureAD'), variables('servicePrincipalClientSecretJSON') , variables('servicePrincipalClientSecretCert'))]",
-          "servicePrincipalCertificateKeyVaultId": {
-            "value": "[variables('servicePrincipalCertificateKeyVaultId')]"
-          },
-          "servicePrincipalCertificateKeyVaultSecretName": {
-            "value": "[parameters('servicePrincipalCertificateKeyVaultSecretName')]"
+          "servicePrincipalClientSecret": {
+            "value": "[parameters('servicePrincipalClientSecret')]"
           },
           "kubernetesAzureCloudProviderVersion": {
             "value": "[parameters('kubernetesAzureCloudProviderVersion')]"

@@ -105,37 +105,6 @@ validate_and_restore_cluster_definition()
 
 ###
 #   <summary>
-#      Creates PEM & PFX files out of the SPN secret.
-#   </summary>
-#   <param name="1">Service principle secret.</param>
-#   <param name="2">Certificate PFX file name.</param>
-#   <param name="3">Certificate PEM file name.</param>
-#   <param name="4">Certificate CRT file name.</param>
-#   <param name="5">Certificate KEY file name.</param>
-#   <returns>None</returns>
-#   <exception>None</exception>
-#   <remarks>Called within same scripts.</remarks>
-###
-convert_secret_to_cert()
-{
-    log_level -i "Generating PFX and PEM files."
-    
-    echo $1 | base64 --decode > cert.json
-    
-    cat cert.json | jq '.data' | tr -d \" | base64 --decode > $2
-    PASSWORD=$(cat cert.json | jq '.password' | tr -d \")
-    
-    openssl pkcs12 -in $2 -nodes -passin pass:$PASSWORD -out $3
-    
-    log_level -i "Converting to certificate"
-    openssl pkcs12 -in $2 -clcerts -nokeys -out $4 -passin pass:$PASSWORD
-
-    log_level -i "Converting into key"
-    openssl pkcs12 -in $2 -nocerts -nodes  -out $5 -passin pass:$PASSWORD
-}
-
-###
-#   <summary>
 #       Copies Azure Stack root certificate to the appropriate store.
 #   </summary>
 #   <returns>None</returns>
@@ -162,25 +131,6 @@ ensure_certificates()
     # Required by Azure CLI
     export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
     echo "REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt" | tee -a /etc/environment > /dev/null
-    
-    if [ $IDENTITY_SYSTEM == "ADFS" ]; then
-        # Trim "adfs" suffix
-        ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT=`echo $METADATA | jq '.authentication.loginEndpoint' | xargs | sed -e 's/adfs*$//' | xargs`
-        log_level -i "ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT: $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT"
-        
-        CERTIFICATE_PFX_LOCATION="spnauth.pfx"
-        CERTIFICATE_PEM_LOCATION="spnauth.pem"
-        KEY_LOCATION="spnauth.key"
-        CERTIFICATE_LOCATION="spnauth.crt"  
-        
-        convert_secret_to_cert $SPN_CLIENT_SECRET $CERTIFICATE_PFX_LOCATION $CERTIFICATE_PEM_LOCATION $CERTIFICATE_LOCATION $KEY_LOCATION
-        
-        log_level -i "PFX path: '$CERTIFICATE_PFX_LOCATION'"
-        log_level -i "PEM path: '$CERTIFICATE_PEM_LOCATION'"
-        log_level -i "CRT path: '$CERTIFICATE_LOCATION'"
-        log_level -i "KEY path: '$KEY_LOCATION'"
-        
-    fi
 }
 
 # Clone msazurestackworkloads' AKSe fork and move relevant files to the working directory
@@ -283,7 +233,7 @@ apt_get_install()
 #####################################################################################
 # start
 
-log_level -i "Starting Kubernetes cluster deployment: v0.4.2"
+log_level -i "Starting Kubernetes cluster deployment: v0.4.3"
 log_level -i "Running script as:  $(whoami)"
 log_level -i "System information: $(uname -a)"
 
@@ -306,15 +256,8 @@ log_level -i "SSH_PUBLICKEY:                            ----"
 log_level -i "STORAGE_PROFILE:                          $STORAGE_PROFILE"
 log_level -i "TENANT_ID:                                $TENANT_ID"
 log_level -i "TENANT_SUBSCRIPTION_ID:                   $TENANT_SUBSCRIPTION_ID"
-
-
-if [ $IDENTITY_SYSTEM == "ADFS" ]; then
-    log_level -i "SPN_CLIENT_SECRET_KEYVAULT_ID:            $SPN_CLIENT_SECRET_KEYVAULT_ID"
-    log_level -i "SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME:   $SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME"
-else
-    log_level -i "SPN_CLIENT_ID:                            ----"
-    log_level -i "SPN_CLIENT_SECRET:                        ----"
-fi
+log_level -i "SPN_CLIENT_ID:                            ----"
+log_level -i "SPN_CLIENT_SECRET:                        ----"
 
 log_level -i "------------------------------------------------------------------------"
 log_level -i "Constants"
@@ -395,6 +338,9 @@ ENDPOINT_PORTAL=`echo $METADATA | jq '.portalEndpoint' | xargs`
 log_level -i "ENDPOINT_PORTAL: $ENDPOINT_PORTAL"
 
 if [ $IDENTITY_SYSTEM == "ADFS" ]; then
+    log_level -i "Setting ADFS specific cluster definition properties."
+    IDENTITY_SYSTEM_LOWER="adfs"
+    
     # Trim "adfs" suffix
     ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT=`echo $METADATA | jq '.authentication.loginEndpoint' | xargs | sed -e 's/adfs*$//' | xargs`
 else
@@ -417,30 +363,11 @@ jq --arg AGENT_SIZE $AGENT_SIZE '.properties.agentPoolProfiles[0].vmSize=$AGENT_
 jq '.properties.masterProfile.count'=$MASTER_COUNT | \
 jq --arg MASTER_SIZE $MASTER_SIZE '.properties.masterProfile.vmSize=$MASTER_SIZE' | \
 jq --arg ADMIN_USERNAME $ADMIN_USERNAME '.properties.linuxProfile.adminUsername = $ADMIN_USERNAME' | \
-jq --arg SSH_PUBLICKEY "${SSH_PUBLICKEY}" '.properties.linuxProfile.ssh.publicKeys[0].keyData = $SSH_PUBLICKEY' \
+jq --arg SSH_PUBLICKEY "${SSH_PUBLICKEY}" '.properties.linuxProfile.ssh.publicKeys[0].keyData = $SSH_PUBLICKEY' | \
+jq --arg SPN_CLIENT_ID $SPN_CLIENT_ID '.properties.servicePrincipalProfile.clientId = $SPN_CLIENT_ID' | \
+jq --arg SPN_CLIENT_SECRET $SPN_CLIENT_SECRET '.properties.servicePrincipalProfile.secret = $SPN_CLIENT_SECRET' | \
+jq --arg IDENTITY_SYSTEM_LOWER $IDENTITY_SYSTEM_LOWER '.properties.customCloudProfile.identitySystem=$IDENTITY_SYSTEM_LOWER' \
 > $AZURESTACK_CONFIGURATION_TEMP
-
-validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
-
-if [ $IDENTITY_SYSTEM == "ADFS" ]; then
-    log_level -i "Setting ADFS specific cluster definition properties."
-    ADFS="adfs"
-    IDENTITY_SYSTEM_LOWER=$ADFS
-    AUTH_METHOD="client_certificate"
-    cat $AZURESTACK_CONFIGURATION | \
-    jq --arg ADFS $ADFS '.properties.customCloudProfile.identitySystem=$ADFS' | \
-    jq --arg authenticationMethod "client_certificate" '.properties.customCloudProfile.authenticationMethod=$authenticationMethod' | \
-    jq --arg SPN_CLIENT_ID $SPN_CLIENT_ID '.properties.servicePrincipalProfile.clientId = $SPN_CLIENT_ID' | \
-    jq --arg SPN_CLIENT_SECRET_KEYVAULT_ID $SPN_CLIENT_SECRET_KEYVAULT_ID '.properties.servicePrincipalProfile.keyvaultSecretRef.vaultID = $SPN_CLIENT_SECRET_KEYVAULT_ID' | \
-    jq --arg SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME $SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME '.properties.servicePrincipalProfile.keyvaultSecretRef.secretName = $SPN_CLIENT_SECRET_KEYVAULT_SECRET_NAME' \
-    > $AZURESTACK_CONFIGURATION_TEMP
-else
-    log_level -i "Setting AAD specific cluster definition properties."
-    cat $AZURESTACK_CONFIGURATION | \
-    jq --arg SPN_CLIENT_ID $SPN_CLIENT_ID '.properties.servicePrincipalProfile.clientId = $SPN_CLIENT_ID' | \
-    jq --arg SPN_CLIENT_SECRET $SPN_CLIENT_SECRET '.properties.servicePrincipalProfile.secret = $SPN_CLIENT_SECRET' \
-    > $AZURESTACK_CONFIGURATION_TEMP
-fi
 
 validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
 
@@ -451,30 +378,15 @@ log_level -i "Done building cluster definition."
 
 log_level -i "Deploying using AKS Engine."
 
-if [ $IDENTITY_SYSTEM == "ADFS" ]; then
-
-    ./bin/aks-engine deploy \
-    -g $RESOURCE_GROUP_NAME \
-    --api-model $AZURESTACK_CONFIGURATION \
-    --auth-method $AUTH_METHOD \
-    --azure-env $ENVIRONMENT_NAME \
-    --certificate-path $CERTIFICATE_LOCATION \
-    --client-id $SPN_CLIENT_ID \
-    --private-key-path $KEY_LOCATION \
-    --location $REGION_NAME \
-    --identity-system $IDENTITY_SYSTEM_LOWER \
-    --subscription-id $TENANT_SUBSCRIPTION_ID || exit $ERR_AKSE_DEPLOY
-else
-    ./bin/aks-engine deploy \
-    -g $RESOURCE_GROUP_NAME \
-    --api-model $AZURESTACK_CONFIGURATION \
-    --auth-method $AUTH_METHOD \
-    --azure-env $ENVIRONMENT_NAME \
-    --location $REGION_NAME \
-    --client-id $SPN_CLIENT_ID \
-    --client-secret $SPN_CLIENT_SECRET \
-    --identity-system $IDENTITY_SYSTEM_LOWER \
-    --subscription-id $TENANT_SUBSCRIPTION_ID || exit $ERR_AKSE_DEPLOY
-fi 
+./bin/aks-engine deploy \
+-g $RESOURCE_GROUP_NAME \
+--api-model $AZURESTACK_CONFIGURATION \
+--auth-method $AUTH_METHOD \
+--azure-env $ENVIRONMENT_NAME \
+--location $REGION_NAME \
+--client-id $SPN_CLIENT_ID \
+--client-secret $SPN_CLIENT_SECRET \
+--identity-system $IDENTITY_SYSTEM_LOWER \
+--subscription-id $TENANT_SUBSCRIPTION_ID || exit $ERR_AKSE_DEPLOY
 
 log_level -i "Kubernetes cluster deployment complete."
