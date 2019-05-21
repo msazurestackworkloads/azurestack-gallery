@@ -3,6 +3,7 @@
 ERR_APT_INSTALL_TIMEOUT=9 # Timeout installing required apt packages
 ERR_AKSE_DOWNLOAD=10 # Failure downloading AKS-Engine binaries
 ERR_AKSE_DEPLOY=12 # Failure calling AKS-Engine's deploy operation
+ERR_TEMPLATE_DOWNLOAD=13 # Failure downloading AKS-Engine template
 ERR_CACERT_INSTALL=20 # Failure moving CA certificate
 ERR_METADATA_ENDPOINT=30 # Failure calling the metadata endpoint
 ERR_API_MODEL=40 # Failure building API model using user input
@@ -59,33 +60,6 @@ log_level()
 
 ###
 #   <summary>
-#       Retry given command by given number of times in case we have hit any failure.
-#   </summary>
-#   <param name="1">Number of retries</param>
-#   <param name="2">Wait time between attempts</param>
-#   <param name="3">Command timeout</param>
-#   <param name="...">Command to execute.</param>
-###
-retrycmd_if_failure()
-{
-    retries=$1; wait_sleep=$2; timeout=$3;
-    shift && shift && shift;
-    
-    for i in $(seq 1 $retries); do
-        timeout $timeout ${@}
-        [ $? -eq 0  ] && break || \
-        if [ $i -eq $retries ]; then
-            return 1
-        else
-            sleep $wait_sleep
-        fi
-    done
-    
-    log_level -i "Command executed $i time/s.";
-}
-
-###
-#   <summary>
 #      Validate if file exist and it has non zero bytes. If validation passes moves file to new location.
 #   </summary>
 #   <param name="1">Source File Name.</param>
@@ -133,15 +107,20 @@ ensure_certificates()
     echo "REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt" | tee -a /etc/environment > /dev/null
 }
 
-# Clone msazurestackworkloads' AKSe fork and move relevant files to the working directory
+# Download msazurestackworkloads' AKSe fork and move relevant files to the working directory
 download_akse()
 {
     # Todo update release branch details: msazurestackworkloads, azsmaster
-    retrycmd_if_failure 5 10 60 git clone https://github.com/msazurestackworkloads/aks-engine -b patch-release-v0.34.2-azs-1904-17 || exit $ERR_AKSE_DOWNLOAD
+    AKSE_REPO="msazurestackworkloads/aks-engine"
+    AKSE_BRANCH="patch-release-v0.34.2-azs-1904-17"
+
+    AKSE_ZIP_NAME="aks-engine-patch-release-v0.34.2-azs-1904-17-linux-amd64"
+    AKSE_ZIP_URL="https://raw.githubusercontent.com/$AKSE_REPO/$AKSE_BRANCH/examples/azurestack/$AKSE_ZIP_NAME.gz"
+    curl --retry 5 --retry-delay 10 --max-time 60 -s -f -O $AKSE_ZIP_URL || exit $ERR_AKSE_DOWNLOAD
     
     mkdir -p ./bin
-    tar -xf aks-engine/examples/azurestack/aks-engine-patch-release-v0.34.2-azs-1904-17-linux-amd64.gz
-    cp ./aks-engine-patch-release-v0.34.2-azs-1904-17-linux-amd64/aks-engine ./bin
+    tar -xf $AKSE_ZIP_NAME.gz
+    cp ./$AKSE_ZIP_NAME/aks-engine ./bin
     
     AKSE_LOCATION=./bin/aks-engine
     if [ ! -f $AKSE_LOCATION ]; then
@@ -150,7 +129,11 @@ download_akse()
         exit 1
     fi
     
-    DEFINITION_TEMPLATE=./aks-engine/examples/azurestack/azurestack-kubernetes$K8S_AZURE_CLOUDPROVIDER_VERSION.json   
+    DEFINITION_TEMPLATE_NAME=azurestack-kubernetes$K8S_AZURE_CLOUDPROVIDER_VERSION.json   
+    TEMPLATE_URL="https://raw.githubusercontent.com/$AKSE_REPO/$AKSE_BRANCH/examples/azurestack/$DEFINITION_TEMPLATE_NAME"
+    curl --retry 5 --retry-delay 10 --max-time 60 -s -f -O $TEMPLATE_URL || exit $ERR_TEMPLATE_DOWNLOAD
+
+    DEFINITION_TEMPLATE="./$DEFINITION_TEMPLATE_NAME"
     if [ ! -f $DEFINITION_TEMPLATE ]; then
         log_level -e "API model template for Kubernetes $K8S_AZURE_CLOUDPROVIDER_VERSION not found in expected location"
         log_level -e "Expected location: $DEFINITION_TEMPLATE"
