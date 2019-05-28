@@ -112,9 +112,9 @@ download_akse()
 {
     # Todo update release branch details: msazurestackworkloads, azsmaster
     AKSE_REPO="msazurestackworkloads/aks-engine"
-    AKSE_BRANCH="patch-release-v0.34.2-azs-1904-17"
+    AKSE_BRANCH="patch-release-v0.36.2-azs"
 
-    AKSE_ZIP_NAME="aks-engine-patch-release-v0.34.2-azs-1904-17-linux-amd64"
+    AKSE_ZIP_NAME="aks-engine-v0.36.2-linux-amd64"
     AKSE_ZIP_URL="https://raw.githubusercontent.com/$AKSE_REPO/$AKSE_BRANCH/examples/azurestack/$AKSE_ZIP_NAME.gz"
     curl --retry 5 --retry-delay 10 --max-time 60 -s -f -O $AKSE_ZIP_URL || exit $ERR_AKSE_DOWNLOAD
     
