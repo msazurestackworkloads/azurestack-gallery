@@ -110,16 +110,14 @@ ensure_certificates()
 # Download msazurestackworkloads' AKSe fork and move relevant files to the working directory
 download_akse()
 {
-    # Todo update release branch details: msazurestackworkloads, azsmaster
-    AKSE_REPO="msazurestackworkloads/aks-engine"
-    AKSE_BRANCH="patch-release-v0.36.2-azs"
+    RELEASE="v0.36.2"
 
-    AKSE_ZIP_NAME="aks-engine-v0.36.2-linux-amd64"
-    AKSE_ZIP_URL="https://raw.githubusercontent.com/$AKSE_REPO/$AKSE_BRANCH/examples/azurestack/$AKSE_ZIP_NAME.gz"
-    curl --retry 5 --retry-delay 10 --max-time 60 -s -f -O $AKSE_ZIP_URL || exit $ERR_AKSE_DOWNLOAD
+    AKSE_ZIP_NAME="aks-engine-$RELEASE-linux-amd64"
+    AKSE_ZIP_URL="https://github.com/Azure/aks-engine/releases/download/$RELEASE/$AKSE_ZIP_NAME.tar.gz"
+    curl --retry 5 --retry-delay 10 --max-time 60 -L -s -f -O $AKSE_ZIP_URL || exit $ERR_AKSE_DOWNLOAD
     
     mkdir -p ./bin
-    tar -xf $AKSE_ZIP_NAME.gz
+    tar -xf $AKSE_ZIP_NAME.tar.gz
     cp ./$AKSE_ZIP_NAME/aks-engine ./bin
     
     AKSE_LOCATION=./bin/aks-engine
@@ -129,19 +127,19 @@ download_akse()
         exit 1
     fi
     
-    DEFINITION_TEMPLATE_NAME=azurestack-kubernetes$K8S_AZURE_CLOUDPROVIDER_VERSION.json   
-    TEMPLATE_URL="https://raw.githubusercontent.com/$AKSE_REPO/$AKSE_BRANCH/examples/azurestack/$DEFINITION_TEMPLATE_NAME"
+    DEFINITION_TEMPLATE_NAME="kubernetes-azurestack-azure-ad.json"
+    TEMPLATE_URL="https://raw.githubusercontent.com/Azure/aks-engine/patch-release-$RELEASE/examples/azurestack/$DEFINITION_TEMPLATE_NAME"
     curl --retry 5 --retry-delay 10 --max-time 60 -s -f -O $TEMPLATE_URL || exit $ERR_TEMPLATE_DOWNLOAD
 
     DEFINITION_TEMPLATE="./$DEFINITION_TEMPLATE_NAME"
     if [ ! -f $DEFINITION_TEMPLATE ]; then
-        log_level -e "API model template for Kubernetes $K8S_AZURE_CLOUDPROVIDER_VERSION not found in expected location"
+        log_level -e "API model template for Kubernetes not found in expected location"
         log_level -e "Expected location: $DEFINITION_TEMPLATE"
         exit 1
     fi
     
     if [ ! -s $DEFINITION_TEMPLATE ]; then
-        log_level -e "Downloaded API model template for Kubernetes $K8S_AZURE_CLOUDPROVIDER_VERSION is an empty file."
+        log_level -e "Downloaded API model template for Kubernetes is an empty file."
         log_level -e "Template location: $DEFINITION_TEMPLATE"
         exit 1
     fi
@@ -249,6 +247,7 @@ log_level -i "------------------------------------------------------------------
 ENVIRONMENT_NAME=AzureStackCloud
 AUTH_METHOD="client_secret"
 IDENTITY_SYSTEM_LOWER="azure_ad"
+K8S_IMAGE_BASE="mcr.microsoft.com/k8s/azurestack/core/hyperkube-amd64"
 
 log_level -i "AZURE_ENV: $AZURE_ENV"
 log_level -i "ENVIRONMENT_NAME: $ENVIRONMENT_NAME"
@@ -338,7 +337,7 @@ log_level -i "ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT: $ENDPOINT_ACTIVE_DIRECTORY_END
 log_level -i "Setting general cluster definition properties."
 
 cat $AZURESTACK_CONFIGURATION | \
-jq --arg ENDPOINT_PORTAL $ENDPOINT_PORTAL '.properties.customCloudProfile.portalUrl = $ENDPOINT_PORTAL'| \
+jq --arg ENDPOINT_PORTAL $ENDPOINT_PORTAL '.properties.customCloudProfile.portalURL = $ENDPOINT_PORTAL'| \
 jq --arg REGION_NAME $REGION_NAME '.location = $REGION_NAME' | \
 jq --arg MASTER_DNS_PREFIX $MASTER_DNS_PREFIX '.properties.masterProfile.dnsPrefix = $MASTER_DNS_PREFIX' | \
 jq '.properties.agentPoolProfiles[0].count'=$AGENT_COUNT | \
@@ -347,9 +346,12 @@ jq '.properties.masterProfile.count'=$MASTER_COUNT | \
 jq --arg MASTER_SIZE $MASTER_SIZE '.properties.masterProfile.vmSize=$MASTER_SIZE' | \
 jq --arg ADMIN_USERNAME $ADMIN_USERNAME '.properties.linuxProfile.adminUsername = $ADMIN_USERNAME' | \
 jq --arg SSH_PUBLICKEY "${SSH_PUBLICKEY}" '.properties.linuxProfile.ssh.publicKeys[0].keyData = $SSH_PUBLICKEY' | \
+jq --arg AUTH_METHOD $AUTH_METHOD '.properties.customCloudProfile.authenticationMethod=$AUTH_METHOD' | \
 jq --arg SPN_CLIENT_ID $SPN_CLIENT_ID '.properties.servicePrincipalProfile.clientId = $SPN_CLIENT_ID' | \
 jq --arg SPN_CLIENT_SECRET $SPN_CLIENT_SECRET '.properties.servicePrincipalProfile.secret = $SPN_CLIENT_SECRET' | \
-jq --arg IDENTITY_SYSTEM_LOWER $IDENTITY_SYSTEM_LOWER '.properties.customCloudProfile.identitySystem=$IDENTITY_SYSTEM_LOWER' \
+jq --arg IDENTITY_SYSTEM_LOWER $IDENTITY_SYSTEM_LOWER '.properties.customCloudProfile.identitySystem=$IDENTITY_SYSTEM_LOWER' | \
+jq --arg K8S_VERSION $K8S_AZURE_CLOUDPROVIDER_VERSION '.properties.orchestratorProfile.orchestratorRelease=$K8S_VERSION' | \
+jq --arg K8S_IMAGE_BASE $K8S_IMAGE_BASE '.properties.orchestratorProfile.kubernetesConfig.kubernetesImageBase=$K8S_IMAGE_BASE' \
 > $AZURESTACK_CONFIGURATION_TEMP
 
 validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
