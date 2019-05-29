@@ -127,8 +127,10 @@ download_akse()
         exit 1
     fi
     
-    DEFINITION_TEMPLATE_NAME="kubernetes-azurestack-azure-ad.json"
-    TEMPLATE_URL="https://raw.githubusercontent.com/Azure/aks-engine/patch-release-$RELEASE/examples/azurestack/$DEFINITION_TEMPLATE_NAME"
+    GALLERY_REPO="msazurestackworkloads/azurestack-gallery"
+    GALLERY_BRANCH="master"
+    DEFINITION_TEMPLATE_NAME="clusterDefinition.json"
+    TEMPLATE_URL="https://raw.githubusercontent.com/$GALLERY_REPO/$GALLERY_BRANCH/kubernetes/template/DeploymentTemplates/$DEFINITION_TEMPLATE_NAME"
     curl --retry 5 --retry-delay 10 --max-time 60 -s -f -O $TEMPLATE_URL || exit $ERR_TEMPLATE_DOWNLOAD
 
     DEFINITION_TEMPLATE="./$DEFINITION_TEMPLATE_NAME"
