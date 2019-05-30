@@ -211,7 +211,7 @@ apt_get_install()
 #####################################################################################
 # start
 
-log_level -i "Starting Kubernetes cluster deployment: v0.4.3"
+log_level -i "Starting Kubernetes cluster deployment: v0.5.0"
 log_level -i "Running script as:  $(whoami)"
 log_level -i "System information: $(uname -a)"
 
@@ -221,8 +221,14 @@ log_level -i "------------------------------------------------------------------
 log_level -i "ADMIN_USERNAME:                           $ADMIN_USERNAME"
 log_level -i "AGENT_COUNT:                              $AGENT_COUNT"
 log_level -i "AGENT_SIZE:                               $AGENT_SIZE"
+log_level -i "AKSE_BASE_URL                             $AKSE_BASE_URL"
+log_level -i "AKSE_RELEASE_VERSION                      $AKSE_RELEASE_VERSION"
+log_level -i "DEFINITION_TEMPLATE_NAME:                 $DEFINITION_TEMPLATE_NAME"
+log_level -i "GALLERY_BRANCH:                           $GALLERY_BRANCH"
+log_level -i "GALLERY_REPO:                             $GALLERY_REPO"
 log_level -i "IDENTITY_SYSTEM:                          $IDENTITY_SYSTEM"
-log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:          $K8S_AZURE_CLOUDPROVIDER_VERSION" 
+log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:          $K8S_AZURE_CLOUDPROVIDER_VERSION"
+log_level -i "K8S_IMAGE_BASE                            $K8S_IMAGE_BASE"
 log_level -i "MASTER_COUNT:                             $MASTER_COUNT"
 log_level -i "MASTER_DNS_PREFIX:                        $MASTER_DNS_PREFIX"
 log_level -i "MASTER_SIZE:                              $MASTER_SIZE"

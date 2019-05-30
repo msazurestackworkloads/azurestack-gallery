@@ -452,6 +452,17 @@
           "required": true
         },
         "visible": false
+      },
+      {
+        "name": "kubernetesImageBase",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Kubernetes Image Base",
+        "defaultValue": "mcr.microsoft.com/k8s/azurestack/core/",
+        "toolTip": "The base for Kubernetes images",
+        "constraints": {
+          "required": true
+        }, 
+        "visible": false
       }]
     }],
     "outputs": {
@@ -471,7 +482,8 @@
       "aksEngineReleaseVersion": "[steps('KubernetesClusterSettings').aksEngineReleaseVersion]",
       "galleryRepository": "[steps('KubernetesClusterSettings').galleryRepository]",
       "galleryBranch": "[steps('KubernetesClusterSettings').galleryBranch]",
-      "clusterDefinitionFileName": "[steps('KubernetesClusterSettings').clusterDefinitionFileName]"
+      "clusterDefinitionFileName": "[steps('KubernetesClusterSettings').clusterDefinitionFileName]",
+      "kubernetesImageBase": "[steps('KubernetesClusterSettings').kubernetesImageBase]"
     }
   }
 }
