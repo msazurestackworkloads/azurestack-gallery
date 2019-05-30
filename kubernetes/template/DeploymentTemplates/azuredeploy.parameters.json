@@ -37,6 +37,18 @@
     },
     "identitySystem": {
       "value": ""
+    },
+    "aksEngineReleaseVersion": {
+      "value": ""
+    },
+    "galleryRepository": {
+      "value": ""
+    },
+    "galleryBranch": {
+      "value": ""
+    },
+    "clusterDefinitionFileName": {
+      "value": ""
     }
   }
 }

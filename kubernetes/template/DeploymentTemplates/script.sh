@@ -110,10 +110,8 @@ ensure_certificates()
 # Download msazurestackworkloads' AKSe fork and move relevant files to the working directory
 download_akse()
 {
-    RELEASE="v0.36.2"
-
-    AKSE_ZIP_NAME="aks-engine-$RELEASE-linux-amd64"
-    AKSE_ZIP_URL="https://github.com/Azure/aks-engine/releases/download/$RELEASE/$AKSE_ZIP_NAME.tar.gz"
+    AKSE_ZIP_NAME="aks-engine-$AKSE_RELEASE_VERSION-linux-amd64"
+    AKSE_ZIP_URL="$AKSE_BASE_URL/$AKSE_RELEASE_VERSION/$AKSE_ZIP_NAME.tar.gz"
     curl --retry 5 --retry-delay 10 --max-time 60 -L -s -f -O $AKSE_ZIP_URL || exit $ERR_AKSE_DOWNLOAD
     
     mkdir -p ./bin
@@ -127,9 +125,6 @@ download_akse()
         exit 1
     fi
     
-    GALLERY_REPO="msazurestackworkloads/azurestack-gallery"
-    GALLERY_BRANCH="master"
-    DEFINITION_TEMPLATE_NAME="clusterDefinition.json"
     TEMPLATE_URL="https://raw.githubusercontent.com/$GALLERY_REPO/$GALLERY_BRANCH/kubernetes/template/DeploymentTemplates/$DEFINITION_TEMPLATE_NAME"
     curl --retry 5 --retry-delay 10 --max-time 60 -s -f -O $TEMPLATE_URL || exit $ERR_TEMPLATE_DOWNLOAD
 

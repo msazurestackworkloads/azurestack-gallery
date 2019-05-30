@@ -93,6 +93,41 @@
         "description": "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
       },
       "defaultValue": "[deployment().properties.templateLink.uri]"
+    },
+    "aksEngineBaseURL": {
+      "type": "string",
+      "defaultValue": "https://github.com/Azure/aks-engine/releases/download",
+      "metadata": {
+        "description": "The beginning of the URL for downloading the AKS Engine binary"
+      }
+    },
+    "aksEngineReleaseVersion": {
+      "type": "string",
+      "defaultValue": "v0.36.2",
+      "metadata": {
+        "description": "The version of AKS Engine to download"
+      }
+    },
+    "galleryRepository": {
+      "type": "string",
+      "defaultValue": "msazurestackworkloads/azurestack-gallery",
+      "metadata": {
+        "description": "Marketplace item repository"
+      }
+    },
+    "galleryBranch": {
+      "type": "string",
+      "defaultValue": "master",
+      "metadata": {
+        "description": "Marketplace item branch"
+      }
+    },
+    "clusterDefinitionFileName": {
+      "type": "string",
+      "defaultValue": "clusterDefinition.json",
+      "metadata": {
+        "description": "The name of the file containing the cluster definition"
+      }
     }
   },
   "variables": {
@@ -172,6 +207,21 @@
           },
           "identitySystem": {
             "value": "[parameters('identitySystem')]"
+          },
+          "aksEngineBaseURL": {
+            "value": "[parameters('aksEngineBaseURL')]"
+          },
+          "aksEngineReleaseVersion": {
+            "value": "[parameters('aksEngineReleaseVersion')]"
+          },
+          "galleryRepository": {
+            "value": "[parameters('galleryRepository')]"
+          },
+          "galleryBranch": {
+            "value": "[parameters('galleryBranch')]"
+          },
+          "clusterDefinitionFileName": {
+            "value": "[parameters('clusterDefinitionFileName')]"
           }
         }
       }

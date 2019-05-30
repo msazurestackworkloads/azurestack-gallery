@@ -397,6 +397,61 @@
           ]
         },
         "visible": true
+      },
+      {
+        "name": "aksEngineBaseURL",
+        "type": "Microsoft.Common.TextBox",
+        "label": "AKS Engine URL base",
+        "defaultValue": "https://github.com/Azure/aks-engine/releases/download",
+        "toolTip": "The beginning of the URL for downloading the AKS Engine binary",
+        "constraints": {
+          "required": true
+        },
+        "visible": false
+      },
+      {
+        "name": "aksEngineReleaseVersion",
+        "type": "Microsoft.Common.TextBox",
+        "label": "AKS Engine release version",
+        "defaultValue": "v0.36.2",
+        "toolTip": "The version of AKS Engine to download",
+        "constraints": {
+          "required": true
+        },
+        "visible": false
+      },
+      {
+        "name": "galleryRepository",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Gallery repository",
+        "defaultValue": "msazurestackworkloads/azurestack-gallery",
+        "toolTip": "The name of the repository for the Marketplace Item",
+        "constraints": {
+          "required": true
+        },
+        "visible": false
+      },
+      {
+        "name": "galleryBranch",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Gallery branch",
+        "defaultValue": "master",
+        "toolTip": "The name of the branch of the Gallery repository",
+        "constraints": {
+          "required": true
+        },
+        "visible": false
+      },
+      {
+        "name": "clusterDefinitionFileName",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Cluster definition file name",
+        "defaultValue": "clusterDefinition.json",
+        "toolTip": "The name of the file containing the cluster definition",
+        "constraints": {
+          "required": true
+        },
+        "visible": false
       }]
     }],
     "outputs": {
@@ -411,7 +466,12 @@
       "servicePrincipalClientId": "[steps('KubernetesClusterSettings').servicePrincipalClientId]",
       "identitySystem": "[steps('KubernetesClusterSettings').identitySystem]",
       "servicePrincipalClientSecret": "[steps('KubernetesClusterSettings').servicePrincipalClientSecret]",
-      "kubernetesAzureCloudProviderVersion": "[steps('KubernetesClusterSettings').kubernetesAzureCloudProviderVersion]"
+      "kubernetesAzureCloudProviderVersion": "[steps('KubernetesClusterSettings').kubernetesAzureCloudProviderVersion]",
+      "aksEngineBaseURL": "[steps('KubernetesClusterSettings').aksEngineBaseURL]",
+      "aksEngineReleaseVersion": "[steps('KubernetesClusterSettings').aksEngineReleaseVersion]",
+      "galleryRepository": "[steps('KubernetesClusterSettings').galleryRepository]",
+      "galleryBranch": "[steps('KubernetesClusterSettings').galleryBranch]",
+      "clusterDefinitionFileName": "[steps('KubernetesClusterSettings').clusterDefinitionFileName]"
     }
   }
 }
