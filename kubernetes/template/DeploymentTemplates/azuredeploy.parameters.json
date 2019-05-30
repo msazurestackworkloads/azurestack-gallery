@@ -35,15 +35,6 @@
     "kubernetesAzureCloudProviderVersion": {
       "value": ""
     },
-    "servicePrincipalKeyVaultResourceGroup": {
-      "value": ""
-    },
-    "servicePrincipalKeyVaultName": {
-      "value": ""
-    },
-    "servicePrincipalCertificateKeyVaultSecretName": {
-      "value": ""
-    },
     "identitySystem": {
       "value": ""
     }

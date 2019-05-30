@@ -249,7 +249,7 @@ log_level -i "------------------------------------------------------------------
 ENVIRONMENT_NAME=AzureStackCloud
 AUTH_METHOD="client_secret"
 IDENTITY_SYSTEM_LOWER="azure_ad"
-K8S_IMAGE_BASE="mcr.microsoft.com/k8s/azurestack/core/hyperkube-amd64"
+K8S_IMAGE_BASE="mcr.microsoft.com/k8s/azurestack/core/"
 
 log_level -i "AZURE_ENV: $AZURE_ENV"
 log_level -i "ENVIRONMENT_NAME: $ENVIRONMENT_NAME"
