@@ -35,16 +35,25 @@
     "kubernetesAzureCloudProviderVersion": {
       "value": ""
     },
-    "servicePrincipalKeyVaultResourceGroup": {
-      "value": ""
-    },
-    "servicePrincipalKeyVaultName": {
-      "value": ""
-    },
-    "servicePrincipalCertificateKeyVaultSecretName": {
-      "value": ""
-    },
     "identitySystem": {
+      "value": ""
+    },
+    "aksEngineBaseURL": {
+      "value": ""
+    },
+    "aksEngineReleaseVersion": {
+      "value": ""
+    },
+    "galleryRepository": {
+      "value": ""
+    },
+    "galleryBranch": {
+      "value": ""
+    },
+    "clusterDefinitionFileName": {
+      "value": ""
+    },
+    "kubernetesImageBase": {
       "value": ""
     }
   }

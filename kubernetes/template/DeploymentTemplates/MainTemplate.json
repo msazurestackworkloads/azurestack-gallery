@@ -69,27 +69,6 @@
       },
       "type": "securestring"
     },
-    "servicePrincipalKeyVaultName": {
-      "defaultValue": "servicePrincipalKeyVaultName",
-      "metadata": {
-        "description": "the service Principal Certificate KeyVault Name"
-      },
-      "type": "string"
-    },
-    "servicePrincipalKeyVaultResourceGroup": {
-      "defaultValue": "servicePrincipalKeyVaultResourceGroup",
-      "metadata": {
-        "description": "the service Principal Certificate KeyVault Resource"
-      },
-      "type": "string"
-    },
-    "servicePrincipalCertificateKeyVaultSecretName": {
-      "defaultValue": "servicePrincipalCertificateKeyVaultSecretName",
-      "metadata": {
-        "description": "The service Principal Certificate KeyVault SecretName"
-      },
-      "type": "string"
-    },
     "identitySystem": {
       "defaultValue": "AzureAD",
       "allowedValues": [
@@ -114,6 +93,48 @@
         "description": "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
       },
       "defaultValue": "[deployment().properties.templateLink.uri]"
+    },
+    "aksEngineBaseURL": {
+      "type": "string",
+      "defaultValue": "https://github.com/Azure/aks-engine/releases/download",
+      "metadata": {
+        "description": "The beginning of the URL for downloading the AKS Engine binary"
+      }
+    },
+    "aksEngineReleaseVersion": {
+      "type": "string",
+      "defaultValue": "v0.36.2",
+      "metadata": {
+        "description": "The version of AKS Engine to download"
+      }
+    },
+    "galleryRepository": {
+      "type": "string",
+      "defaultValue": "msazurestackworkloads/azurestack-gallery",
+      "metadata": {
+        "description": "Marketplace item repository"
+      }
+    },
+    "galleryBranch": {
+      "type": "string",
+      "defaultValue": "master",
+      "metadata": {
+        "description": "Marketplace item branch"
+      }
+    },
+    "clusterDefinitionFileName": {
+      "type": "string",
+      "defaultValue": "clusterDefinition.json",
+      "metadata": {
+        "description": "The name of the file containing the cluster definition"
+      }
+    },
+    "kubernetesImageBase": {
+      "type": "string",
+      "defaultValue": "mcr.microsoft.com/k8s/azurestack/core/",
+      "metadata": {
+        "description": "The base for Kubernetes images"
+      }
     }
   },
   "variables": {
@@ -142,16 +163,6 @@
     "networkSecurityGroupName": "[tolower(concat('vmd-nsg',uniquestring(resourceGroup().id)))]",
     "sshKeyPath": "[concat('/home/',parameters('linuxAdminUsername'),'/.ssh/authorized_keys')]",
     "tenantSubscriptionId": "[subscription().subscriptionId]",
-    "servicePrincipalCertificateKeyVaultId":"[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('servicePrincipalKeyVaultResourceGroup'),'/providers/Microsoft.KeyVault/vaults/',parameters('servicePrincipalKeyVaultName'))]",
-    "servicePrincipalClientSecretCert": {
-      "reference": {
-        "keyVault": {
-          "id": "[variables('servicePrincipalCertificateKeyVaultId')]"
-        },
-        "secretName": "[parameters('servicePrincipalCertificateKeyVaultSecretName')]"
-      }
-    },
-    "servicePrincipalClientSecretJSON":"[json(concat('{\"value\": \"', parameters('servicePrincipalClientSecret'), '\"}'))]",
     "scriptName": "script",
     "singleQuote": "'",
     "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"')]"
@@ -195,18 +206,32 @@
           "servicePrincipalClientId": {
             "value": "[parameters('servicePrincipalClientId')]"
           },
-          "servicePrincipalClientSecret": "[if(equals(parameters('identitySystem'), 'AzureAD'), variables('servicePrincipalClientSecretJSON') , variables('servicePrincipalClientSecretCert'))]",
-          "servicePrincipalCertificateKeyVaultId": {
-            "value": "[variables('servicePrincipalCertificateKeyVaultId')]"
-          },
-          "servicePrincipalCertificateKeyVaultSecretName": {
-            "value": "[parameters('servicePrincipalCertificateKeyVaultSecretName')]"
+          "servicePrincipalClientSecret": {
+            "value": "[parameters('servicePrincipalClientSecret')]"
           },
           "kubernetesAzureCloudProviderVersion": {
             "value": "[parameters('kubernetesAzureCloudProviderVersion')]"
           },
           "identitySystem": {
             "value": "[parameters('identitySystem')]"
+          },
+          "aksEngineBaseURL": {
+            "value": "[parameters('aksEngineBaseURL')]"
+          },
+          "aksEngineReleaseVersion": {
+            "value": "[parameters('aksEngineReleaseVersion')]"
+          },
+          "galleryRepository": {
+            "value": "[parameters('galleryRepository')]"
+          },
+          "galleryBranch": {
+            "value": "[parameters('galleryBranch')]"
+          },
+          "clusterDefinitionFileName": {
+            "value": "[parameters('clusterDefinitionFileName')]"
+          },
+          "kubernetesImageBase": {
+            "value": "[parameters('kubernetesImageBase')]"
           }
         }
       }
