@@ -413,7 +413,7 @@
         "name": "aksEngineReleaseVersion",
         "type": "Microsoft.Common.TextBox",
         "label": "AKS Engine release version",
-        "defaultValue": "v0.36.2",
+        "defaultValue": "v0.36.4",
         "toolTip": "The version of AKS Engine to download",
         "constraints": {
           "required": true
