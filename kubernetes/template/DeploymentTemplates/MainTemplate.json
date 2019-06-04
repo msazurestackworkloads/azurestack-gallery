@@ -117,7 +117,7 @@
     },
     "galleryBranch": {
       "type": "string",
-      "defaultValue": "master",
+      "defaultValue": "patch-release-v0.36.4-azs-1906-04",
       "metadata": {
         "description": "Marketplace item branch"
       }
