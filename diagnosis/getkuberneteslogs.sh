@@ -54,7 +54,7 @@ function download_scripts
         log_level -i "Scripts available skipping download"
     else
         log_level -i "Scripts not available locally downloading from $ARTIFACTSURL"
-
+        
         for script in common detectors collectlogs collectlogsdvm hosts
         do
             if [ -f $SCRIPTSFOLDER/$script.sh ]; then
@@ -200,7 +200,7 @@ mkdir -p $LOGFILEFOLDER
 mkdir -p ~/.ssh
 
 # Download scripts from github
-ARTIFACTSURL="${ARTIFACTSURL:-https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master}"
+ARTIFACTSURL="${ARTIFACTSURL:-https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/2.0}"
 download_scripts $ARTIFACTSURL
 
 # Backup .ssh/config
@@ -271,27 +271,27 @@ fi
 
 if [ -n "$DVM_HOST" ]
 then
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect VMD logs"
+    log_level -i "About to collect VMD logs"
     
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
+    log_level -i "Uploading scripts"
     scp -q -r $SCRIPTSFOLDER/*.sh $USER@$DVM_HOST:/home/$USER/
     ssh -q -t $USER@$DVM_HOST "sudo chmod 744 common.sh detectors.sh collectlogsdvm.sh; ./collectlogsdvm.sh;"
     
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
+    log_level -i "Downloading logs"
     scp -q $USER@$DVM_HOST:"/home/$USER/dvm_logs.tar.gz" $LOGFILEFOLDER/dvm_logs.tar.gz
     tar -xzf $LOGFILEFOLDER/dvm_logs.tar.gz -C $LOGFILEFOLDER
     rm $LOGFILEFOLDER/dvm_logs.tar.gz
     
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Removing temp files from DVM"
+    log_level -i "Removing temp files from DVM"
     ssh -q -t $USER@$DVM_HOST "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh dvm_logs.tar.gz"
 fi
 
 # Aggregate ERRORS.txt
 if [ `find $LOGFILEFOLDER -name ERRORS.txt | wc -w` -ne "0" ];
 then
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Known issues found. Details: $LOGFILEFOLDER/ALL_ERRORS.txt"
+    log_level -i "Known issues found. Details: $LOGFILEFOLDER/ALL_ERRORS.txt"
     cat $LOGFILEFOLDER/*/ERRORS.txt &> $LOGFILEFOLDER/ALL_ERRORS.txt
 fi
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO] Done collecting Kubernetes logs"
-echo "[$(date +%Y%m%d%H%M%S)][INFO] Logs can be found in this location: $LOGFILEFOLDER"
+log_level -i "Done collecting Kubernetes logs"
+log_level -i "Logs can be found in this location: $LOGFILEFOLDER"
