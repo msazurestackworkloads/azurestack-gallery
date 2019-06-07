@@ -9,7 +9,7 @@ CURRENTUSER=`whoami`
 
 mkdir -p $LOGDIRECTORY
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Cleaning up old temp logs" | tee -a $TRACEFILENAME
+log_level -i "[$HOSTNAME] Cleaning up old temp logs" | tee -a $TRACEFILENAME
 sudo rm -f $LOGFILENAME
 
 # Loading common functions

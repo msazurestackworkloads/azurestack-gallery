@@ -200,7 +200,7 @@ mkdir -p $LOGFILEFOLDER
 mkdir -p ~/.ssh
 
 # Download scripts from github
-ARTIFACTSURL="${ARTIFACTSURL:-https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/2.0}"
+ARTIFACTSURL="${ARTIFACTSURL:-https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master}"
 download_scripts $ARTIFACTSURL
 
 # Backup .ssh/config
