@@ -1,5 +1,25 @@
 #!/bin/bash
 
+RED='\033[0;31m'    # For error
+GREEN='\033[0;32m'  # For crucial check success
+YELLOW='\033[0;33m'  # For crucial check success
+NC='\033[0m'        # No color, back to normal
+
+
+log_level()
+{
+    case "$1" in
+        -e) echo -e "${RED}$(date) [Err]  " ${@:2}
+        ;;
+        -w) echo -e "${YELLOW}$(date) [Warn] " ${@:2}
+        ;;
+        -i) echo -e "${GREEN}$(date) [Info] " ${@:2}
+        ;;
+        *)  echo -e "${NC}$(date) [Debug] " ${@:2}
+        ;;
+    esac
+}
+
 function restore_ssh_config
 {
     # Restore only if previously backed up
@@ -29,24 +49,27 @@ trap restore_ssh_config EXIT
 function download_scripts
 {
     ARTIFACTSURL=$1
-    mkdir -p $SCRIPTSFOLDER
-    
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Pulling dependencies from this repo: $ARTIFACTSURL"
-    
-    for script in common detectors collectlogs collectlogsdvm hosts
-    do
-        if [ -f $SCRIPTSFOLDER/$script.sh ]; then
-            echo "[$(date +%Y%m%d%H%M%S)][INFO] Dependency '$script.sh' already in local file system"
-        fi
-        
-        curl -fs $ARTIFACTSURL/diagnosis/$script.sh -o $SCRIPTSFOLDER/$script.sh
-        
-        if [ ! -f $SCRIPTSFOLDER/$script.sh ]; then
-            echo "[$(date +%Y%m%d%H%M%S)][ERROR] Required script not available. URL: $ARTIFACTSURL/diagnosis/$script.sh"
-            echo "[$(date +%Y%m%d%H%M%S)][ERROR] You may be running an older version. Download the latest script from github: https://aka.ms/AzsK8sLogCollectorScript"
-            exit 1
-        fi
-    done
+    #mkdir -p $SCRIPTSFOLDER
+    if [ "$(ls -A $SCRIPTSFOLDER)" ]; then
+        log_level -i "Scripts available skipping download"
+    else
+        log_level -i "Scripts not available locally downloading from $ARTIFACTSURL"
+
+        for script in common detectors collectlogs collectlogsdvm hosts
+        do
+            if [ -f $SCRIPTSFOLDER/$script.sh ]; then
+                log_level -i "Dependency '$script.sh' already in local file system"
+            fi
+            
+            curl -fs $ARTIFACTSURL/diagnosis/$script.sh -o $SCRIPTSFOLDER/$script.sh
+            
+            if [ ! -f $SCRIPTSFOLDER/$script.sh ]; then
+                log_level -e "Required script not available. URL: $ARTIFACTSURL/diagnosis/$script.sh"
+                log_level -e "You may be running an older version. Download the latest script from github: https://aka.ms/AzsK8sLogCollectorScript"
+                exit 1
+            fi
+        done
+    fi
 }
 
 function printUsage
@@ -118,7 +141,7 @@ do
         ;;
         *)
             echo ""
-            echo "[ERR] Incorrect option $1"
+            log_level -e "[ERR] Incorrect option $1"
             printUsage
         ;;
     esac
@@ -128,33 +151,33 @@ done
 if [ -z "$USER" ]
 then
     echo ""
-    echo "[ERR] --user is required"
+    log_level -e "--user is required"
     printUsage
 fi
 
 if [ -z "$IDENTITYFILE" ]
 then
     echo ""
-    echo "[ERR] --identity-file is required"
+    log_level -e "--identity-file is required"
     printUsage
 fi
 
 if [ -z "$DVM_HOST" -a -z "$MASTER_HOST" ]
 then
     echo ""
-    echo "[ERR] Either --vmd-host or --master-host should be provided"
+    log_level -e "Either --vmd-host or --master-host should be provided"
     printUsage
 fi
 
 if [ ! -f $IDENTITYFILE ]
 then
     echo ""
-    echo "[ERR] identity-file not found at $IDENTITYFILE"
+    log_level -e "identity-file not found at $IDENTITYFILE"
     printUsage
     exit 1
 else
     cat $IDENTITYFILE | grep -q "BEGIN \(RSA\|OPENSSH\) PRIVATE KEY" \
-    || { echo "The identity file $IDENTITYFILE is not a RSA Private Key file."; echo "A RSA private key file starts with '-----BEGIN [RSA|OPENSSH] PRIVATE KEY-----''"; exit 1; }
+    || { log_level -e "The identity file $IDENTITYFILE is not a RSA Private Key file."; log_level -e "A RSA private key file starts with '-----BEGIN [RSA|OPENSSH] PRIVATE KEY-----''"; exit 1; }
 fi
 
 test $ALLNAMESPACES -eq 0 && unset NAMESPACES
@@ -171,8 +194,9 @@ echo ""
 NOW=`date +%Y%m%d%H%M%S`
 CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
 LOGFILEFOLDER="./KubernetesLogs_$CURRENTDATE"
-SCRIPTSFOLDER="$LOGFILEFOLDER/scripts"
-mkdir -p $LOGFILEFOLDER/scripts
+SCRIPTSFOLDER="./KubernetesDiagnosis/scripts"
+mkdir -p $SCRIPTSFOLDER
+mkdir -p $LOGFILEFOLDER
 mkdir -p ~/.ssh
 
 # Download scripts from github
@@ -195,21 +219,21 @@ echo "    StrictHostKeyChecking $STRICT_HOST_KEY_CHECKING" >> ~/.ssh/config
 echo "    UserKnownHostsFile /dev/null" >> ~/.ssh/config
 echo "    LogLevel ERROR" >> ~/.ssh/config
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO] Testing SSH keys"
+log_level -i "Testing SSH keys"
 TEST_HOST="${MASTER_HOST:-$DVM_HOST}"
 ssh -q $USER@$TEST_HOST "exit"
 
 if [ $? -ne 0 ]; then
-    echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to the server"
-    echo "[$(date +%Y%m%d%H%M%S)][ERR] Aborting log collection process"
+    log_level -e "Error connecting to the server"
+    log_level -e "Aborting log collection process"
     exit 1
 fi
 
 if [ -n "$MASTER_HOST" ]
 then
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect cluster logs"
+    log_level -i "About to collect cluster logs"
     
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Looking for cluster hosts"
+    log_level -i "Looking for cluster hosts"
     scp -q $SCRIPTSFOLDER/hosts.sh $USER@$MASTER_HOST:/home/$USER/hosts.sh
     ssh -tq $USER@$MASTER_HOST "sudo chmod 744 hosts.sh; ./hosts.sh $NOW"
     scp -q $USER@$MASTER_HOST:"/home/$USER/cluster-info.$NOW" $LOGFILEFOLDER/cluster-info.tar.gz
@@ -227,13 +251,13 @@ then
     
     for host in $(cat $LOGFILEFOLDER/host.list)
     do
-        echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host $host"
+        log_level -i "Processing host $host"
         
-        echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
+        log_level -i "Uploading scripts"
         scp -q -r $SCRIPTSFOLDER/*.sh $USER@$host:/home/$USER/
         ssh -q -t $USER@$host "sudo chmod 744 common.sh detectors.sh collectlogs.sh; ./collectlogs.sh $NAMESPACES;"
         
-        echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
+        log_level -i "Downloading logs"
         scp -q $USER@$host:"/home/$USER/kube_logs.tar.gz" $LOGFILEFOLDER/kube_logs.tar.gz
         tar -xzf $LOGFILEFOLDER/kube_logs.tar.gz -C $LOGFILEFOLDER
         rm $LOGFILEFOLDER/kube_logs.tar.gz
