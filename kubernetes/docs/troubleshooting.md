@@ -16,6 +16,7 @@ If the Azure Stack portal does not provide enough information for you to trouble
 | ERR_AKSE_DOWNLOAD | 10 | Failure downloading AKS Engine binaries from GitHub |
 | ERR_AKSE_GENERATE | 11 | Failure thrown by AKS Engine's `generate` operation |
 | ERR_AKSE_DEPLOY | 12 | Failure thrown by AKS Engine's `deploy` operation |
+| ERR_TEMPLATE_DOWNLOAD | 13 | Failure downloading AKS-Engine cluster definition |
 | ERR_CACERT_INSTALL | 20 | Failure handling CA certificate |
 | ERR_MS_GPG_KEY_DOWNLOAD_TIMEOUT | 26 | Timeout waiting for Microsoft's GPG key download |
 | ERR_METADATA_ENDPOINT | 30 | Non-successful call to Azure Stack's metadata endpoint |
