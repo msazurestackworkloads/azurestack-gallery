@@ -20,6 +20,23 @@ log_level()
     esac
 }
 
+function valid_ip()
+{
+    local  ip=$1
+    local  stat=1
+    
+    if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+        OIFS=$IFS
+        IFS='.'
+        ip=($ip)
+        IFS=$OIFS
+        [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
+        && ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
+        stat=$?
+    fi
+    return $stat
+}
+
 function restore_ssh_config
 {
     # Restore only if previously backed up
@@ -49,27 +66,17 @@ trap restore_ssh_config EXIT
 function download_scripts
 {
     ARTIFACTSURL=$1
-    #mkdir -p $SCRIPTSFOLDER
-    if [ "$(ls -A $SCRIPTSFOLDER)" ]; then
-        log_level -i "Scripts available skipping download"
-    else
-        log_level -i "Scripts not available locally downloading from $ARTIFACTSURL"
+    
+    for script in common detectors collectlogs collectlogsdvm hosts
+    do
+        curl -fs $ARTIFACTSURL/diagnosis/$script.sh -o $SCRIPTSFOLDER/$script.sh
         
-        for script in common detectors collectlogs collectlogsdvm hosts
-        do
-            if [ -f $SCRIPTSFOLDER/$script.sh ]; then
-                log_level -i "Dependency '$script.sh' already in local file system"
-            fi
-            
-            curl -fs $ARTIFACTSURL/diagnosis/$script.sh -o $SCRIPTSFOLDER/$script.sh
-            
-            if [ ! -f $SCRIPTSFOLDER/$script.sh ]; then
-                log_level -e "Required script not available. URL: $ARTIFACTSURL/diagnosis/$script.sh"
-                log_level -e "You may be running an older version. Download the latest script from github: https://aka.ms/AzsK8sLogCollectorScript"
-                exit 1
-            fi
-        done
-    fi
+        if [ ! -f $SCRIPTSFOLDER/$script.sh ]; then
+            log_level -e "Required script not available. URL: $ARTIFACTSURL/diagnosis/$script.sh"
+            log_level -e "You may be running an older version. Download the latest script from github: https://aka.ms/AzsK8sLogCollectorScript"
+            exit 1
+        fi
+    done
 }
 
 function printUsage
@@ -180,29 +187,58 @@ else
     || { log_level -e "The identity file $IDENTITYFILE is not a RSA Private Key file."; log_level -e "A RSA private key file starts with '-----BEGIN [RSA|OPENSSH] PRIVATE KEY-----''"; exit 1; }
 fi
 
-test $ALLNAMESPACES -eq 0 && unset NAMESPACES
+#test $ALLNAMESPACES -eq 0 && unset NAMESPACES
 
-# Print user input
-echo ""
-echo "user:             $USER"
-echo "identity-file:    $IDENTITYFILE"
-echo "master-host:      $MASTER_HOST"
-echo "vmd-host:         $DVM_HOST"
-echo "namespaces:       ${NAMESPACES:-all}"
-echo ""
+if [[ $ALLNAMESPACES -eq 0 ]];then
+    unset NAMESPACES
+    NAMESPACES="all"
+fi 
 
 NOW=`date +%Y%m%d%H%M%S`
 CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
 LOGFILEFOLDER="./KubernetesLogs_$CURRENTDATE"
-SCRIPTSFOLDER="./KubernetesDiagnosis/scripts"
+SCRIPTSFOLDER="./KubernetesDiagnosisScripts"
 mkdir -p $SCRIPTSFOLDER
 mkdir -p $LOGFILEFOLDER
 mkdir -p ~/.ssh
 
-# Download scripts from github
 ARTIFACTSURL="${ARTIFACTSURL:-https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master}"
-download_scripts $ARTIFACTSURL
 
+#Loading defaults
+if [ -f ./defaults.env ]; then
+    log_level -i "Using default settings"
+    source ./defaults.env
+else
+    log_level -i "Downloading Defaults"
+    curl -fs $ARTIFACTSURL/diagnosis/defaults.env -o ./defaults.env
+    source ./defaults.env
+fi
+
+log_level -i "-----------------------------------------------------------------------------"
+log_level -i "Script Parameters"
+log_level -i "-----------------------------------------------------------------------------"
+log_level -i "USER: $USER"
+log_level -i "IDENTITYFILE: $IDENTITYFILE"
+log_level -i "MASTER_HOST: $MASTER_HOST"
+log_level -i "DVM_HOST: $DVM_HOST"
+log_level -i "NAMESPACES: ${NAMESPACES:-all}"
+log_level -i "RUN_SANITY_CHECKS: $RUN_SANITY_CHECKS"
+log_level -i "RUN_COLLECT_CLUSTER_LOG: $RUN_COLLECT_CLUSTER_LOG"
+log_level -i "FORCE_DOWNLOAD: $FORCE_DOWNLOAD"
+log_level -i "-----------------------------------------------------------------------------"
+
+# Download scripts from github
+if [[ $FORCE_DOWNLOAD == "yes" ]]; then
+    log_level -i "Downloading scripts and overwriting"
+    download_scripts $ARTIFACTSURL
+else
+    if [[ -z "$(ls -A $SCRIPTSFOLDER)" ]]; then
+        log_level -i "Scripts not available locally downloading"
+        download_scripts $ARTIFACTSURL
+    else
+        log_level -i "Scripts available locally... skipping"
+    fi
+fi
 # Backup .ssh/config
 SSH_CONFIG_BAK=~/.ssh/config.$NOW
 if [ ! -f ~/.ssh/config ]; then touch ~/.ssh/config; fi
@@ -229,69 +265,67 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-if [ -n "$MASTER_HOST" ]
-then
-    log_level -i "About to collect cluster logs"
-    
-    log_level -i "Looking for cluster hosts"
-    scp -q $SCRIPTSFOLDER/hosts.sh $USER@$MASTER_HOST:/home/$USER/hosts.sh
-    ssh -tq $USER@$MASTER_HOST "sudo chmod 744 hosts.sh; ./hosts.sh $NOW"
-    scp -q $USER@$MASTER_HOST:"/home/$USER/cluster-info.$NOW" $LOGFILEFOLDER/cluster-info.tar.gz
-    ssh -tq $USER@$MASTER_HOST "sudo rm -f cluster-info.$NOW hosts.sh"
-    tar -xzf $LOGFILEFOLDER/cluster-info.tar.gz -C $LOGFILEFOLDER
-    rm $LOGFILEFOLDER/cluster-info.tar.gz
-    
-    # Configure SSH bastion host. Technically only needed for worker nodes.
-    for host in $(cat $LOGFILEFOLDER/host.list)
-    do
-        # https://en.wikibooks.org/wiki/OpenSSH/Cookbook/Proxies_and_Jump_Hosts#Passing_Through_One_or_More_Gateways_Using_ProxyJump
-        echo "Host $host" >> ~/.ssh/config
-        echo "    ProxyJump $USER@$MASTER_HOST" >> ~/.ssh/config
-    done
-    
-    for host in $(cat $LOGFILEFOLDER/host.list)
-    do
-        log_level -i "Processing host $host"
-        
-        log_level -i "Uploading scripts"
-        scp -q -r $SCRIPTSFOLDER/*.sh $USER@$host:/home/$USER/
-        ssh -q -t $USER@$host "sudo chmod 744 common.sh detectors.sh collectlogs.sh; ./collectlogs.sh $NAMESPACES;"
-        
-        log_level -i "Downloading logs"
-        scp -q $USER@$host:"/home/$USER/kube_logs.tar.gz" $LOGFILEFOLDER/kube_logs.tar.gz
-        tar -xzf $LOGFILEFOLDER/kube_logs.tar.gz -C $LOGFILEFOLDER
-        rm $LOGFILEFOLDER/kube_logs.tar.gz
-        
-        # Removing temp files from node
-        ssh -q -t $USER@$host "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh kube_logs.tar.gz"
-    done
-    
-    rm $LOGFILEFOLDER/host.list
+# Getting host ips
+log_level -i "Getting Hosts"
+scp -q $SCRIPTSFOLDER/hosts.sh $USER@$MASTER_HOST:/home/$USER/hosts.sh
+HOSTS=$(ssh -t -q $USER@$MASTER_HOST "sudo chmod 744 hosts.sh; ./hosts.sh")
+
+log_level -i "Validating Host addresses"
+for IP in $HOSTS
+do
+    if valid_ip $IP ; then
+        log_level -i "Host [$IP] is valid"
+    else
+        log_level -e "Host [$IP] is not valid"
+        exit 1
+    fi
+done
+
+
+# Configure SSH bastion host. Technically only needed for worker nodes.
+for host in $HOSTS
+do
+    # https://en.wikibooks.org/wiki/OpenSSH/Cookbook/Proxies_and_Jump_Hosts#Passing_Through_One_or_More_Gateways_Using_ProxyJump
+    echo "Host $host" >> ~/.ssh/config
+    echo "    ProxyJump $USER@$MASTER_HOST" >> ~/.ssh/config
+done
+
+#Collecting host information
+log_level -i "--------------------------------------------------------------------------------------------------------------"
+if [[ $RUN_SANITY_CHECKS == "yes" ]]; then
+    log_level -i "Running Cluster sanity Checks"
+    source $SCRIPTSFOLDER/clustersanitycheck.sh -u $USER -h "$HOSTS" -o $LOGFILEFOLDER
+else
+    log_level -i "Skipping cluster sanity Checks"
+fi
+log_level -i "--------------------------------------------------------------------------------------------------------------"
+
+
+if [[ $RUN_COLLECT_CLUSTER_LOGS == "yes" ]]; then
+    log_level -i "Running cluster log collection"
+    source $SCRIPTSFOLDER/clusterlogs.sh -u $USER -h "$HOSTS" -o $LOGFILEFOLDER -n "$NAMESPACES"
+else
+    log_level -i "Skipping cluster log collection"
 fi
 
-if [ -n "$DVM_HOST" ]
-then
-    log_level -i "About to collect VMD logs"
-    
-    log_level -i "Uploading scripts"
-    scp -q -r $SCRIPTSFOLDER/*.sh $USER@$DVM_HOST:/home/$USER/
-    ssh -q -t $USER@$DVM_HOST "sudo chmod 744 common.sh detectors.sh collectlogsdvm.sh; ./collectlogsdvm.sh;"
-    
-    log_level -i "Downloading logs"
-    scp -q $USER@$DVM_HOST:"/home/$USER/dvm_logs.tar.gz" $LOGFILEFOLDER/dvm_logs.tar.gz
-    tar -xzf $LOGFILEFOLDER/dvm_logs.tar.gz -C $LOGFILEFOLDER
-    rm $LOGFILEFOLDER/dvm_logs.tar.gz
-    
-    log_level -i "Removing temp files from DVM"
-    ssh -q -t $USER@$DVM_HOST "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh dvm_logs.tar.gz"
+log_level -i "--------------------------------------------------------------------------------------------------------------"
+
+if [[ ! -z $DVM_HOST && $RUN_COLLECT_DVM_LOGS == "yes" ]]; then
+    log_level -i "Running dvm log collection"
+    source $SCRIPTSFOLDER/dvmlogs.sh -u $USER -o $LOGFILEFOLDER -d $DVM_HOST
+else
+    log_level -i "Skipping dvm log collection"
 fi
 
-# Aggregate ERRORS.txt
-if [ `find $LOGFILEFOLDER -name ERRORS.txt | wc -w` -ne "0" ];
-then
-    log_level -i "Known issues found. Details: $LOGFILEFOLDER/ALL_ERRORS.txt"
-    cat $LOGFILEFOLDER/*/ERRORS.txt &> $LOGFILEFOLDER/ALL_ERRORS.txt
+log_level -i "--------------------------------------------------------------------------------------------------------------"
+
+if [[ $RUN_DETECT_ERRORS == "yes" ]]; then
+    log_level -i "Running error detection"
+    source $SCRIPTSFOLDER/detecterrors.sh -o $LOGFILEFOLDER
+else
+    log_level -i "Skipping error detection"
 fi
+log_level -i "--------------------------------------------------------------------------------------------------------------"
 
 log_level -i "Done collecting Kubernetes logs"
 log_level -i "Logs can be found in this location: $LOGFILEFOLDER"
