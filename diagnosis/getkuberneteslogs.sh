@@ -197,7 +197,7 @@ fi
 NOW=`date +%Y%m%d%H%M%S`
 CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
 LOGFILEFOLDER="./KubernetesLogs_$CURRENTDATE"
-SCRIPTSFOLDER="./KubernetesDiagnosisScripts"
+SCRIPTSFOLDER="./DiagnosisScripts"
 mkdir -p $SCRIPTSFOLDER
 mkdir -p $LOGFILEFOLDER
 mkdir -p ~/.ssh
@@ -294,7 +294,7 @@ done
 log_level -i "--------------------------------------------------------------------------------------------------------------"
 if [[ $RUN_SANITY_CHECKS == "yes" ]]; then
     log_level -i "Running Cluster sanity Checks"
-    source $SCRIPTSFOLDER/clustersanitycheck.sh -u $USER -h "$HOSTS" -o $LOGFILEFOLDER
+    source $SCRIPTSFOLDER/clustersanitycheck.sh -u $USER -h "$HOSTS" -o $LOGFILEFOLDER -s $SCRIPTSFOLDER
 else
     log_level -i "Skipping cluster sanity Checks"
 fi
@@ -303,7 +303,7 @@ log_level -i "------------------------------------------------------------------
 
 if [[ $RUN_COLLECT_CLUSTER_LOGS == "yes" ]]; then
     log_level -i "Running cluster log collection"
-    source $SCRIPTSFOLDER/clusterlogs.sh -u $USER -h "$HOSTS" -o $LOGFILEFOLDER -n "$NAMESPACES"
+    source $SCRIPTSFOLDER/clusterlogs.sh -u $USER -h "$HOSTS" -o $LOGFILEFOLDER -n "$NAMESPACES" -s $SCRIPTSFOLDER
 else
     log_level -i "Skipping cluster log collection"
 fi
@@ -312,7 +312,7 @@ log_level -i "------------------------------------------------------------------
 
 if [[ ! -z $DVM_HOST && $RUN_COLLECT_DVM_LOGS == "yes" ]]; then
     log_level -i "Running dvm log collection"
-    source $SCRIPTSFOLDER/dvmlogs.sh -u $USER -o $LOGFILEFOLDER -d $DVM_HOST
+    source $SCRIPTSFOLDER/dvmlogs.sh -u $USER -o $LOGFILEFOLDER -d $DVM_HOST -s $SCRIPTSFOLDER
 else
     log_level -i "Skipping dvm log collection"
 fi
@@ -321,7 +321,7 @@ log_level -i "------------------------------------------------------------------
 
 if [[ $RUN_DETECT_ERRORS == "yes" ]]; then
     log_level -i "Running error detection"
-    source $SCRIPTSFOLDER/detecterrors.sh -o $LOGFILEFOLDER
+    source $SCRIPTSFOLDER/detecterrors.sh -o $LOGFILEFOLDER -s $SCRIPTSFOLDER
 else
     log_level -i "Skipping error detection"
 fi

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ./common.sh
+#source ./common.sh
 
 # Handle named parameters
 while [[ "$#" -gt 0 ]]
@@ -20,6 +20,10 @@ do
         ;;
         -n|--namespaces)
             NAMESPACES="$2"
+            shift 2
+        ;;
+        -s|--scripts-folder)
+            SCRIPTS_FOLDER="$2"
             shift 2
         ;;
         *)
@@ -55,7 +59,13 @@ then
     exit 1
 fi
 
-source ./common.sh $OUTPUT_FOLDER "clusterlogs"
+if [[ ! -d $SCRIPTS_FOLDER ]];
+then
+    log_level -e "scripts folder does not exist"
+    exit 1
+fi
+
+source $SCRIPTS_FOLDER/common.sh $OUTPUT_FOLDER "clusterlogs"
 
 log_level -i "-----------------------------------------------------------------------------"
 log_level -i "Script Parameters"
@@ -64,6 +74,7 @@ log_level -i "USER_NAME: $USER_NAME"
 log_level -i "HOST_LIST: $HOST_LIST"
 log_level -i "OUTPUT_FOLDER: $OUTPUT_FOLDER"
 log_level -i "NAMESPACES: $NAMESPACES"
+log_level -i "SCRIPTS_FOLDER: $SCRIPTS_FOLDER"
 log_level -i "-----------------------------------------------------------------------------"
 
 
@@ -84,15 +95,15 @@ done
 for IP in $HOST_LIST
 do
     HOST_NAME=$(ssh -q -t $USER_NAME@$IP 'echo "$(hostname)"')
-
+    
     log_level -i "Collecting waagent tree from [$HOST_NAME]"
-
+    
     WAAGENT_DIR="/var/lib/waagent"
     WAAGENT_FN="$(basename $WAAGENT_DIR).tree"
-
+    
     log_level -i "Checking if [$WAAGENT_DIR] directory is available"
     DIRECTORY_TEST=$(ssh -q -t $USER_NAME@$IP "if [[ -d $WAAGENT_DIR ]]; then echo 'Exits'; fi")
-
+    
     if [[ $DIRECTORY_TEST == "Exits" ]]; then
         EXPORT_STATUS=$(ssh -q -t $USER_NAME@$IP "if sudo find $WAAGENT_DIR &> $TEMP_DIR/$WAAGENT_FN; then echo 'exported'; fi")
         if [[ $EXPORT_STATUS == "exported" ]]; then
@@ -112,16 +123,16 @@ done
 for IP in $HOST_LIST
 do
     HOST_NAME=$(ssh -q -t $USER_NAME@$IP 'echo "$(hostname)"')
-
+    
     log_level -i "Collecting log files from [$HOST_NAME]"
-
+    
     LOG_PATHS="/var/log/cloud-init.log /var/log/cloud-init-output.log /var/log/syslog /opt/m"
-
+    
     for LOGFILE in $LOG_PATHS
     do
         log_level -i "Checking if [$LOGFILE] exist on [$HOST_NAME]"
         FILE_TEST=$(ssh -q -t $USER_NAME@$IP "if [[ -f $LOGFILE ]]; then echo 'Exits'; fi")
-
+        
         if [[ $FILE_TEST == "Exits" ]]; then
             EXPORT_STATUS=$(ssh -q -t $USER_NAME@$IP "if sudo cp $LOGFILE $TEMP_DIR; then echo 'exported'; fi")
             if [[ $EXPORT_STATUS == "exported" ]]; then
@@ -142,16 +153,16 @@ done
 for IP in $HOST_LIST
 do
     HOST_NAME=$(ssh -q -t $USER_NAME@$IP 'echo "$(hostname)"')
-
+    
     log_level -i "Collecting log directories from [$HOST_NAME]"
-
+    
     LOG_PATHS="/var/log/azure /var/log/apt /etc/kubernetes/manifests"
-
+    
     for LOGDIR in $LOG_PATHS
     do
         log_level -i "Checking if [$LOGDIR] exist on [$HOST_NAME]"
         FILE_TEST=$(ssh -q -t $USER_NAME@$IP "if [[ -d $LOGDIR ]]; then echo 'Exits'; fi")
-
+        
         if [[ $FILE_TEST == "Exits" ]]; then
             EXPORT_STATUS=$(ssh -q -t $USER_NAME@$IP "if sudo cp -r $LOGDIR $TEMP_DIR; then echo 'exported'; fi")
             if [[ $EXPORT_STATUS == "exported" ]]; then
@@ -171,17 +182,17 @@ done
 for IP in $HOST_LIST
 do
     HOST_NAME=$(ssh -q -t $USER_NAME@$IP 'echo "$(hostname)"')
-
+    
     log_level -i "Exporting Container list from [$HOST_NAME]"
-
+    
     EXPORT_STATUS=$(ssh -q -t $USER_NAME@$IP "if sudo docker ps &> $TEMP_DIR/containers.list; then echo 'exported'; fi")
-
+    
     if [[ $EXPORT_STATUS == "exported" ]]; then
         log_level -i "Container list export complete"
     else
         log_level -e "Container list export failed [$EXPORT_STATUS]"
     fi
-
+    
 done
 
 ##############################################################
@@ -215,29 +226,29 @@ do
     HOST_NAME=$(ssh -q -t $USER_NAME@$IP 'echo "$(hostname)"')
     log_level -i "Getting container logs within the namespace [$NAMESPACES] on the host [$HOST_NAME]"
     CONTAINER_DIRECTORY=$(ssh -q -t $USER_NAME@$IP "list=\$(ls /var/log/containers/); echo \$list")
-
+    
     ssh -q -t $USER_NAME@$IP "mkdir -p $TEMP_DIR/containers/"
-
+    
     for FILE in $CONTAINER_DIRECTORY
     do
         FILENAME=$(ssh -q -t $USER_NAME@$IP "IFS='_'; read -ra FORMATTED_FILENAME <<< $FILE; echo \$FORMATTED_FILENAME")
         log_level -i "Current File $FILENAME"
         COPY_STATUS=$(ssh -q -t $USER_NAME@$IP "if [[ '$POD_LIST' == *'$FILENAME'* ]]; then echo 'true'; fi")
         log_level -i "Current copy status $COPY_STATUS"
-
+        
         if [[ $COPY_STATUS == "true" ]]; then
             log_level -i "Copying current File $FILE"
-
+            
             EXPORT_STATUS=$(ssh -q -t $USER_NAME@$IP "if sudo cp /var/log/containers/$FILE $TEMP_DIR/containers/; then echo 'exported'; fi")
             if [[ $EXPORT_STATUS == "exported" ]]; then
                 log_level -i "File copy successful"
             else
                 log_level -e "File copy failed [$EXPORT_STATUS]"
             fi
-
+            
         fi
     done
-
+    
 done
 
 
@@ -247,14 +258,14 @@ done
 for IP in $HOST_LIST
 do
     HOST_NAME=$(ssh -q -t $USER_NAME@$IP 'echo "$(hostname)"')
-
+    
     if [[ $HOST_NAME == *"master"* ]]; then
         ssh -q -t $USER_NAME@$IP "mkdir -p $TEMP_DIR/kubectl/"
         log_level -i "Exporting Kubectl infromation [$HOST_NAME]"
         ssh -q -t $USER_NAME@$IP "kubectl version &> $TEMP_DIR/kubectl/kube-version.log"
         ssh -q -t $USER_NAME@$IP "kubectl cluster-info &> $TEMP_DIR/kubectl/cluster-info.log"
         ssh -q -t $USER_NAME@$IP "kubectl cluster-info dump &> $TEMP_DIR/kubectl/cluster-info-dump.log"
-
+        
         if [[ $NAMESPACES != "all" ]]; then
             for NAMESPACE in $NAMESPACES
             do
@@ -265,7 +276,7 @@ do
             ssh -q -t $USER_NAME@$IP "kubectl get events -n kube-system &> $TEMP_DIR/kubectl/kube-system.events"
         fi
     fi
-
+    
 done
 
 # ##############################################################
@@ -303,7 +314,7 @@ do
             ssh -q -t $USER_NAME@$IP "sudo journalctl -u $SERVICE | tail -n 10000 &> $TEMP_DIR/journalctl/${SERVICE}_journal_tail.log"
             
             SERVICE_IS_ACTIVE=$(ssh -q -t $USER_NAME@$IP "if systemctl is-active --quiet $SERVICE.service | grep inactive; then echo 'inactive'")
-
+            
             if [[ $SERVICE_IS_ACTIVE == "inactive" ]]; then
                 log_level -e " Service [$SERVICE] is inactive"
             fi

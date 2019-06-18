@@ -27,6 +27,10 @@ do
             OUTPUT_FOLDER="$2"
             shift 2
         ;;
+        -s|--scripts-folder)
+            SCRIPTS_FOLDER="$2"
+            shift 2
+        ;;
         *)
             echo ""
             log_level -e "[ERR] Incorrect option $1"
@@ -54,7 +58,13 @@ then
     exit 1
 fi
 
-source ./common.sh $OUTPUT_FOLDER "clustersanitycheck"
+if [[ ! -d $SCRIPTS_FOLDER ]];
+then
+    log_level -e "scripts folder does not exist"
+    exit 1
+fi
+
+source $SCRIPTS_FOLDER/common.sh $OUTPUT_FOLDER "clustersanitycheck"
 
 log_level -i "-----------------------------------------------------------------------------"
 log_level -i "Script Parameters"
@@ -62,6 +72,7 @@ log_level -i "------------------------------------------------------------------
 log_level -i "USER_NAME: $USER_NAME"
 log_level -i "HOST_LIST: $HOST_LIST"
 log_level -i "OUTPUT_FOLDER: $OUTPUT_FOLDER"
+log_level -i "SCRIPTS_FOLDER: $SCRIPTS_FOLDER"
 log_level -i "-----------------------------------------------------------------------------"
 
 # ##############################################################

@@ -1,7 +1,5 @@
 #!/bin/bash
 
-source ./common.sh
-
 # Handle named parameters
 while [[ "$#" -gt 0 ]]
 do
@@ -22,6 +20,10 @@ do
             DVM_HOST="$2"
             shift 2
         ;;
+        -s|--scripts-folder)
+            SCRIPTS_FOLDER="$2"
+            shift 2
+        ;;
         *)
             echo ""
             log_level -e "[ERR] Incorrect option $1"
@@ -37,6 +39,12 @@ then
     exit 1
 fi
 
+if [[ ! -d $SCRIPTS_FOLDER ]];
+then
+    log_level -e "scripts folder does not exist"
+    exit 1
+fi
+
 if [[ ! -d $OUTPUT_FOLDER ]];
 then
     log_level -e "output directory does not exist"
@@ -49,7 +57,7 @@ then
     exit 1
 fi
 
-source ./common.sh $OUTPUT_FOLDER "dvmlogs"
+source $SCRIPTS_FOLDER/common.sh $OUTPUT_FOLDER "dvmlogs"
 
 log_level -i "-----------------------------------------------------------------------------"
 log_level -i "Script Parameters"
@@ -57,6 +65,7 @@ log_level -i "------------------------------------------------------------------
 log_level -i "USER_NAME: $USER_NAME"
 log_level -i "DVM_HOST: $DVM_HOST"
 log_level -i "OUTPUT_FOLDER: $OUTPUT_FOLDER"
+log_level -i "SCRIPTS_FOLDER: $SCRIPTS_FOLDER"
 log_level -i "-----------------------------------------------------------------------------"
 
 

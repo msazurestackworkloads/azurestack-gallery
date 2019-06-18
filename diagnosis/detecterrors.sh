@@ -10,6 +10,10 @@ do
             OUTPUT_FOLDER="$2"
             shift 2
         ;;
+        -s|--scripts-folder)
+            SCRIPTS_FOLDER="$2"
+            shift 2
+        ;;
         *)
             echo ""
             log_level -e "[ERR] Incorrect option $1"
@@ -24,12 +28,19 @@ then
     exit 1
 fi
 
-source ./common.sh $OUTPUT_FOLDER "detecterror"
+if [[ ! -d $SCRIPTS_FOLDER ]];
+then
+    log_level -e "scripts folder does not exist"
+    exit 1
+fi
+
+source $SCRIPTS_FOLDER/common.sh $OUTPUT_FOLDER "detecterror"
 
 log_level -i "-----------------------------------------------------------------------------"
 log_level -i "Script Parameters"
 log_level -i "-----------------------------------------------------------------------------"
 log_level -i "OUTPUT_FOLDER: $OUTPUT_FOLDER"
+log_level -i "SCRIPTS_FOLDER: $SCRIPTS_FOLDER"
 log_level -i "-----------------------------------------------------------------------------"
 
 
@@ -41,7 +52,7 @@ log_level -i "Log directories $LOG_DIRS"
 for DIR in $LOG_DIRS
 do
     if [[ -d ./$OUTPUT_FOLDER/$DIR ]]; then
-
+        
         if [[ $DIR == "vmd"* ]]; then
             log_level -i "Checking DVM for errors"
             find_cse_errors $OUTPUT_FOLDER/$DIR/azure/cluster-provision.log
