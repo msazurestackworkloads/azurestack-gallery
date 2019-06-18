@@ -194,7 +194,7 @@ else
     fi
 fi
 
-source $SCRIPTS_FOLDER/common.sh $OUTPUT_FOLDER "getkuberneteslogs"
+source $SCRIPTS_FOLDER/common.sh $LOGFILEFOLDER "getkuberneteslogs"
 
 log_level -i "-----------------------------------------------------------------------------"
 log_level -i "Script Parameters"
@@ -266,7 +266,7 @@ fi
 # Runs tests against the kubernetes cluster to check for cluster issues 
 log_level -i "--------------------------------------------------------------------------------------------------------------"
 
-if [[ $RUN_SANITY_CHECKS == "yes" -a ! -z $MASTER_HOST ]]; then
+if [[ $RUN_SANITY_CHECKS == "yes" && ! -z $MASTER_HOST ]]; then
     log_level -i "Running cluster sanity checks"
     source $SCRIPTS_FOLDER/clustersanitycheck.sh -u $USER -h "$HOSTS" -o $LOGFILEFOLDER -s $SCRIPTS_FOLDER
 else
@@ -275,7 +275,7 @@ fi
 log_level -i "--------------------------------------------------------------------------------------------------------------"
 
 # Collects logs from the master node as well as the agent nodes 
-if [[ $RUN_COLLECT_CLUSTER_LOGS == "yes" -a ! -z $MASTER_HOST ]]; then
+if [[ $RUN_COLLECT_CLUSTER_LOGS == "yes" && ! -z $MASTER_HOST ]]; then
     log_level -i "Running cluster log collection"
     source $SCRIPTS_FOLDER/clusterlogs.sh -u $USER -h "$HOSTS" -o $LOGFILEFOLDER -n "$NAMESPACES" -s $SCRIPTS_FOLDER
 else
