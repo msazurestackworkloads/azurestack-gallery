@@ -67,7 +67,7 @@ function download_scripts
 {
     ARTIFACTSURL=$1
     
-    for script in common detectors collectlogs collectlogsdvm hosts
+    for script in common clusterlogs clusterSanityCheck detecterrors dvmlogs hosts
     do
         curl -fs $ARTIFACTSURL/diagnosis/$script.sh -o $SCRIPTSFOLDER/$script.sh
         
@@ -202,7 +202,7 @@ mkdir -p $SCRIPTSFOLDER
 mkdir -p $LOGFILEFOLDER
 mkdir -p ~/.ssh
 
-ARTIFACTSURL="${ARTIFACTSURL:-https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master}"
+ARTIFACTSURL="${ARTIFACTSURL:-https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/2.0}"
 
 #Loading defaults
 if [ -f ./defaults.env ]; then
