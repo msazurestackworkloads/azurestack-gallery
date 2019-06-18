@@ -32,9 +32,9 @@ function download_scripts
     
     for script in common clusterlogs clusterSanityCheck detecterrors dvmlogs hosts
     do
-        curl -fs $ARTIFACTSURL/diagnosis/$script.sh -o $SCRIPTSFOLDER/$script.sh
+        curl -fs $ARTIFACTSURL/diagnosis/$script.sh -o $SCRIPTS_FOLDER/$script.sh
         
-        if [ ! -f $SCRIPTSFOLDER/$script.sh ]; then
+        if [ ! -f $SCRIPTS_FOLDER/$script.sh ]; then
             echo -e "$(date) [Err] Required script not available. URL: $ARTIFACTSURL/diagnosis/$script.sh"
             echo -e "$(date) [Err] You may be running an older version. Download the latest script from github: https://aka.ms/AzsK8sLogCollectorScript"
             exit 1
@@ -164,8 +164,8 @@ fi
 NOW=`date +%Y%m%d%H%M%S`
 CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
 LOGFILEFOLDER="./Diagnosis/KubernetesLogs_$CURRENTDATE"
-SCRIPTSFOLDER="./Diagnosis/Scripts"
-mkdir -p $SCRIPTSFOLDER
+SCRIPTS_FOLDER="./Diagnosis/Scripts"
+mkdir -p $SCRIPTS_FOLDER
 mkdir -p $LOGFILEFOLDER
 mkdir -p ~/.ssh
 
@@ -186,7 +186,7 @@ if [[ $FORCE_DOWNLOAD == "yes" ]]; then
     echo -e "$(date) [Info] Downloading scripts and overwriting"
     download_scripts $ARTIFACTSURL
 else
-    if [[ -z "$(ls -A $SCRIPTSFOLDER)" ]]; then
+    if [[ -z "$(ls -A $SCRIPTS_FOLDER)" ]]; then
         echo -e "$(date) [Info] Scripts not available locally downloading"
         download_scripts $ARTIFACTSURL
     else
@@ -240,7 +240,7 @@ fi
 
 if [[ ! -z $MASTER_HOST ]]; then
     log_level -i "Getting Hosts IP addresses"
-    scp -q $SCRIPTSFOLDER/hosts.sh $USER@$MASTER_HOST:/home/$USER/hosts.sh
+    scp -q $SCRIPTS_FOLDER/hosts.sh $USER@$MASTER_HOST:/home/$USER/hosts.sh
     HOSTS=$(ssh -t -q $USER@$MASTER_HOST "sudo chmod 744 hosts.sh; ./hosts.sh")
     
     log_level -i "Validating Host IP addresses"
@@ -268,7 +268,7 @@ log_level -i "------------------------------------------------------------------
 
 if [[ $RUN_SANITY_CHECKS == "yes" -a ! -z $MASTER_HOST ]]; then
     log_level -i "Running cluster sanity checks"
-    source $SCRIPTSFOLDER/clustersanitycheck.sh -u $USER -h "$HOSTS" -o $LOGFILEFOLDER -s $SCRIPTSFOLDER
+    source $SCRIPTS_FOLDER/clustersanitycheck.sh -u $USER -h "$HOSTS" -o $LOGFILEFOLDER -s $SCRIPTS_FOLDER
 else
     log_level -i "Skipping cluster sanity checks"
 fi
@@ -277,7 +277,7 @@ log_level -i "------------------------------------------------------------------
 # Collects logs from the master node as well as the agent nodes 
 if [[ $RUN_COLLECT_CLUSTER_LOGS == "yes" -a ! -z $MASTER_HOST ]]; then
     log_level -i "Running cluster log collection"
-    source $SCRIPTSFOLDER/clusterlogs.sh -u $USER -h "$HOSTS" -o $LOGFILEFOLDER -n "$NAMESPACES" -s $SCRIPTSFOLDER
+    source $SCRIPTS_FOLDER/clusterlogs.sh -u $USER -h "$HOSTS" -o $LOGFILEFOLDER -n "$NAMESPACES" -s $SCRIPTS_FOLDER
 else
     log_level -i "Skipping cluster log collection"
 fi
@@ -287,7 +287,7 @@ log_level -i "------------------------------------------------------------------
 # Collects logs from the deployment virtual machine
 if [[ ! -z $DVM_HOST && $RUN_COLLECT_DVM_LOGS == "yes" ]]; then
     log_level -i "Running dvm log collection"
-    source $SCRIPTSFOLDER/dvmlogs.sh -u $USER -o $LOGFILEFOLDER -d $DVM_HOST -s $SCRIPTSFOLDER
+    source $SCRIPTS_FOLDER/dvmlogs.sh -u $USER -o $LOGFILEFOLDER -d $DVM_HOST -s $SCRIPTS_FOLDER
 else
     log_level -i "Skipping dvm log collection"
 fi
@@ -297,7 +297,7 @@ log_level -i "------------------------------------------------------------------
 # Checking the the collected logs for known issues
 if [[ $RUN_DETECT_ERRORS == "yes" ]]; then
     log_level -i "Running error detection"
-    source $SCRIPTSFOLDER/detecterrors.sh -o $LOGFILEFOLDER -s $SCRIPTSFOLDER
+    source $SCRIPTS_FOLDER/detecterrors.sh -o $LOGFILEFOLDER -s $SCRIPTS_FOLDER
 else
     log_level -i "Skipping error detection"
 fi
