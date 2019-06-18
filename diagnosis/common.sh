@@ -12,8 +12,8 @@ NC='\033[0m'        # No color, back to normal
 #   <param name="1">Log level</param>
 #   <param name="2">Message</param>
 ###
-OUTPUT_LOCATION=${1:-"output"}
-SCRIPT_NAME=${2:-"script"}
+OUTPUT_LOCATION=${1:-"output"} # where the log file exists
+SCRIPT_NAME=${2:-"script"} # source of the log data
 NOW=`date +%Y%m%d%H%M%S`
 CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
 ERRFILENAME="$OUTPUT_LOCATION/$SCRIPT_NAME-Error-$CURRENTDATE.txt"
@@ -206,4 +206,27 @@ find_etcd_bad_cert_errors()
     else
         log_level -e "File $1 or $2 not found"
     fi
+}
+
+###
+#   <summary>
+#       Runs a regex to check if the string is a valid IP address
+#   </summary>
+#   <param name="1">IP address</param>
+###
+valid_ip()
+{
+    local  ip=$1
+    local  stat=1
+    
+    if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+        OIFS=$IFS
+        IFS='.'
+        ip=($ip)
+        IFS=$OIFS
+        [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
+        && ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
+        stat=$?
+    fi
+    return $stat
 }

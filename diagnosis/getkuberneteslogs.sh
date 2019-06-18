@@ -1,42 +1,5 @@
 #!/bin/bash
 
-RED='\033[0;31m'    # For error
-GREEN='\033[0;32m'  # For crucial check success
-YELLOW='\033[0;33m'  # For crucial check success
-NC='\033[0m'        # No color, back to normal
-
-
-log_level()
-{
-    case "$1" in
-        -e) echo -e "${RED}$(date) [Err]  " ${@:2}
-        ;;
-        -w) echo -e "${YELLOW}$(date) [Warn] " ${@:2}
-        ;;
-        -i) echo -e "${GREEN}$(date) [Info] " ${@:2}
-        ;;
-        *)  echo -e "${NC}$(date) [Debug] " ${@:2}
-        ;;
-    esac
-}
-
-function valid_ip()
-{
-    local  ip=$1
-    local  stat=1
-    
-    if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-        OIFS=$IFS
-        IFS='.'
-        ip=($ip)
-        IFS=$OIFS
-        [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
-        && ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
-        stat=$?
-    fi
-    return $stat
-}
-
 function restore_ssh_config
 {
     # Restore only if previously backed up
@@ -72,8 +35,8 @@ function download_scripts
         curl -fs $ARTIFACTSURL/diagnosis/$script.sh -o $SCRIPTSFOLDER/$script.sh
         
         if [ ! -f $SCRIPTSFOLDER/$script.sh ]; then
-            log_level -e "Required script not available. URL: $ARTIFACTSURL/diagnosis/$script.sh"
-            log_level -e "You may be running an older version. Download the latest script from github: https://aka.ms/AzsK8sLogCollectorScript"
+            echo -e "$(date) [Err] Required script not available. URL: $ARTIFACTSURL/diagnosis/$script.sh"
+            echo -e "$(date) [Err] You may be running an older version. Download the latest script from github: https://aka.ms/AzsK8sLogCollectorScript"
             exit 1
         fi
     done
@@ -148,7 +111,7 @@ do
         ;;
         *)
             echo ""
-            log_level -e "[ERR] Incorrect option $1"
+            echo -e "[Err] Incorrect option $1"
             printUsage
         ;;
     esac
@@ -158,46 +121,50 @@ done
 if [ -z "$USER" ]
 then
     echo ""
-    log_level -e "--user is required"
+    echo -e "$(date) [Err] --user is required"
     printUsage
 fi
 
 if [ -z "$IDENTITYFILE" ]
 then
     echo ""
-    log_level -e "--identity-file is required"
+    echo -e "$(date) [Err] --identity-file is required"
     printUsage
 fi
 
-if [ -z "$DVM_HOST" -a -z "$MASTER_HOST" ]
+if [ -z "$DVM_HOST" ]
 then
     echo ""
-    log_level -e "Either --vmd-host or --master-host should be provided"
+    echo -e "$(date) [Err] --vmd-host is required"
     printUsage
+fi
+
+if [ -z "$MASTER_HOST" ]
+then
+    echo ""
+    echo -e "$(date) [Err] --master-host should be provided when available. Functions which require this will be skipped"
 fi
 
 if [ ! -f $IDENTITYFILE ]
 then
     echo ""
-    log_level -e "identity-file not found at $IDENTITYFILE"
+    echo -e "$(date) [Err] identity-file not found at $IDENTITYFILE"
     printUsage
     exit 1
 else
     cat $IDENTITYFILE | grep -q "BEGIN \(RSA\|OPENSSH\) PRIVATE KEY" \
-    || { log_level -e "The identity file $IDENTITYFILE is not a RSA Private Key file."; log_level -e "A RSA private key file starts with '-----BEGIN [RSA|OPENSSH] PRIVATE KEY-----''"; exit 1; }
+    || { echo -e "$(date) [Err] The identity file $IDENTITYFILE is not a RSA Private Key file."; log_level -e "A RSA private key file starts with '-----BEGIN [RSA|OPENSSH] PRIVATE KEY-----''"; exit 1; }
 fi
-
-#test $ALLNAMESPACES -eq 0 && unset NAMESPACES
 
 if [[ $ALLNAMESPACES -eq 0 ]];then
     unset NAMESPACES
     NAMESPACES="all"
-fi 
+fi
 
 NOW=`date +%Y%m%d%H%M%S`
 CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
-LOGFILEFOLDER="./KubernetesLogs_$CURRENTDATE"
-SCRIPTSFOLDER="./DiagnosisScripts"
+LOGFILEFOLDER="./Diagnosis/KubernetesLogs_$CURRENTDATE"
+SCRIPTSFOLDER="./Diagnosis/Scripts"
 mkdir -p $SCRIPTSFOLDER
 mkdir -p $LOGFILEFOLDER
 mkdir -p ~/.ssh
@@ -206,39 +173,45 @@ ARTIFACTSURL="${ARTIFACTSURL:-https://raw.githubusercontent.com/msazurestackwork
 
 #Loading defaults
 if [ -f ./defaults.env ]; then
-    log_level -i "Using default settings"
+    echo -e "$(date) [Info] Using local default settings"
     source ./defaults.env
 else
-    log_level -i "Downloading Defaults"
+    echo -e "$(date) [Info] Downloading Defaults"
     curl -fs $ARTIFACTSURL/diagnosis/defaults.env -o ./defaults.env
     source ./defaults.env
 fi
 
-log_level -i "-----------------------------------------------------------------------------"
-log_level -i "Script Parameters"
-log_level -i "-----------------------------------------------------------------------------"
-log_level -i "USER: $USER"
-log_level -i "IDENTITYFILE: $IDENTITYFILE"
-log_level -i "MASTER_HOST: $MASTER_HOST"
-log_level -i "DVM_HOST: $DVM_HOST"
-log_level -i "NAMESPACES: ${NAMESPACES:-all}"
-log_level -i "RUN_SANITY_CHECKS: $RUN_SANITY_CHECKS"
-log_level -i "RUN_COLLECT_CLUSTER_LOG: $RUN_COLLECT_CLUSTER_LOG"
-log_level -i "FORCE_DOWNLOAD: $FORCE_DOWNLOAD"
-log_level -i "-----------------------------------------------------------------------------"
-
 # Download scripts from github
 if [[ $FORCE_DOWNLOAD == "yes" ]]; then
-    log_level -i "Downloading scripts and overwriting"
+    echo -e "$(date) [Info] Downloading scripts and overwriting"
     download_scripts $ARTIFACTSURL
 else
     if [[ -z "$(ls -A $SCRIPTSFOLDER)" ]]; then
-        log_level -i "Scripts not available locally downloading"
+        echo -e "$(date) [Info] Scripts not available locally downloading"
         download_scripts $ARTIFACTSURL
     else
-        log_level -i "Scripts available locally... skipping"
+        echo -e "$(date) [Info] Scripts available locally... skipping"
     fi
 fi
+
+source $SCRIPTS_FOLDER/common.sh $OUTPUT_FOLDER "getkuberneteslogs"
+
+log_level -i "-----------------------------------------------------------------------------"
+log_level -i "Script Parameters"
+log_level -i "-----------------------------------------------------------------------------"
+log_level -i "DVM_HOST: $DVM_HOST"
+log_level -i "FORCE_DOWNLOAD: $FORCE_DOWNLOAD"
+log_level -i "IDENTITYFILE: $IDENTITYFILE"
+log_level -i "MASTER_HOST: $MASTER_HOST"
+log_level -i "NAMESPACES: $NAMESPACES"
+log_level -i "RUN_COLLECT_DVM_LOGS: $RUN_COLLECT_DVM_LOGS"
+log_level -i "RUN_COLLECT_CLUSTER_LOG: $RUN_COLLECT_CLUSTER_LOG"
+log_level -i "RUN_SANITY_CHECKS: $RUN_SANITY_CHECKS"
+log_level -i "RUN_DETECT_ERRORS: $RUN_DETECT_ERRORS"
+log_level -i "USER: $USER"
+log_level -i "-----------------------------------------------------------------------------"
+
+
 # Backup .ssh/config
 SSH_CONFIG_BAK=~/.ssh/config.$NOW
 if [ ! -f ~/.ssh/config ]; then touch ~/.ssh/config; fi
@@ -265,43 +238,44 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Getting host ips
-log_level -i "Getting Hosts"
-scp -q $SCRIPTSFOLDER/hosts.sh $USER@$MASTER_HOST:/home/$USER/hosts.sh
-HOSTS=$(ssh -t -q $USER@$MASTER_HOST "sudo chmod 744 hosts.sh; ./hosts.sh")
+if [[ ! -z $MASTER_HOST ]]; then
+    log_level -i "Getting Hosts IP addresses"
+    scp -q $SCRIPTSFOLDER/hosts.sh $USER@$MASTER_HOST:/home/$USER/hosts.sh
+    HOSTS=$(ssh -t -q $USER@$MASTER_HOST "sudo chmod 744 hosts.sh; ./hosts.sh")
+    
+    log_level -i "Validating Host IP addresses"
+    for IP in $HOSTS
+    do
+        if valid_ip $IP ; then
+            log_level -i "Host [$IP] is valid"
+        else
+            log_level -e "Host [$IP] is not valid"
+            exit 1
+        fi
+    done
+    
+    # Configure SSH bastion host. Technically only needed for worker nodes.
+    for host in $HOSTS
+    do
+        # https://en.wikibooks.org/wiki/OpenSSH/Cookbook/Proxies_and_Jump_Hosts#Passing_Through_One_or_More_Gateways_Using_ProxyJump
+        echo "Host $host" >> ~/.ssh/config
+        echo "    ProxyJump $USER@$MASTER_HOST" >> ~/.ssh/config
+    done
+fi
 
-log_level -i "Validating Host addresses"
-for IP in $HOSTS
-do
-    if valid_ip $IP ; then
-        log_level -i "Host [$IP] is valid"
-    else
-        log_level -e "Host [$IP] is not valid"
-        exit 1
-    fi
-done
-
-
-# Configure SSH bastion host. Technically only needed for worker nodes.
-for host in $HOSTS
-do
-    # https://en.wikibooks.org/wiki/OpenSSH/Cookbook/Proxies_and_Jump_Hosts#Passing_Through_One_or_More_Gateways_Using_ProxyJump
-    echo "Host $host" >> ~/.ssh/config
-    echo "    ProxyJump $USER@$MASTER_HOST" >> ~/.ssh/config
-done
-
-#Collecting host information
+# Runs tests against the kubernetes cluster to check for cluster issues 
 log_level -i "--------------------------------------------------------------------------------------------------------------"
-if [[ $RUN_SANITY_CHECKS == "yes" ]]; then
-    log_level -i "Running Cluster sanity Checks"
+
+if [[ $RUN_SANITY_CHECKS == "yes" -a ! -z $MASTER_HOST ]]; then
+    log_level -i "Running cluster sanity checks"
     source $SCRIPTSFOLDER/clustersanitycheck.sh -u $USER -h "$HOSTS" -o $LOGFILEFOLDER -s $SCRIPTSFOLDER
 else
-    log_level -i "Skipping cluster sanity Checks"
+    log_level -i "Skipping cluster sanity checks"
 fi
 log_level -i "--------------------------------------------------------------------------------------------------------------"
 
-
-if [[ $RUN_COLLECT_CLUSTER_LOGS == "yes" ]]; then
+# Collects logs from the master node as well as the agent nodes 
+if [[ $RUN_COLLECT_CLUSTER_LOGS == "yes" -a ! -z $MASTER_HOST ]]; then
     log_level -i "Running cluster log collection"
     source $SCRIPTSFOLDER/clusterlogs.sh -u $USER -h "$HOSTS" -o $LOGFILEFOLDER -n "$NAMESPACES" -s $SCRIPTSFOLDER
 else
@@ -310,6 +284,7 @@ fi
 
 log_level -i "--------------------------------------------------------------------------------------------------------------"
 
+# Collects logs from the deployment virtual machine
 if [[ ! -z $DVM_HOST && $RUN_COLLECT_DVM_LOGS == "yes" ]]; then
     log_level -i "Running dvm log collection"
     source $SCRIPTSFOLDER/dvmlogs.sh -u $USER -o $LOGFILEFOLDER -d $DVM_HOST -s $SCRIPTSFOLDER
@@ -319,6 +294,7 @@ fi
 
 log_level -i "--------------------------------------------------------------------------------------------------------------"
 
+# Checking the the collected logs for known issues
 if [[ $RUN_DETECT_ERRORS == "yes" ]]; then
     log_level -i "Running error detection"
     source $SCRIPTSFOLDER/detecterrors.sh -o $LOGFILEFOLDER -s $SCRIPTSFOLDER

@@ -26,7 +26,7 @@ do
         ;;
         *)
             echo ""
-            log_level -e "[ERR] Incorrect option $1"
+            echo -e "[Err] Incorrect option $1"
             exit 1
         ;;
     esac
@@ -35,25 +35,25 @@ done
 
 if [[ -z $USER_NAME ]];
 then
-    log_level -e "Username not set"
+    echo -e " $(date) [Err] Username not set"
     exit 1
 fi
 
 if [[ ! -d $SCRIPTS_FOLDER ]];
 then
-    log_level -e "scripts folder does not exist"
+    echo -e " $(date) [Err] Scripts folder does not exist"
     exit 1
 fi
 
 if [[ ! -d $OUTPUT_FOLDER ]];
 then
-    log_level -e "output directory does not exist"
+    echo -e " $(date) [Err] Output directory does not exist"
     exit 1
 fi
 
 if [[ -z $DVM_HOST ]];
 then
-    log_level -e "dvm host not set"
+    echo -e " $(date) [Err] Dvm host not set"
     exit 1
 fi
 
@@ -62,10 +62,10 @@ source $SCRIPTS_FOLDER/common.sh $OUTPUT_FOLDER "dvmlogs"
 log_level -i "-----------------------------------------------------------------------------"
 log_level -i "Script Parameters"
 log_level -i "-----------------------------------------------------------------------------"
-log_level -i "USER_NAME: $USER_NAME"
 log_level -i "DVM_HOST: $DVM_HOST"
 log_level -i "OUTPUT_FOLDER: $OUTPUT_FOLDER"
 log_level -i "SCRIPTS_FOLDER: $SCRIPTS_FOLDER"
+log_level -i "USER_NAME: $USER_NAME"
 log_level -i "-----------------------------------------------------------------------------"
 
 
@@ -120,15 +120,15 @@ LOG_PATHS="/var/log/cloud-init.log /var/log/cloud-init-output.log /var/log/syslo
 
 for LOGFILE in $LOG_PATHS
 do
-    log_level -i "Checking if [$LOGFILE] exist on [$HOST_NAME]"
+    log_level -i "Checking if [$LOGFILE] exists on [$HOST_NAME]"
     FILE_TEST=$(ssh -q -t $USER_NAME@$DVM_HOST "if [[ -f $LOGFILE ]]; then echo 'Exits'; fi")
     
     if [[ $FILE_TEST == "Exits" ]]; then
         EXPORT_STATUS=$(ssh -q -t $USER_NAME@$DVM_HOST "if sudo cp $LOGFILE $TEMP_DIR; then echo 'exported'; fi")
         if [[ $EXPORT_STATUS == "exported" ]]; then
-            log_level -i "File copy successful"
+            log_level -i "File [$LOGFILE] copy successful"
         else
-            log_level -e "File copy failed [$EXPORT_STATUS]"
+            log_level -e "File [$LOGFILE] copy failed [$EXPORT_STATUS]"
         fi
     else
         log_level -e "File [$LOGFILE] does not exist"
@@ -150,9 +150,9 @@ do
     if [[ $FILE_TEST == "Exits" ]]; then
         EXPORT_STATUS=$(ssh -q -t $USER_NAME@$DVM_HOST "if sudo cp -r $LOGDIR $TEMP_DIR; then echo 'exported'; fi")
         if [[ $EXPORT_STATUS == "exported" ]]; then
-            log_level -i "Directory copy successful"
+            log_level -i "Directory [$LOGDIR] copy successful"
         else
-            log_level -e "Directory copy failed [$EXPORT_STATUS]"
+            log_level -e "Directory [$LOGDIR] copy failed [$EXPORT_STATUS]"
         fi
     else
         log_level -e "Directory [$LOGDIR] does not exist"

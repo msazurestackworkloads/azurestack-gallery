@@ -28,7 +28,7 @@ do
         ;;
         *)
             echo ""
-            log_level -e "[ERR] Incorrect option $1"
+            echo -e "$(date) [Err] Incorrect option $1"
             exit 1
         ;;
     esac
@@ -37,44 +37,46 @@ done
 
 if [[ -z $USER_NAME ]];
 then
-    log_level -e "Username not set"
+    echo -e "$(date) [Err] Username not set"
     exit 1
 fi
 
 if [[ -z $HOST_LIST ]];
 then
-    log_level -e "host list not set"
+    echo -e "$(date) [Err] host list not set"
     exit 1
 fi
 
 if [[ ! -d $OUTPUT_FOLDER ]];
 then
-    log_level -e "output directory does not exist"
+    echo -e "$(date) [Err] output directory does not exist"
     exit 1
 fi
 
 if [[ -z $NAMESPACES ]];
 then
-    log_level -e "namespaces not set"
+    echo -e "$(date) [Err] namespaces not set"
     exit 1
 fi
 
 if [[ ! -d $SCRIPTS_FOLDER ]];
 then
-    log_level -e "scripts folder does not exist"
+    echo -e "$(date) [Err] scripts folder does not exist"
     exit 1
 fi
 
 source $SCRIPTS_FOLDER/common.sh $OUTPUT_FOLDER "clusterlogs"
+source ./defaults.env
 
 log_level -i "-----------------------------------------------------------------------------"
 log_level -i "Script Parameters"
 log_level -i "-----------------------------------------------------------------------------"
-log_level -i "USER_NAME: $USER_NAME"
 log_level -i "HOST_LIST: $HOST_LIST"
-log_level -i "OUTPUT_FOLDER: $OUTPUT_FOLDER"
+log_level -i "JOURNALCTL_MAX_LINES: $JOURNALCTL_MAX_LINES"
 log_level -i "NAMESPACES: $NAMESPACES"
+log_level -i "OUTPUT_FOLDER: $OUTPUT_FOLDER"
 log_level -i "SCRIPTS_FOLDER: $SCRIPTS_FOLDER"
+log_level -i "USER_NAME: $USER_NAME"
 log_level -i "-----------------------------------------------------------------------------"
 
 
@@ -161,9 +163,9 @@ do
     for LOGDIR in $LOG_PATHS
     do
         log_level -i "Checking if [$LOGDIR] exist on [$HOST_NAME]"
-        FILE_TEST=$(ssh -q -t $USER_NAME@$IP "if [[ -d $LOGDIR ]]; then echo 'Exits'; fi")
+        FILE_TEST=$(ssh -q -t $USER_NAME@$IP "if [[ -d $LOGDIR ]]; then echo 'exits'; fi")
         
-        if [[ $FILE_TEST == "Exits" ]]; then
+        if [[ $FILE_TEST == "exits" ]]; then
             EXPORT_STATUS=$(ssh -q -t $USER_NAME@$IP "if sudo cp -r $LOGDIR $TEMP_DIR; then echo 'exported'; fi")
             if [[ $EXPORT_STATUS == "exported" ]]; then
                 log_level -i "Directory copy successful"
@@ -196,7 +198,7 @@ do
 done
 
 ##############################################################
-# Collecting pod logs in namespace
+# Collecting pod logs within specified namespace
 
 log_level -i "Creating Pod list"
 POD_LIST=""
@@ -308,10 +310,10 @@ do
             ssh -q -t $USER_NAME@$IP "sudo systemctl show $SERVICE &> $TEMP_DIR/journalctl/${SERVICE}_status.log"
             
             log_level -i "Collecting [$SERVICE] journalctl head logs"
-            ssh -q -t $USER_NAME@$IP "sudo journalctl -u $SERVICE | head -n 10000 &> $TEMP_DIR/journalctl/${SERVICE}_journal_head.log"
+            ssh -q -t $USER_NAME@$IP "sudo journalctl -u $SERVICE | head -n $JOURNALCTL_MAX_LINES &> $TEMP_DIR/journalctl/${SERVICE}_journal_head.log"
             
             log_level -i "Collecting [$SERVICE] journalctl tail logs"
-            ssh -q -t $USER_NAME@$IP "sudo journalctl -u $SERVICE | tail -n 10000 &> $TEMP_DIR/journalctl/${SERVICE}_journal_tail.log"
+            ssh -q -t $USER_NAME@$IP "sudo journalctl -u $SERVICE | tail -n $JOURNALCTL_MAX_LINES &> $TEMP_DIR/journalctl/${SERVICE}_journal_tail.log"
             
             SERVICE_IS_ACTIVE=$(ssh -q -t $USER_NAME@$IP "if systemctl is-active --quiet $SERVICE.service | grep inactive; then echo 'inactive'")
             
