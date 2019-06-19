@@ -225,6 +225,6 @@ do
     if [[ $NET_RESULT == "Online" ]]; then
         log_level -i "[$HOST_NAME] internet internet connectivity test passed"
     else
-        log_level -i "[$HOST_NAME] internet internet connectivity test failed"
+        log_level -e "[$HOST_NAME] internet internet connectivity test failed"
     fi
 done
