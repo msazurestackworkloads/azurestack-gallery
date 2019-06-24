@@ -132,17 +132,10 @@ then
     printUsage
 fi
 
-if [ -z "$DVM_HOST" ]
+if [ -z "$DVM_HOST" || -z "$MASTER_HOST" ]
 then
     echo ""
-    echo -e "$(date) [Err] --vmd-host is required"
-    printUsage
-fi
-
-if [ -z "$MASTER_HOST" ]
-then
-    echo ""
-    echo -e "$(date) [Err] --master-host should be provided when available. Functions which require this will be skipped"
+    echo -e "$(date) [Err] --vmd-host or --master-host is required"
 fi
 
 if [ ! -f $IDENTITYFILE ]
