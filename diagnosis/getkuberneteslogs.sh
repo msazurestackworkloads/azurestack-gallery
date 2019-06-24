@@ -30,7 +30,7 @@ function download_scripts
 {
     ARTIFACTSURL=$1
     
-    for script in common clusterlogs clusterSanityCheck detecterrors dvmlogs hosts
+    for script in common clusterlogs clusterhealthcheck detecterrors dvmlogs hosts
     do
         curl -fs $ARTIFACTSURL/diagnosis/$script.sh -o $SCRIPTS_FOLDER/$script.sh
         
