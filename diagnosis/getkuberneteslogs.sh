@@ -172,13 +172,13 @@ mkdir -p ~/.ssh
 ARTIFACTSURL="${ARTIFACTSURL:-https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/2.0}"
 
 #Loading defaults
-if [ -f ./defaults.env ]; then
+if [ -f ./defaults.sh ]; then
     echo -e "$(date) [Info] Using local default settings"
-    source ./defaults.env
+    source ./defaults.sh
 else
     echo -e "$(date) [Info] Downloading Defaults"
-    curl -fs $ARTIFACTSURL/diagnosis/defaults.env -o ./defaults.env
-    source ./defaults.env
+    curl -fs $ARTIFACTSURL/diagnosis/defaults.sh -o ./defaults.sh
+    source ./defaults.sh
 fi
 
 # Download scripts from github

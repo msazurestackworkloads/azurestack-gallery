@@ -66,7 +66,7 @@ then
 fi
 
 source $SCRIPTS_FOLDER/common.sh $OUTPUT_FOLDER "clusterlogs"
-source ./defaults.env
+source ./defaults.sh
 
 log_level -i "-----------------------------------------------------------------------------"
 log_level -i "Script Parameters"
