@@ -1,5 +1,7 @@
+#!/bin/bash
+
 export RUN_SANITY_CHECKS=yes
-export RUN_COLLECT_CLUSTER_LOGS=yes
+export RUN_COLLECT_CLUSTER_LOGS=yess
 export RUN_COLLECT_DVM_LOGS=yes
 export RUN_DETECT_ERRORS=yes
 
