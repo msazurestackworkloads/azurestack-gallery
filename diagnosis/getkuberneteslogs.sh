@@ -132,7 +132,7 @@ then
     printUsage
 fi
 
-if [ -z "$DVM_HOST" || -z "$MASTER_HOST" ]
+if [ -z "$DVM_HOST" ] || [ -z "$MASTER_HOST" ]
 then
     echo ""
     echo -e "$(date) [Err] --vmd-host or --master-host is required"
@@ -261,7 +261,7 @@ log_level -i "------------------------------------------------------------------
 
 if [[ $RUN_SANITY_CHECKS == "yes" && ! -z $MASTER_HOST ]]; then
     log_level -i "Running cluster sanity checks"
-    source $SCRIPTS_FOLDER/clustersanitycheck.sh -u $USER -h "$HOSTS" -o $LOGFILEFOLDER -s $SCRIPTS_FOLDER
+    source $SCRIPTS_FOLDER/clusterhealthcheck.sh -u $USER -h "$HOSTS" -o $LOGFILEFOLDER -s $SCRIPTS_FOLDER
 else
     log_level -i "Skipping cluster sanity checks"
 fi

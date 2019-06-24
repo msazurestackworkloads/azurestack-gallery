@@ -64,7 +64,7 @@ then
     exit 1
 fi
 
-source $SCRIPTS_FOLDER/common.sh $OUTPUT_FOLDER "clustersanitycheck"
+source $SCRIPTS_FOLDER/common.sh $OUTPUT_FOLDER "clusterhealthcheck"
 
 log_level -i "-----------------------------------------------------------------------------"
 log_level -i "Script Parameters"
