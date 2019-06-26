@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#source ./common.sh
-
 # Handle named parameters
 while [[ "$#" -gt 0 ]]
 do

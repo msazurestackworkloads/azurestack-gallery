@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#source ./common.sh
-
 # Runs on the master node
 # Check if kubelet is running --all nodes
 # Checks if docker is running -- all nodes
@@ -160,7 +158,7 @@ do
     CONTAINER_LIST=$(ssh -q -t $USER_NAME@$IP 'LIST=$(docker container ls --format="{{.Names }}" --filter status="running"); echo $LIST')
     
     if [[ $HOST_NAME == *"master"* ]]; then
-        log_level -i "Checking for master containers"
+        log_level -i "Checking for master node containers"
         for CONTAINER in $MASTER_CONTAINERS
         do
             if [[ $CONTAINER_LIST == *"$CONTAINER"* ]]; then
@@ -169,7 +167,7 @@ do
                 log_level -e "$CONTAINER not running on [$HOST_NAME]. Test failed"
             fi
         done
-        log_level -i "Checking for node containers"
+        log_level -i "Checking for agent node containers"
         for CONTAINER in $NODE_CONTAINERS
         do
             if [[ $CONTAINER_LIST == *"$CONTAINER"* ]]; then
@@ -179,7 +177,7 @@ do
             fi
         done
     else
-        log_level -i "Checking for node containers"
+        log_level -i "Checking for agent node containers"
         for CONTAINER in $NODE_CONTAINERS
         do
             if [[ $CONTAINER_LIST == *"$CONTAINER"* ]]; then

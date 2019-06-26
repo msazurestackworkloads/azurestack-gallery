@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#source ./common.sh
-
 # Handle named parameters
 while [[ "$#" -gt 0 ]]
 do
@@ -94,14 +92,14 @@ done
 # ##############################################################
 # # Collecting waagent tree
 
+WAAGENT_DIR="/var/lib/waagent"
+WAAGENT_FN="$(basename $WAAGENT_DIR).tree"
+
 for IP in $HOST_LIST
 do
     HOST_NAME=$(ssh -q -t $USER_NAME@$IP 'echo "$(hostname)"')
     
     log_level -i "Collecting waagent tree from [$HOST_NAME]"
-    
-    WAAGENT_DIR="/var/lib/waagent"
-    WAAGENT_FN="$(basename $WAAGENT_DIR).tree"
     
     log_level -i "Checking if [$WAAGENT_DIR] directory is available"
     DIRECTORY_TEST=$(ssh -q -t $USER_NAME@$IP "if [[ -d $WAAGENT_DIR ]]; then echo 'Exits'; fi")

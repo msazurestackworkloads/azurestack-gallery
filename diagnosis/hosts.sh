@@ -1,7 +1,7 @@
 # Collects the IP addresses of the hosts and agent nodes
 HOSTLIST=""
 KUBECTL_COMMAND=$(kubectl get nodes)
-if [[ $KUBECTL_COMMAND == *"NAME"* ]]; then 
+if [[ $KUBECTL_COMMAND == *"NAME"* ]]; then
     HOSTLIST=$(kubectl get nodes -o custom-columns=IP:.status.addresses[0].address --no-headers)
 else
     for ip in 10.240.0.{4..21};

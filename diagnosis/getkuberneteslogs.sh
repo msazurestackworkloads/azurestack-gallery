@@ -150,14 +150,13 @@ else
 fi
 
 if [[ $ALLNAMESPACES -eq 0 ]];then
-    unset NAMESPACES
     NAMESPACES="all"
 fi
 
 NOW=`date +%Y%m%d%H%M%S`
 CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
-LOGFILEFOLDER="./Diagnosis/KubernetesLogs_$CURRENTDATE"
-SCRIPTS_FOLDER="./Diagnosis/Scripts"
+LOGFILEFOLDER="./diagnosis/kuberneteslogs_$CURRENTDATE"
+SCRIPTS_FOLDER="./diagnosis/scripts"
 mkdir -p $SCRIPTS_FOLDER
 mkdir -p $LOGFILEFOLDER
 mkdir -p ~/.ssh
@@ -175,7 +174,7 @@ else
 fi
 
 # Download scripts from github
-if [[ $FORCE_DOWNLOAD == "yes" ]]; then
+if [[ "$FORCE_DOWNLOAD" == true ]]; then
     echo -e "$(date) [Info] Downloading scripts and overwriting"
     download_scripts $ARTIFACTSURL
 else
@@ -183,7 +182,7 @@ else
         echo -e "$(date) [Info] Scripts not available locally downloading"
         download_scripts $ARTIFACTSURL
     else
-        echo -e "$(date) [Info] Scripts available locally... skipping"
+        echo -e "$(date) [Info] Scripts available locally... skipping download"
     fi
 fi
 
@@ -199,7 +198,7 @@ log_level -i "MASTER_HOST: $MASTER_HOST"
 log_level -i "NAMESPACES: $NAMESPACES"
 log_level -i "RUN_COLLECT_DVM_LOGS: $RUN_COLLECT_DVM_LOGS"
 log_level -i "RUN_COLLECT_CLUSTER_LOG: $RUN_COLLECT_CLUSTER_LOG"
-log_level -i "RUN_SANITY_CHECKS: $RUN_SANITY_CHECKS"
+log_level -i "RUN_HEALTH_CHECKS: $RUN_HEALTH_CHECKS"
 log_level -i "RUN_DETECT_ERRORS: $RUN_DETECT_ERRORS"
 log_level -i "USER: $USER"
 log_level -i "-----------------------------------------------------------------------------"
@@ -256,19 +255,19 @@ if [[ ! -z $MASTER_HOST ]]; then
     done
 fi
 
-# Runs tests against the kubernetes cluster to check for cluster issues 
+# Runs tests against the kubernetes cluster to check for cluster issues
 log_level -i "--------------------------------------------------------------------------------------------------------------"
 
-if [[ $RUN_SANITY_CHECKS == "yes" && ! -z $MASTER_HOST ]]; then
-    log_level -i "Running cluster sanity checks"
+if [[ "$RUN_HEALTH_CHECKS" == true && ! -z $MASTER_HOST ]]; then
+    log_level -i "Running cluster health checks"
     source $SCRIPTS_FOLDER/clusterhealthcheck.sh -u $USER -h "$HOSTS" -o $LOGFILEFOLDER -s $SCRIPTS_FOLDER
 else
-    log_level -i "Skipping cluster sanity checks"
+    log_level -i "Skipping cluster health checks"
 fi
 log_level -i "--------------------------------------------------------------------------------------------------------------"
 
-# Collects logs from the master node as well as the agent nodes 
-if [[ $RUN_COLLECT_CLUSTER_LOGS == "yes" && ! -z $MASTER_HOST ]]; then
+# Collects logs from the master node as well as the agent nodes
+if [[ "$RUN_COLLECT_CLUSTER_LOGS" == true && ! -z $MASTER_HOST ]]; then
     log_level -i "Running cluster log collection"
     source $SCRIPTS_FOLDER/clusterlogs.sh -u $USER -h "$HOSTS" -o $LOGFILEFOLDER -n "$NAMESPACES" -s $SCRIPTS_FOLDER
 else
@@ -278,7 +277,7 @@ fi
 log_level -i "--------------------------------------------------------------------------------------------------------------"
 
 # Collects logs from the deployment virtual machine
-if [[ ! -z $DVM_HOST && $RUN_COLLECT_DVM_LOGS == "yes" ]]; then
+if [[ ! -z $DVM_HOST && "$RUN_COLLECT_DVM_LOGS" == true ]]; then
     log_level -i "Running dvm log collection"
     source $SCRIPTS_FOLDER/dvmlogs.sh -u $USER -o $LOGFILEFOLDER -d $DVM_HOST -s $SCRIPTS_FOLDER
 else
@@ -288,7 +287,7 @@ fi
 log_level -i "--------------------------------------------------------------------------------------------------------------"
 
 # Checking the the collected logs for known issues
-if [[ $RUN_DETECT_ERRORS == "yes" ]]; then
+if [[ "$RUN_DETECT_ERRORS" == true ]]; then
     log_level -i "Running error detection"
     source $SCRIPTS_FOLDER/detecterrors.sh -o $LOGFILEFOLDER -s $SCRIPTS_FOLDER
 else

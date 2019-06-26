@@ -1,9 +1,15 @@
 #! /bin/bash
 
 RED='\033[0;31m'    # For error
-GREEN='\033[0;32m'  # For crucial check success
-YELLOW='\033[0;33m'  # For crucial check success
-NC='\033[0m'        # No color, back to normal
+GREEN='\033[0;32m'  # For success
+YELLOW='\033[0;33m'  # For warnings
+DEFAULT='\033[0m'        # No color, back to normal
+
+OUTPUT_LOCATION=${1:-"output"} # where the log file exists
+SCRIPT_NAME=${2:-"script"} # source of the log data
+CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
+ERRFILENAME="$OUTPUT_LOCATION/$SCRIPT_NAME-Error-$CURRENTDATE.txt"
+TRACEFILENAME="$OUTPUT_LOCATION/$SCRIPT_NAME-Log-$CURRENTDATE.txt"
 
 ###
 #   <summary>
@@ -12,13 +18,6 @@ NC='\033[0m'        # No color, back to normal
 #   <param name="1">Log level</param>
 #   <param name="2">Message</param>
 ###
-OUTPUT_LOCATION=${1:-"output"} # where the log file exists
-SCRIPT_NAME=${2:-"script"} # source of the log data
-NOW=`date +%Y%m%d%H%M%S`
-CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
-ERRFILENAME="$OUTPUT_LOCATION/$SCRIPT_NAME-Error-$CURRENTDATE.txt"
-TRACEFILENAME="$OUTPUT_LOCATION/$SCRIPT_NAME-Log-$CURRENTDATE.txt"
-
 log_level()
 {
     case "$1" in
@@ -28,7 +27,7 @@ log_level()
         ;;
         -i) echo -e "${GREEN} $(date) [Info] " ${@:2} | tee -a $TRACEFILENAME
         ;;
-        *)  echo -e "${NC} $(date) [Debug] " ${@:2} | tee -a $TRACEFILENAME
+        *)  echo -e "${DEFAULT} $(date) [Debug] " ${@:2} | tee -a $TRACEFILENAME
         ;;
     esac
 }
@@ -125,7 +124,7 @@ find_cse_errors()
         if [ "$ERROR" ]; then
             log_level -w "===================="
             log_level -e "[VMExtensionProvisioningError] $ERROR"
-            log_level -e " Hint: The list of error codes can be found here: https://github.com/Azure/aks-engine/blob/master/parts/k8s/kubernetesprovisionsource.sh"
+            log_level -e " Hint: The list of error codes can be found here: https://github.com/Azure/aks-engine/blob/master/parts/k8s/cloud-init/artifacts/cse_helpers.sh"
             log_level -e " Log file source: $1"
         fi
     else
