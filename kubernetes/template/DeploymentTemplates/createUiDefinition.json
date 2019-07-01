@@ -386,13 +386,17 @@
         "name": "kubernetesAzureCloudProviderVersion",
         "type": "Microsoft.Common.DropDown",
         "label": "Kubernetes version",
-        "defaultValue": "1.11",
+        "defaultValue": "1.12",
         "toolTip": "This is the version for the Kubernetes Azure cloud provider.",
         "constraints": {
           "allowedValues": [
             {
-              "label": "1.11",
-              "value": "1.11"
+              "label": "1.12",
+              "value": "1.12"
+            },
+            {
+              "label": "1.13",
+              "value": "1.13"
             }
           ]
         },
@@ -413,7 +417,7 @@
         "name": "aksEngineReleaseVersion",
         "type": "Microsoft.Common.TextBox",
         "label": "AKS Engine release version",
-        "defaultValue": "v0.36.4",
+        "defaultValue": "v0.37.4",
         "toolTip": "The version of AKS Engine to download",
         "constraints": {
           "required": true
