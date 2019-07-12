@@ -232,6 +232,7 @@ log_level -i "K8S_IMAGE_BASE                            $K8S_IMAGE_BASE"
 log_level -i "MASTER_COUNT:                             $MASTER_COUNT"
 log_level -i "MASTER_DNS_PREFIX:                        $MASTER_DNS_PREFIX"
 log_level -i "MASTER_SIZE:                              $MASTER_SIZE"
+log_level -i "NODE_DISTRO:                              $NODE_DISTRO"
 log_level -i "PUBLICIP_DNS:                             $PUBLICIP_DNS"
 log_level -i "PUBLICIP_FQDN:                            $PUBLICIP_FQDN"
 log_level -i "REGION_NAME:                              $REGION_NAME"
@@ -341,8 +342,10 @@ cat $AZURESTACK_CONFIGURATION | \
 jq --arg ENDPOINT_PORTAL $ENDPOINT_PORTAL '.properties.customCloudProfile.portalURL = $ENDPOINT_PORTAL'| \
 jq --arg REGION_NAME $REGION_NAME '.location = $REGION_NAME' | \
 jq --arg MASTER_DNS_PREFIX $MASTER_DNS_PREFIX '.properties.masterProfile.dnsPrefix = $MASTER_DNS_PREFIX' | \
+jq --arg NODE_DISTRO $NODE_DISTRO '.properties.masterProfile.distro = $NODE_DISTRO' | \
 jq '.properties.agentPoolProfiles[0].count'=$AGENT_COUNT | \
 jq --arg AGENT_SIZE $AGENT_SIZE '.properties.agentPoolProfiles[0].vmSize=$AGENT_SIZE' | \
+jq --arg NODE_DISTRO $NODE_DISTRO '.properties.agentPoolProfiles[0].distro=$NODE_DISTRO' | \
 jq '.properties.masterProfile.count'=$MASTER_COUNT | \
 jq --arg MASTER_SIZE $MASTER_SIZE '.properties.masterProfile.vmSize=$MASTER_SIZE' | \
 jq --arg ADMIN_USERNAME $ADMIN_USERNAME '.properties.linuxProfile.adminUsername = $ADMIN_USERNAME' | \

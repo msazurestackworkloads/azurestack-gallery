@@ -38,6 +38,9 @@
     "identitySystem": {
       "value": ""
     },
+    "nodeDistro": {
+      "value": ""
+    },    
     "aksEngineBaseURL": {
       "value": ""
     },

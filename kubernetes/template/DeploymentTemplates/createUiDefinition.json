@@ -363,6 +363,25 @@
         "visible": true
       },
       {
+        "name": "nodeDistro",
+        "type": "Microsoft.Common.DropDown",
+        "label": "Kubernetes node distro",
+        "defaultValue": "ubuntu",
+        "toolTip": "Kubernetes node distro.",
+        "constraints": {
+          "allowedValues": [{
+              "label": "Ubuntu",
+              "value": "ubuntu"
+            },
+            {
+              "label": "AKS",
+              "value": "aks"
+            }
+          ]
+        },
+        "visible": false
+      },
+      {
         "name": "servicePrincipalClientId",
         "type": "Microsoft.Common.TextBox",
         "label": "Service principal clientId",
@@ -480,6 +499,7 @@
       "storageProfile": "[steps('KubernetesClusterSettings').storageProfile]",
       "servicePrincipalClientId": "[steps('KubernetesClusterSettings').servicePrincipalClientId]",
       "identitySystem": "[steps('KubernetesClusterSettings').identitySystem]",
+      "nodeDistro": "[steps('KubernetesClusterSettings').nodeDistro]",
       "servicePrincipalClientSecret": "[steps('KubernetesClusterSettings').servicePrincipalClientSecret]",
       "kubernetesAzureCloudProviderVersion": "[steps('KubernetesClusterSettings').kubernetesAzureCloudProviderVersion]",
       "aksEngineBaseURL": "[steps('KubernetesClusterSettings').aksEngineBaseURL]",
