@@ -366,7 +366,7 @@
         "name": "nodeDistro",
         "type": "Microsoft.Common.DropDown",
         "label": "Kubernetes node distro",
-        "defaultValue": "ubuntu",
+        "defaultValue": "Ubuntu",
         "toolTip": "Kubernetes node distro.",
         "constraints": {
           "allowedValues": [{
