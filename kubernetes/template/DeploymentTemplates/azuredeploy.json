@@ -135,7 +135,7 @@
         "aks"
       ],
       "metadata": {
-        "description": "Node distro to be used to deploy Kubernetes on Azure Stack. The value could be ubuntu or aks."
+        "description": "Node distro to be used to deploy Kubernetes on Azure Stack."
       },
       "type": "string"
     }
