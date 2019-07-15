@@ -1,0 +1,5 @@
+{
+    "UpdateTestBlob": "staging",
+    "StagingStorageAccountName": "azswlkstaging",
+    "MasterStorageAccountName": "azurestacktemplate"
+}
