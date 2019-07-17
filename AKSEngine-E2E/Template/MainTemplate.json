@@ -1,0 +1,236 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "linuxAdminUsername": {
+      "type": "string",
+      "defaultValue": "azureuser",
+      "metadata": {
+        "description": "User name for the Linux Virtual Machines that are part of the Kubernetes cluster and DVM."
+      }
+    },
+    "sshPublicKey": {
+      "metadata": {
+        "description": "SSH public key used for auth to all Linux machines created as part of the the Kubernetes cluster and DVM."
+      },
+      "type": "string"
+    },
+    "masterProfileDnsPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "This must be a region-unique name e.g. k8s-12345. Try to chose it same as the resource group name as best practice."
+      }
+    },
+    "agentPoolProfileCount": {
+      "defaultValue": 3,
+      "metadata": {
+        "description": "Kubernetes Node Pool Profile Count"
+      },
+      "type": "int"
+    },
+    "agentPoolProfileVMSize": {
+      "defaultValue": "Standard_D2_v2",
+      "metadata": {
+        "description": "The VMSize of Kubernetes node VMs"
+      },
+      "type": "string"
+    },
+    "masterPoolProfileCount": {
+      "defaultValue": 3,
+      "metadata": {
+        "description": "Kubernetes Master Pool Profile Count"
+      },
+      "type": "int"
+    },
+    "masterPoolProfileVMSize": {
+      "defaultValue": "Standard_D2_v2",
+      "metadata": {
+        "description": "The VMSize of Kubernetes master VMs"
+      },
+      "type": "string"
+    },
+    "storageProfile": {
+      "defaultValue": "manageddisk",
+      "metadata": {
+        "description": "The Storage Profile"
+      },
+      "type": "string"
+    },
+    "servicePrincipalClientId": {
+      "metadata": {
+        "description": "The Service Principal application ID (used by the Kubernetes Azure cloud provider). More help here: https://github.com/Azure/acs-engine/blob/master/docs/serviceprincipal.md"
+      },
+      "type": "securestring"
+    },
+    "servicePrincipalClientSecret": {
+      "defaultValue": "servicePrincipalClientSecret",
+      "metadata": {
+        "description": "The Service Principal Client Secret."
+      },
+      "type": "securestring"
+    },
+    "identitySystem": {
+      "defaultValue": "AzureAD",
+      "allowedValues": [
+        "AzureAD",
+        "ADFS"
+      ],
+      "metadata": {
+        "description": "The identity system of azure stack. The value could be AzureAD or ADFS"
+      },
+      "type": "string"
+    },
+    "aksEngineNodeCount": {
+      "defaultValue": 5,
+      "metadata": {
+        "description": "The aks engine scale node count"
+      },
+      "type": "int"
+    },
+    "aksEngineUpgradeVersion": {
+      "metadata": {
+        "description": "The kubernetes upgrade version using aks engine"
+      },
+      "type": "string"
+    },
+
+    "aksEngineApiModel": {
+      "defaultValue":"https://raw.githubusercontent.com/honcao/aks-engine/e2e/examples/kubernetes-azure-stack.json",
+      "metadata": {
+        "description": "The API Model to be used for kubernetes deployment using aks engine "
+      },
+      "type": "string"
+    },
+
+    "aksEngineRepository": {
+      "metadata": {
+        "description": "The Aks Engine Repository to be used for building aks engine binary"
+      },
+      "type": "string"
+    },
+
+    "aksEngineBranch": {
+      "metadata": {
+        "description": "The Aks Engine branch to be used for building the aks engine binary"
+      },
+      "type": "string"
+    },
+    "kubernetesAzureCloudProviderVersion": {
+      "type": "string",
+      "defaultValue": "1.11",
+      "metadata": {
+        "description": "This is the version for the Kubernetes Azure cloud provider. We would use a custom Kubernetes build specifically for Azure Stack for each version."
+      }
+    },
+    "_artifactsLocation": {
+      "type": "string",
+      "metadata": {
+        "description": "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
+      },
+      "defaultValue": "[deployment().properties.templateLink.uri]"
+    }
+  },
+  "variables": {
+    "resourceGroupName": "[resourceGroup().name]",
+    "dnsNameForPublicIP": "[toLower(concat('vmd-dns', parameters('masterProfileDnsPrefix')))]",
+    "location": "[resourceGroup().location]",
+    "imagePublisher": "Canonical",
+    "imageOffer": "UbuntuServer",
+    "imageSku": "16.04-LTS",
+    "imageVersion": "latest",
+    "vmSize": "Standard_D2_v2",
+    "OSDiskName": "osdisk",
+    "nicName": "[concat('vmd-vnic', uniqueString(resourceGroup().id))]",
+    "addressPrefix": "10.0.0.0/24",
+    "subnetName": "mySubnet",
+    "subnetPrefix": "10.0.0.0/24",
+    "storageAccountName": "[concat('vmdsa', uniquestring(resourceGroup().id))]",
+    "storageAccountType": "Standard_LRS",
+    "publicIPAddressName": "[concat('vmd-publicIP', uniqueString(resourceGroup().id))]",
+    "publicIPAddressType": "Static",
+    "vmStorageAccountContainerName": "vhds",
+    "vmName": "[concat('vmd-', uniqueString(resourceGroup().id))]",
+    "virtualNetworkName": "[concat('vmd-vnet-', uniqueString(resourceGroup().id))]",
+    "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
+    "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
+    "networkSecurityGroupName": "[tolower(concat('vmd-nsg',uniquestring(resourceGroup().id)))]",
+    "sshKeyPath": "[concat('/home/',parameters('linuxAdminUsername'),'/.ssh/authorized_keys')]",
+    "tenantSubscriptionId": "[subscription().subscriptionId]",
+    "scriptName": "script",
+    "singleQuote": "'",
+    "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"',' AKSENGINE_NODE_COUNT=','\"',parameters('aksEngineNodeCount'),'\"',' AKSENGINE_UPGRADE_VERSION=','\"',parameters('aksEngineUpgradeVersion'),'\"',' AKSENGINE_API_MODEL=','\"',parameters('aksEngineApiModel'),'\"',' AKSENGINE_REPO=','\"',parameters('aksEngineRepository'),'\"',' AKSENGINE_BRANCH=','\"',parameters('aksEngineBranch'),'\"')]"
+  },
+  "resources": [
+    {
+      "apiVersion": "2015-01-01",
+      "name": "dvmdeployment",
+      "type": "Microsoft.Resources/deployments",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "contentVersion": "1.0.0.0",
+          "uri": "[uri(parameters('_artifactsLocation'), 'azuredeploy.json')]"
+        },
+        "parameters": {
+          "linuxAdminUsername": {
+            "value": "[parameters('linuxAdminUsername')]"
+          },
+          "sshPublicKey": {
+            "value": "[parameters('sshPublicKey')]"
+          },
+          "masterProfileDnsPrefix": {
+            "value": "[parameters('masterProfileDnsPrefix')]"
+          },
+          "agentPoolProfileCount": {
+            "value": "[parameters('agentPoolProfileCount')]"
+          },
+          "agentPoolProfileVMSize": {
+            "value": "[parameters('agentPoolProfileVMSize')]"
+          },
+          "masterPoolProfileCount": {
+            "value": "[parameters('masterPoolProfileCount')]"
+          },
+          "masterPoolProfileVMSize": {
+            "value": "[parameters('masterPoolProfileVMSize')]"
+          },
+          "storageProfile": {
+            "value": "[parameters('storageProfile')]"
+          },
+          "servicePrincipalClientId": {
+            "value": "[parameters('servicePrincipalClientId')]"
+          },
+          "servicePrincipalClientSecret": {
+            "value": "[parameters('servicePrincipalClientSecret')]"
+          }, 
+          "kubernetesAzureCloudProviderVersion": {
+            "value": "[parameters('kubernetesAzureCloudProviderVersion')]"
+          },
+          "identitySystem": {
+            "value": "[parameters('identitySystem')]"
+          },
+          "aksEngineNodeCount": {
+            "value": "[parameters('aksEngineNodeCount')]"
+          },
+          "aksEngineUpgradeVersion": {
+            "value": "[parameters('aksEngineUpgradeVersion')]"
+          },
+          "aksEngineApiModel": {
+            "value": "[parameters('aksEngineApiModel')]"
+          },
+          "aksEngineRepository": {
+            "value": "[parameters('aksEngineRepository')]"
+          },
+          "aksEngineBranch": {
+            "value": "[parameters('aksEngineBranch')]"
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "dvmPublicIpFqdn": {
+      "type": "string",
+      "value": "[reference('dvmdeployment').outputs.dvmPublicIpFqdn.value]"
+    }
+  }
+}
