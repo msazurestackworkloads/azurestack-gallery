@@ -1,0 +1,57 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "linuxAdminUsername": {
+      "value": ""
+    },
+    "sshPublicKey": {
+      "value": ""
+    },
+    "masterProfileDnsPrefix": {
+      "value": ""
+    },
+    "agentPoolProfileCount": {
+      "value": 1
+    },
+    "agentPoolProfileVMSize": {
+      "value": ""
+    },
+    "masterPoolProfileCount": {
+      "value": 2
+    },
+    "masterPoolProfileVMSize": {
+      "value": ""
+    },
+    "storageProfile": {
+      "value": ""
+    },
+    "servicePrincipalClientId": {
+      "value": ""
+    },
+    "servicePrincipalClientSecret": {
+      "value": ""
+    },
+    "kubernetesAzureCloudProviderVersion": {
+      "value": ""
+    },
+    "identitySystem": {
+      "value": ""
+    },
+    "aksEngineNodeCount": {
+      "value": 5
+    },
+    "aksEngineUpgradeVersion": {
+      "value": ""
+    },
+    "aksEngineApiModel": {
+      "value": "https://raw.githubusercontent.com/honcao/aks-engine/e2e/examples/kubernetes-azure-stack.json"
+    },
+    "aksEngineRepository": {
+      "value": ""
+    },
+    "aksEngineBranch": {
+      "value": ""
+    }
+  }
+}
