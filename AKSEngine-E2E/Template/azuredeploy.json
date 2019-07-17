@@ -1,0 +1,337 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "linuxAdminUsername": {
+      "type": "string",
+      "defaultValue": "azureuser",
+      "metadata": {
+        "description": "User name for the Linux Virtual Machines that are part of the Kubernetes cluster and DVM."
+      }
+    },
+    "sshPublicKey": {
+      "metadata": {
+        "description": "SSH public key used for auth to all Linux machines created as part of the the Kubernetes cluster and DVM."
+      },
+      "type": "string"
+    },
+    "masterProfileDnsPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "This must be a region-unique name e.g. k8s-12345. Try to chose it same as the resource group name as best practice."
+      }
+    },
+    "agentPoolProfileCount": {
+      "defaultValue": 3,
+      "metadata": {
+        "description": "Kubernetes Node Pool Profile Count"
+      },
+      "type": "int"
+    },
+    "agentPoolProfileVMSize": {
+      "defaultValue": "Standard_D2_v2",
+      "metadata": {
+        "description": "The VMSize of Kubernetes node VMs"
+      },
+      "type": "string"
+    },
+    "masterPoolProfileCount": {
+      "defaultValue": 3,
+      "metadata": {
+        "description": "Kubernetes Master Pool Profile Count"
+      },
+      "type": "int"
+    },
+    "masterPoolProfileVMSize": {
+      "defaultValue": "Standard_D2_v2",
+      "metadata": {
+        "description": "The VMSize of Kubernetes master VMs"
+      },
+      "type": "string"
+    },
+    "storageProfile": {
+      "defaultValue": "manageddisk",
+      "metadata": {
+        "description": "The Storage Profile"
+      },
+      "type": "string"
+    },
+    "servicePrincipalClientId": {
+      "metadata": {
+        "description": "The Service Principal application ID (used by the Kubernetes Azure cloud provider). More help here: https://github.com/Azure/aks-engine/blob/master/docs/topics/service-principals.md"
+      },
+      "type": "securestring"
+    },
+    "servicePrincipalClientSecret": {
+      "metadata": {
+        "description": "The Service Principal Client Secret."
+      },
+      "type": "securestring"
+    },
+    "identitySystem": {
+      "defaultValue": "AzureAD",
+      "allowedValues": [
+        "AzureAD",
+        "ADFS"
+      ],
+      "metadata": {
+        "description": "The identity system of azure stack. The value could be AzureAD or ADFS"
+      },
+      "type": "string"
+    },
+    "aksEngineNodeCount": {
+      "defaultValue": 5,
+      "metadata": {
+        "description": "The aks engine scale node count"
+      },
+      "type": "int"
+    },
+    "aksEngineUpgradeVersion": {
+      "metadata": {
+        "description": "The kubernetes upgrade version using aks engine"
+      },
+      "type": "string"
+    },
+    "aksEngineApiModel": {
+      "defaultValue":"https://raw.githubusercontent.com/honcao/aks-engine/e2e/examples/kubernetes-azure-stack.json",
+      "metadata": {
+        "description": "The API Model to be used for kubernetes deployment using aks engine "
+      },
+      "type": "string"
+    },
+
+    "aksEngineRepository": {
+      "metadata": {
+        "description": "The Aks Engine Repository to be used for building aks engine binary"
+      },
+      "type": "string"
+    },
+
+    "aksEngineBranch": {
+      "metadata": {
+        "description": "The Aks Engine branch to be used for building the aks engine binary"
+      },
+      "type": "string"
+    },
+    "kubernetesAzureCloudProviderVersion": {
+      "type": "string",
+      "defaultValue": "1.11",
+      "metadata": {
+        "description": "This is the version for the Kubernetes Azure cloud provider. We would use a custom Kubernetes build specifically for Azure Stack for each version."
+      }
+    }
+  },
+  "variables": {
+    "resourceGroupName": "[resourceGroup().name]",
+    "dnsNameForPublicIP": "[toLower(concat('vmd-dns', parameters('masterProfileDnsPrefix')))]",
+    "location": "[resourceGroup().location]",
+    "imagePublisher": "Canonical",
+    "imageOffer": "UbuntuServer",
+    "imageSku": "16.04-LTS",
+    "imageVersion": "latest",
+    "vmSize": "Standard_D2_v2",
+    "OSDiskName": "osdisk",
+    "nicName": "[concat('vmd-vnic', uniqueString(resourceGroup().id))]",
+    "addressPrefix": "10.0.0.0/24",
+    "subnetName": "mySubnet",
+    "subnetPrefix": "10.0.0.0/24",
+    "storageAccountName": "[concat('vmdsa', uniquestring(resourceGroup().id))]",
+    "storageAccountType": "Standard_LRS",
+    "publicIPAddressName": "[concat('vmd-publicIP', uniqueString(resourceGroup().id))]",
+    "publicIPAddressType": "Static",
+    "vmStorageAccountContainerName": "vhds",
+    "vmName": "[concat('vmd-', uniqueString(resourceGroup().id))]",
+    "virtualNetworkName": "[concat('vmd-vnet-', uniqueString(resourceGroup().id))]",
+    "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
+    "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
+    "networkSecurityGroupName": "[tolower(concat('vmd-nsg',uniquestring(resourceGroup().id)))]",
+    "sshKeyPath": "[concat('/home/',parameters('linuxAdminUsername'),'/.ssh/authorized_keys')]",
+    "tenantSubscriptionId": "[subscription().subscriptionId]",
+    "scriptName": "script",
+    "singleQuote": "'",
+    "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"',' AKSENGINE_NODE_COUNT=','\"',parameters('aksEngineNodeCount'),'\"',' AKSENGINE_UPGRADE_VERSION=','\"',parameters('aksEngineUpgradeVersion'),'\"',' AKSENGINE_API_MODEL=','\"',parameters('aksEngineApiModel'),'\"',' AKSENGINE_REPO=','\"',parameters('aksEngineRepository'),'\"',' AKSENGINE_BRANCH=','\"',parameters('aksEngineBranch'),'\"')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[toLower(variables('storageAccountName'))]",
+      "apiVersion": "2015-06-15",
+      "location": "[variables('location')]",
+      "properties": {
+        "accountType": "[variables('storageAccountType')]"
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[variables('networkSecurityGroupName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "ssh",
+            "properties": {
+              "description": "Allow SSH",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "22",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 200,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[variables('publicIPAddressName')]",
+      "location": "[variables('location')]",
+      "properties": {
+        "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
+        "dnsSettings": {
+          "domainNameLabel": "[variables('dnsNameForPublicIP')]"
+        }
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "[variables('virtualNetworkName')]",
+      "location": "[variables('location')]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('addressPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('subnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('subnetPrefix')]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[variables('nicName')]",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'))]",
+        "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
+        "[variables('networkSecurityGroupName')]"
+      ],
+      "properties": {
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+        },
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName'))]"
+              },
+              "subnet": {
+                "id": "[variables('subnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2016-03-30",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[variables('vmName')]",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]",
+        "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'))]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('vmSize')]"
+        },
+        "osProfile": {
+          "customData": "[base64(concat('#cloud-config\n\nwrite_files:\n- path: \"/opt/azure/containers/script.sh\"\n  permissions: \"0744\"\n  encoding: gzip\n  owner: \"root\"\n  content: !!binary |\n    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'))]",
+          "computerName": "[variables('vmName')]",
+          "adminUsername": "[parameters('linuxAdminUsername')]",
+          "linuxConfiguration": {
+            "disablePasswordAuthentication": "true",
+            "ssh": {
+              "publicKeys": [
+                {
+                  "keyData": "[parameters('sshPublicKey')]",
+                  "path": "[variables('sshKeyPath')]"
+                }
+              ]
+            }
+          }
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('imagePublisher')]",
+            "offer": "[variables('imageOffer')]",
+            "sku": "[variables('imageSku')]",
+            "version": "[variables('imageVersion')]"
+          },
+          "osDisk": {
+            "name": "osdisk",
+            "vhd": {
+              "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob, variables('vmStorageAccountContainerName'),'/',variables('OSDiskName'),'.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('nicName'))]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": "true",
+            "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob]"
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(variables('vmName'),'/LinuxCustomScriptExtension')]",
+      "apiVersion": "2016-03-30",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'))]",
+        "[concat('Microsoft.Compute/virtualMachines/', variables('vmName'))]"
+      ],
+      "properties": {
+        "publisher": "Microsoft.Azure.Extensions",
+        "type": "CustomScript",
+        "typeHandlerVersion": "2.0",
+        "autoUpgradeMinorVersion": "true",
+        "protectedSettings": {
+          "commandToExecute": "[concat(variables('scriptParameters'), ' PUBLICIP_FQDN=', '\"', reference(resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName')),'2015-06-15').dnsSettings.fqdn,'\"',' /bin/bash /opt/azure/containers/script.sh >> /var/log/azure/deploy-script-dvm.log 2>&1')]"
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "dvmPublicIpFqdn": {
+      "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName')),'2015-06-15').dnsSettings.fqdn]",
+      "type": "string"
+    }
+  }
+}
