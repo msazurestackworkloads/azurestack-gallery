@@ -50,6 +50,9 @@
     "agentSubnetName": {
       "value": ""
     },
+     "firstConsecutiveStaticIP": {
+      "value": ""
+    },
     "aksEngineBaseURL": {
       "value": ""
     },
