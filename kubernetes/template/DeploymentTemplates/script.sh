@@ -226,6 +226,7 @@ log_level -i "AKSE_BASE_URL                             $AKSE_BASE_URL"
 log_level -i "AKSE_RELEASE_VERSION                      $AKSE_RELEASE_VERSION"
 log_level -i "CUSTOM_VNET_NAME:                         $CUSTOM_VNET_NAME"
 log_level -i "DEFINITION_TEMPLATE_NAME:                 $DEFINITION_TEMPLATE_NAME"
+log_level -i "FIRST_CONSECUTIVE_STATIC_IP:              $FIRST_CONSECUTIVE_STATIC_IP"
 log_level -i "GALLERY_BRANCH:                           $GALLERY_BRANCH"
 log_level -i "GALLERY_REPO:                             $GALLERY_REPO"
 log_level -i "IDENTITY_SYSTEM:                          $IDENTITY_SYSTEM"
@@ -345,8 +346,9 @@ if [ $CUSTOM_VNET_NAME != "" ]; then
     AGENT_VNET_ID="/subscriptions/$TENANT_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP_NAME/providers/Microsoft.Network/virtualNetworks/$CUSTOM_VNET_NAME/subnets/$AGENT_SUBNET_NAME"
 
     cat $AZURESTACK_CONFIGURATION | \
-    jq --arg MASTER_VNET_ID $MASTER_VNET_ID '.properties.masterProfile.vnetSubnetId = $MASTER_VNET_ID '| \
-    jq --arg AGENT_VNET_ID $AGENT_VNET_ID '.properties.agentPoolProfiles[0].vnetSubnetId = $AGENT_VNET_ID ' \
+    jq --arg MASTER_VNET_ID $MASTER_VNET_ID  '.properties.masterProfile += {"vnetSubnetId": $MASTER_VNET_ID } '| \
+    jq --arg FIRST_CONSECUTIVE_STATIC_IP $FIRST_CONSECUTIVE_STATIC_IP  '.properties.masterProfile += {"firstConsecutiveStaticIP": $FIRST_CONSECUTIVE_STATIC_IP } ' | \
+    jq --arg AGENT_VNET_ID $AGENT_VNET_ID '.properties.agentPoolProfiles[0] += {"vnetSubnetId": $AGENT_VNET_ID } '  \
     > $AZURESTACK_CONFIGURATION_TEMP
 
     validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
