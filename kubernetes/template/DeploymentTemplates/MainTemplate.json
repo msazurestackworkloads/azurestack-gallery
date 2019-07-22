@@ -154,7 +154,7 @@
       "type": "string",
       "defaultValue": "10.100.0.5",
       "metadata": {
-        "description": "Name of the agent subnet"
+        "description": "First Consective Static IP"
       }
     },
     "nodeDistro": {
