@@ -128,6 +128,27 @@
         "description": "The base for Kubernetes images"
       }
     },
+    "customVnetName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Name of the custom vnet"
+      }
+    },
+    "masterSubnetName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Name of the master subnet"
+      }
+    },
+    "agentSubnetName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Name of the agent subnet"
+      }
+    },
     "nodeDistro": {
       "defaultValue": "ubuntu",
       "allowedValues": [
@@ -168,7 +189,7 @@
     "tenantSubscriptionId": "[subscription().subscriptionId]",
     "scriptName": "script",
     "singleQuote": "'",
-    "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' NODE_DISTRO=','\"',parameters('nodeDistro'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"',' AKSE_BASE_URL=','\"',parameters('aksEngineBaseURL'), '\"', ' AKSE_RELEASE_VERSION=','\"',parameters('aksEngineReleaseVersion'),'\"',' GALLERY_REPO=','\"',parameters('galleryRepository'),'\"',' GALLERY_BRANCH=','\"',parameters('galleryBranch'),'\"',' DEFINITION_TEMPLATE_NAME=','\"',parameters('clusterDefinitionFileName'),'\"',' K8S_IMAGE_BASE=','\"',parameters('kubernetesImageBase'),'\"')]"
+    "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' AGENT_SUBNET_NAME=','\"',parameters('agentSubnetName'),'\"',' MASTER_SUBNET_NAME=','\"',parameters('masterSubnetName'),'\"',' CUSTOM_VNET_NAME=','\"',parameters('customVnetName'),'\"',' NODE_DISTRO=','\"',parameters('nodeDistro'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"',' AKSE_BASE_URL=','\"',parameters('aksEngineBaseURL'), '\"', ' AKSE_RELEASE_VERSION=','\"',parameters('aksEngineReleaseVersion'),'\"',' GALLERY_REPO=','\"',parameters('galleryRepository'),'\"',' GALLERY_BRANCH=','\"',parameters('galleryBranch'),'\"',' DEFINITION_TEMPLATE_NAME=','\"',parameters('clusterDefinitionFileName'),'\"',' K8S_IMAGE_BASE=','\"',parameters('kubernetesImageBase'),'\"')]"
   },
   "resources": [
     {
