@@ -250,6 +250,15 @@
           "nodeDistro": {
             "value": "[parameters('nodeDistro')]"
           },
+          "customVnetName": {
+            "value": "[parameters('customVnetName')]"
+          },
+          "masterSubnetName": {
+            "value": "[parameters('masterSubnetName')]"
+          },
+          "agentSubnetName": {
+            "value": "[parameters('agentSubnetName')]"
+          },
           "aksEngineBaseURL": {
             "value": "[parameters('aksEngineBaseURL')]"
           },
