@@ -221,9 +221,12 @@ log_level -i "------------------------------------------------------------------
 log_level -i "ADMIN_USERNAME:                           $ADMIN_USERNAME"
 log_level -i "AGENT_COUNT:                              $AGENT_COUNT"
 log_level -i "AGENT_SIZE:                               $AGENT_SIZE"
+log_level -i "AGENT_SUBNET_NAME:                        $AGENT_SUBNET_NAME"
 log_level -i "AKSE_BASE_URL                             $AKSE_BASE_URL"
 log_level -i "AKSE_RELEASE_VERSION                      $AKSE_RELEASE_VERSION"
+log_level -i "CUSTOM_VNET_NAME:                         $CUSTOM_VNET_NAME"
 log_level -i "DEFINITION_TEMPLATE_NAME:                 $DEFINITION_TEMPLATE_NAME"
+log_level -i "FIRST_CONSECUTIVE_STATIC_IP:              $FIRST_CONSECUTIVE_STATIC_IP"
 log_level -i "GALLERY_BRANCH:                           $GALLERY_BRANCH"
 log_level -i "GALLERY_REPO:                             $GALLERY_REPO"
 log_level -i "IDENTITY_SYSTEM:                          $IDENTITY_SYSTEM"
@@ -232,6 +235,7 @@ log_level -i "K8S_IMAGE_BASE                            $K8S_IMAGE_BASE"
 log_level -i "MASTER_COUNT:                             $MASTER_COUNT"
 log_level -i "MASTER_DNS_PREFIX:                        $MASTER_DNS_PREFIX"
 log_level -i "MASTER_SIZE:                              $MASTER_SIZE"
+log_level -i "MASTER_SUBNET_NAME:                       $MASTER_SUBNET_NAME"
 log_level -i "NODE_DISTRO:                              $NODE_DISTRO"
 log_level -i "PUBLICIP_DNS:                             $PUBLICIP_DNS"
 log_level -i "PUBLICIP_FQDN:                            $PUBLICIP_FQDN"
@@ -332,6 +336,25 @@ else
 fi
 
 log_level -i "ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT: $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT"
+
+#####################################################################################
+#custom vnet config 
+
+if [ $CUSTOM_VNET_NAME != "" ]; then
+    log_level -i "Setting general custom vnet properties."
+    MASTER_VNET_ID="/subscriptions/$TENANT_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP_NAME/providers/Microsoft.Network/virtualNetworks/$CUSTOM_VNET_NAME/subnets/$MASTER_SUBNET_NAME"
+    AGENT_VNET_ID="/subscriptions/$TENANT_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP_NAME/providers/Microsoft.Network/virtualNetworks/$CUSTOM_VNET_NAME/subnets/$AGENT_SUBNET_NAME"
+
+    cat $AZURESTACK_CONFIGURATION | \
+    jq --arg MASTER_VNET_ID $MASTER_VNET_ID  '.properties.masterProfile += {"vnetSubnetId": $MASTER_VNET_ID } '| \
+    jq --arg FIRST_CONSECUTIVE_STATIC_IP $FIRST_CONSECUTIVE_STATIC_IP  '.properties.masterProfile += {"firstConsecutiveStaticIP": $FIRST_CONSECUTIVE_STATIC_IP } ' | \
+    jq --arg AGENT_VNET_ID $AGENT_VNET_ID '.properties.agentPoolProfiles[0] += {"vnetSubnetId": $AGENT_VNET_ID } '  \
+    > $AZURESTACK_CONFIGURATION_TEMP
+
+    validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
+
+    log_level -i "Done building custom vnet  definition."
+fi
 
 #####################################################################################
 # apimodel gen

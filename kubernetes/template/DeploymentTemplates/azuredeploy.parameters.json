@@ -40,7 +40,19 @@
     },
     "nodeDistro": {
       "value": ""
-    },    
+    },  
+    "customVnetName": {
+      "value": ""
+    },
+    "masterSubnetName": {
+      "value": ""
+    },
+    "agentSubnetName": {
+      "value": ""
+    },
+     "firstConsecutiveStaticIP": {
+      "value": ""
+    },
     "aksEngineBaseURL": {
       "value": ""
     },
