@@ -14,11 +14,12 @@ HOSTLIST=$WD/host.list
 rm -f $HOSTLIST
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Searching for cluster nodes"
-for ip in 10.240.0.{4..21};
+#If the node count increases ip ranges needs to be modified 
+for ip in 10.240.0.{4..100};
 do
     ping -c 1 -W 1 $ip | grep "64 bytes" | cut -d " " -f 4 | cut -d ":" -f 1 >> $HOSTLIST
 done
-for ip in 10.240.255.{5..12};
+for ip in 10.240.255.{5..100};
 do
     ping -c 1 -W 1 $ip | grep "64 bytes" | cut -d " " -f 4 | cut -d ":" -f 1 >> $HOSTLIST
 done
