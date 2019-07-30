@@ -95,7 +95,7 @@
     },
     "aksEngineReleaseVersion": {
       "type": "string",
-      "defaultValue": "v0.37.4",
+      "defaultValue": "v0.38.5",
       "metadata": {
         "description": "The version of AKS Engine to download"
       }
