@@ -224,6 +224,7 @@ log_level -i "AGENT_SIZE:                               $AGENT_SIZE"
 log_level -i "AGENT_SUBNET_NAME:                        $AGENT_SUBNET_NAME"
 log_level -i "AKSE_BASE_URL                             $AKSE_BASE_URL"
 log_level -i "AKSE_RELEASE_VERSION                      $AKSE_RELEASE_VERSION"
+log_level -i "AVAILABILITY_PROFILE                      $AVAILABILITY_PROFILE"
 log_level -i "CUSTOM_VNET_NAME:                         $CUSTOM_VNET_NAME"
 log_level -i "DEFINITION_TEMPLATE_NAME:                 $DEFINITION_TEMPLATE_NAME"
 log_level -i "FIRST_CONSECUTIVE_STATIC_IP:              $FIRST_CONSECUTIVE_STATIC_IP"
@@ -236,6 +237,7 @@ log_level -i "MASTER_COUNT:                             $MASTER_COUNT"
 log_level -i "MASTER_DNS_PREFIX:                        $MASTER_DNS_PREFIX"
 log_level -i "MASTER_SIZE:                              $MASTER_SIZE"
 log_level -i "MASTER_SUBNET_NAME:                       $MASTER_SUBNET_NAME"
+log_level -i "NETWORK_PLUGIN:                           $NETWORK_PLUGIN"
 log_level -i "NODE_DISTRO:                              $NODE_DISTRO"
 log_level -i "PUBLICIP_DNS:                             $PUBLICIP_DNS"
 log_level -i "PUBLICIP_FQDN:                            $PUBLICIP_FQDN"
@@ -340,7 +342,7 @@ log_level -i "ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT: $ENDPOINT_ACTIVE_DIRECTORY_END
 #####################################################################################
 #custom vnet config 
 
-if [ $CUSTOM_VNET_NAME != "" ]; then
+if [ "$CUSTOM_VNET_NAME" != "" ]; then
     log_level -i "Setting general custom vnet properties."
     MASTER_VNET_ID="/subscriptions/$TENANT_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP_NAME/providers/Microsoft.Network/virtualNetworks/$CUSTOM_VNET_NAME/subnets/$MASTER_SUBNET_NAME"
     AGENT_VNET_ID="/subscriptions/$TENANT_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP_NAME/providers/Microsoft.Network/virtualNetworks/$CUSTOM_VNET_NAME/subnets/$AGENT_SUBNET_NAME"
@@ -369,6 +371,7 @@ jq --arg NODE_DISTRO $NODE_DISTRO '.properties.masterProfile.distro = $NODE_DIST
 jq '.properties.agentPoolProfiles[0].count'=$AGENT_COUNT | \
 jq --arg AGENT_SIZE $AGENT_SIZE '.properties.agentPoolProfiles[0].vmSize=$AGENT_SIZE' | \
 jq --arg NODE_DISTRO $NODE_DISTRO '.properties.agentPoolProfiles[0].distro=$NODE_DISTRO' | \
+jq --arg AVAILABILITY_PROFILE $AVAILABILITY_PROFILE '.properties.agentPoolProfiles[0].availabilityProfile=$AVAILABILITY_PROFILE' | \
 jq '.properties.masterProfile.count'=$MASTER_COUNT | \
 jq --arg MASTER_SIZE $MASTER_SIZE '.properties.masterProfile.vmSize=$MASTER_SIZE' | \
 jq --arg ADMIN_USERNAME $ADMIN_USERNAME '.properties.linuxProfile.adminUsername = $ADMIN_USERNAME' | \
@@ -378,7 +381,8 @@ jq --arg SPN_CLIENT_ID $SPN_CLIENT_ID '.properties.servicePrincipalProfile.clien
 jq --arg SPN_CLIENT_SECRET $SPN_CLIENT_SECRET '.properties.servicePrincipalProfile.secret = $SPN_CLIENT_SECRET' | \
 jq --arg IDENTITY_SYSTEM_LOWER $IDENTITY_SYSTEM_LOWER '.properties.customCloudProfile.identitySystem=$IDENTITY_SYSTEM_LOWER' | \
 jq --arg K8S_VERSION $K8S_AZURE_CLOUDPROVIDER_VERSION '.properties.orchestratorProfile.orchestratorRelease=$K8S_VERSION' | \
-jq --arg K8S_IMAGE_BASE $K8S_IMAGE_BASE '.properties.orchestratorProfile.kubernetesConfig.kubernetesImageBase=$K8S_IMAGE_BASE' \
+jq --arg K8S_IMAGE_BASE $K8S_IMAGE_BASE '.properties.orchestratorProfile.kubernetesConfig.kubernetesImageBase=$K8S_IMAGE_BASE' | \
+jq --arg NETWORK_PLUGIN $NETWORK_PLUGIN '.properties.orchestratorProfile.kubernetesConfig.networkPlugin=$NETWORK_PLUGIN' \
 > $AZURESTACK_CONFIGURATION_TEMP
 
 validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL

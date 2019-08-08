@@ -136,6 +136,29 @@
         "description": "Name of the custom vnet"
       }
     },
+    "networkPlugin": {
+      "defaultValue": "flannel",
+      "allowedValues": [
+        "flannel",
+        "azure",
+        "kubenet"
+      ],
+      "metadata": {
+        "description": "Network plugin which will deployed in Kubernetes cluster"
+      },
+      "type": "string"
+    },
+    "availabilityProfile": {      
+      "defaultValue": "AvailabilitySet",
+      "allowedValues": [
+        "AvailabilitySet",
+        "VirtualMachineScaleSets"
+      ],
+      "metadata": {
+        "description": "Availability profile that nodes in the Kubernetes cluster will be deployed with"
+      },
+      "type": "string"
+    },
     "masterSubnetName": {
       "type": "string",
       "defaultValue": "",
@@ -154,14 +177,14 @@
       "type": "string",
       "defaultValue": "10.100.0.5",
       "metadata": {
-        "description": "First Consective Static IP"
+        "description": "First consecutive static IP"
       }
     },
     "nodeDistro": {
       "defaultValue": "ubuntu",
       "allowedValues": [
         "ubuntu",
-        "aks"
+        "aks-ubuntu-16.04"
       ],
       "metadata": {
         "description": "Node distro to be used to deploy Kubernetes on Azure Stack."
@@ -204,7 +227,7 @@
     "tenantSubscriptionId": "[subscription().subscriptionId]",
     "scriptName": "script",
     "singleQuote": "'",
-    "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' FIRST_CONSECUTIVE_STATIC_IP=','\"',parameters('firstConsecutiveStaticIP'),'\"',' AGENT_SUBNET_NAME=','\"',parameters('agentSubnetName'),'\"',' MASTER_SUBNET_NAME=','\"',parameters('masterSubnetName'),'\"',' CUSTOM_VNET_NAME=','\"',parameters('customVnetName'),'\"',' NODE_DISTRO=','\"',parameters('nodeDistro'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"')]"
+    "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' NETWORK_PLUGIN=','\"',parameters('networkPlugin'),'\"',' AVAILABILITY_PROFILE=','\"',parameters('availabilityProfile'),'\"',' FIRST_CONSECUTIVE_STATIC_IP=','\"',parameters('firstConsecutiveStaticIP'),'\"',' AGENT_SUBNET_NAME=','\"',parameters('agentSubnetName'),'\"',' MASTER_SUBNET_NAME=','\"',parameters('masterSubnetName'),'\"',' CUSTOM_VNET_NAME=','\"',parameters('customVnetName'),'\"',' NODE_DISTRO=','\"',parameters('nodeDistro'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"')]"
   },
   "resources": [
     {
@@ -260,6 +283,12 @@
           "customVnetName": {
             "value": "[parameters('customVnetName')]"
           },
+          "networkPlugin": {
+            "value": "[parameters('networkPlugin')]"
+          },
+          "availabilityProfile": {
+            "value": "[parameters('availabilityProfile')]"
+          },          
           "masterSubnetName": {
             "value": "[parameters('masterSubnetName')]"
           },
