@@ -17,7 +17,7 @@
         "type": "Microsoft.Common.TextBox",
         "label": "Linux VM admin username",
         "defaultValue": "azureuser",
-        "toolTip": "User name for the Linux Virtual Machines that are part of the Kubernetes cluster and DVM.",
+        "toolTip": "User name for the Linux virtual machines that are part of the Kubernetes cluster and DVM.",
         "constraints": {
           "required": true
         }
@@ -521,6 +521,176 @@
         "visible": false
       },
       {
+        "name": "windowsAgentPoolProfileCount",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Kubernetes Windows node pool profile count",
+        "defaultValue": "0",
+        "toolTip": "The number of Windows agents for the Kubernetes cluster.",
+        "constraints": {
+          "allowedValues": [{
+              "label": "0",
+              "value": "0"
+            },
+            {
+              "label": "1",
+              "value": "1"
+            },
+            {
+              "label": "2",
+              "value": "2"
+            },
+            {
+              "label": "3",
+              "value": "3"
+            },
+            {
+              "label": "4",
+              "value": "4"
+            },
+            {
+              "label": "5",
+              "value": "5"
+            },
+            {
+              "label": "6",
+              "value": "6"
+            },
+            {
+              "label": "7",
+              "value": "7"
+            }, {
+              "label": "8",
+              "value": "8"
+            },
+            {
+              "label": "9",
+              "value": "9"
+            },
+            {
+              "label": "10",
+              "value": "10"
+            }
+          ]
+        },
+        "visible": false
+      },
+      {
+        "name": "windowsAgentPoolProfileVMSize",
+        "type": "Microsoft.Common.DropDown",
+        "label": "The VMSize of Kubernetes Windows node VMs",
+        "defaultValue": "Standard_D2_v2",
+        "toolTip": "The VMSize of Kubernetes Windows node VMs",
+        "constraints": {
+          "allowedValues": [
+            {
+              "label": "Standard_D1_v2",
+              "value": "Standard_D1_v2"
+            },
+            {
+              "label": "Standard_D2_v2",
+              "value": "Standard_D2_v2"
+            },
+            {
+              "label": "Standard_D3_v2",
+              "value": "Standard_D3_v2"
+            },
+            {
+              "label": "Standard_D4_v2",
+              "value": "Standard_D4_v2"
+            },
+            {
+              "label": "Standard_D5_v2",
+              "value": "Standard_D5_v2"
+            },
+            {
+              "label": "Standard_D11_v2",
+              "value": "Standard_D11_v2"
+            },
+            {
+              "label": "Standard_D12_v2",
+              "value": "Standard_D12_v2"
+            },
+            {
+              "label": "Standard_D13_v2",
+              "value": "Standard_D13_v2"
+            },
+            {
+              "label": "Standard_D14_v2",
+              "value": "Standard_D14_v2"
+            },
+            {
+              "label": "Standard_DS1_v2",
+              "value": "Standard_DS1_v2"
+            },
+            {
+              "label": "Standard_DS2_v2",
+              "value": "Standard_DS2_v2"
+            },
+            {
+              "label": "Standard_DS3_v2",
+              "value": "Standard_DS3_v2"
+            },
+            {
+              "label": "Standard_DS4_v2",
+              "value": "Standard_DS4_v2"
+            },
+            {
+              "label": "Standard_DS5_v2",
+              "value": "Standard_DS5_v2"
+            },
+            {
+              "label": "Standard_DS11_v2",
+              "value": "Standard_DS11_v2"
+            },
+            {
+              "label": "Standard_DS12_v2",
+              "value": "Standard_DS12_v2"
+            },
+            {
+              "label": "Standard_DS13_v2",
+              "value": "Standard_DS13_v2"
+            },
+            {
+              "label": "Standard_DS14_v2",
+              "value": "Standard_DS14_v2"
+            }
+          ]
+        },
+        "visible": false
+      },
+      {
+        "name": "windowsAdminUsername",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Windows VM admin username",
+        "defaultValue": "azureuser",
+        "toolTip": "User name for Windows virtual machines that are part of Kubernetes cluster.",
+        "visible": false
+      },
+      {
+        "name": "windowsAdminPassword",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Windows VM admin password",
+        "defaultValue": "",
+        "toolTip": "Password for Windows virtual machines that are part of Kubernetes cluster.",
+        "visible": false
+      },
+      {
+        "name": "windowsPackageBaseURL",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Windows package URL",
+        "defaultValue": "",
+        "toolTip": "URL path from where Windows binaries will be downloaded.",
+        "visible": false
+      },
+      {
+        "name": "windowsPackageName",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Windows package name",
+        "defaultValue": "",
+        "toolTip": "Name of Windows package that will be installed.",
+        "visible": false
+      },
+      {
         "name": "kubernetesImageBase",
         "type": "Microsoft.Common.TextBox",
         "label": "Kubernetes Image Base",
@@ -553,6 +723,12 @@
       "clusterDefinitionFileName": "[steps('KubernetesClusterSettings').clusterDefinitionFileName]",
       "networkPlugin": "[steps('KubernetesClusterSettings').networkPlugin]",
       "availabilityProfile": "[steps('KubernetesClusterSettings').availabilityProfile]",
+      "windowsAgentPoolProfileCount": "[steps('KubernetesClusterSettings').windowsAgentPoolProfileCount]",
+      "windowsAgentPoolProfileVMSize": "[steps('KubernetesClusterSettings').windowsAgentPoolProfileVMSize]",
+      "windowsAdminUsername": "[steps('KubernetesClusterSettings').windowsAdminUsername]",
+      "windowsAdminPassword": "[steps('KubernetesClusterSettings').windowsAdminPassword]",
+      "windowsPackageBaseURL": "[steps('KubernetesClusterSettings').windowsPackageBaseURL]",
+      "windowsPackageName": "[steps('KubernetesClusterSettings').windowsPackageName]",      
       "kubernetesImageBase": "[steps('KubernetesClusterSettings').kubernetesImageBase]"
     }
   }
