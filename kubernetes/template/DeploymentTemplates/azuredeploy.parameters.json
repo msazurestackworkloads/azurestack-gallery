@@ -68,6 +68,12 @@
     "clusterDefinitionFileName": {
       "value": ""
     },
+    "networkPlugin": {
+      "value": "flannel"
+    },
+    "availabilityProfile": {
+      "value": "AvailabilitySet"
+    },
     "kubernetesImageBase": {
       "value": ""
     }
