@@ -117,13 +117,29 @@ function upload_logs()
     local storage_key=$3
 
     storage_key=$(az storage account keys list -g $metaname -n $metaname | jq '.[0].value ')
+    if [ "$storage_key" == "" ]; then
+        echo "Unable to retrieve the storage key for the stroage account $meta_name"
+        exit
+    fi 
 
     CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
     container_name="AzureStack_KubernetesLogs_$CURRENTDATE"
     blob_name="KubernetesLogs_$CURRENTDATE"
     
     az storage container create --name $container_name --account-name $meta_name --account-key $storage_key
+    if [ $? -ne 0 ]: then
+        echo "Error creating the container $container_name"
+        exit 1
+    else    
+        echo "Container $container_name created"
+    fi
+
     az storage blob upload --container-name $container_name --file $file_to_upload --name $blob_name --account-name $meta_name --account-key $storage_key 
+    if [ $? -ne 0 ]: then
+        echo "Error uploading file to container $container_name"
+        exit 1
+    fi
+
 }
 # Restorey SSH config file always, even if the script ends with an error
 trap restore_ssh_config EXIT
