@@ -26,29 +26,6 @@ function restore_ssh_config
 # Restorey SSH config file always, even if the script ends with an error
 trap restore_ssh_config EXIT
 
-function download_scripts
-{
-    ARTIFACTSURL=$1
-    mkdir -p $SCRIPTSFOLDER
-    
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Pulling dependencies from this repo: $ARTIFACTSURL"
-    
-    for script in common detectors collectlogs collectlogsdvm hosts
-    do
-        if [ -f $SCRIPTSFOLDER/$script.sh ]; then
-            echo "[$(date +%Y%m%d%H%M%S)][INFO] Dependency '$script.sh' already in local file system"
-        fi
-        
-        curl -fs $ARTIFACTSURL/diagnosis/$script.sh -o $SCRIPTSFOLDER/$script.sh
-        
-        if [ ! -f $SCRIPTSFOLDER/$script.sh ]; then
-            echo "[$(date +%Y%m%d%H%M%S)][ERROR] Required script not available. URL: $ARTIFACTSURL/diagnosis/$script.sh"
-            echo "[$(date +%Y%m%d%H%M%S)][ERROR] You may be running an older version. Download the latest script from github: https://aka.ms/AzsK8sLogCollectorScript"
-            exit 1
-        fi
-    done
-}
-
 function printUsage
 {
     echo ""
@@ -171,13 +148,8 @@ echo ""
 NOW=`date +%Y%m%d%H%M%S`
 CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
 LOGFILEFOLDER="./KubernetesLogs_$CURRENTDATE"
-SCRIPTSFOLDER="$LOGFILEFOLDER/scripts"
-mkdir -p $LOGFILEFOLDER/scripts
+mkdir -p $LOGFILEFOLDER
 mkdir -p ~/.ssh
-
-# Download scripts from github
-ARTIFACTSURL="${ARTIFACTSURL:-https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master}"
-download_scripts $ARTIFACTSURL
 
 # Backup .ssh/config
 SSH_CONFIG_BAK=~/.ssh/config.$NOW
@@ -230,7 +202,9 @@ then
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host $host"
         
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
-        scp -q -r $SCRIPTSFOLDER/*.sh $USER@$host:/home/$USER/
+        scp -q -r common.sh $USER@$host:/home/$USER/
+        scp -q -r detectors.sh $USER@$host:/home/$USER/
+        scp -q -r collectlogs.sh $USER@$host:/home/$USER/
         ssh -q -t $USER@$host "sudo chmod 744 common.sh detectors.sh collectlogs.sh; ./collectlogs.sh $NAMESPACES;"
         
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
@@ -250,7 +224,9 @@ then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect VMD logs"
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
-    scp -q -r $SCRIPTSFOLDER/*.sh $USER@$DVM_HOST:/home/$USER/
+    scp -q -r common.sh $USER@$DVM_HOST:/home/$USER/
+    scp -q -r detectors.sh $USER@$DVM_HOST:/home/$USER/
+    scp -q -r collectlogsdvm.sh $USER@$DVM_HOST:/home/$USER/
     ssh -q -t $USER@$DVM_HOST "sudo chmod 744 common.sh detectors.sh collectlogsdvm.sh; ./collectlogsdvm.sh;"
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
