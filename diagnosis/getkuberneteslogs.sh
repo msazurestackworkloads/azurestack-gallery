@@ -39,14 +39,76 @@ function login_azs()
     local spn_id=$1
     local spn_secret=$2
     local tenant_id=$3
-    local storage_acct=$4
-    local storage_key=$5
-    local env_name=$6
-
-    az cloud set -n $env_name
+    
     az login --service-principal -u $spn_id -p $spn_secret --tenant $tenant_id
-
 }
+
+askSubscription() {
+    az account list -otable
+    echo ""
+    echo "Please enter the Id of the account you wish to use. If you do not see"
+    echo "a valid account in the list press Ctrl+C to abort and create one."
+    echo "If you leave this blank we will use the Current account."
+    echo -n "> "
+    read azure_subscription_id
+
+    if [ "$azure_subscription_id" != "" ]; then
+        az account set --subscription $azure_subscription_id
+    else
+        azure_subscription_id=$(az account list --output json | jq -r '.[] | select(.isDefault==true) | .id')
+    fi
+    echo "Using subscription_id: $azure_subscription_id"
+}
+
+askName() {
+    echo ""
+    echo "Choose a name for your resource group, storage account and client"
+    echo "client. This is arbitrary, but it must not already be in use by"
+    echo "any of those resources. ALPHANUMERIC ONLY. Ex: mypackerbuild"
+    echo -n "> "
+    read meta_name
+}
+
+createResourceGroup() {
+    local location=$1
+    echo "==> Creating resource group"
+    az group create -n $meta_name -l $location
+    if [ $? -eq 0 ]; then
+        azure_group_name=$meta_name
+    else
+        echo "Error creating resource group: $meta_name"
+        return 1
+    fi
+}
+
+createStorageAccount() {
+
+    local location=$1 
+
+    echo "==> Creating storage account"
+    az storage account create --name $meta_name --resource-group $meta_name --location $location --kind Storage --sku Standard_LRS
+    if [ $? -eq 0 ]; then
+        azure_storage_name=$meta_name
+    else
+        echo "Error creating storage account: $meta_name"
+        return 1
+    fi
+}
+
+
+retryable() {
+    n=0
+    until [ $n -ge $1 ]
+    do
+        $2 && return 0
+        echo "$2 failed. Retrying..."
+        n=$[$n+1]
+        doSleep
+    done
+    echo "$2 failed after $1 tries. Exiting."
+    exit 1
+}
+
 
 function upload_logs()
 {   
@@ -54,13 +116,14 @@ function upload_logs()
     local storage_acct=$2
     local storage_key=$3
 
+    storage_key=$(az storage account keys list -g $metaname -n $metaname | jq '.[0].value ')
+
     CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
     container_name="AzureStack_KubernetesLogs_$CURRENTDATE"
     blob_name="KubernetesLogs_$CURRENTDATE"
-    export AZURE_STORAGE_ACCOUNT=$storage_acct
-    export AZURE_STORAGE_KEY=$storage_key
-    az storage container create --name $container_name
-    az storage blob upload --container-name $container_name --file $file_to_upload --name $blob_name
+    
+    az storage container create --name $container_name --account-name $meta_name --account-key $storage_key
+    az storage blob upload --container-name $container_name --file $file_to_upload --name $blob_name --account-name $meta_name --account-key $storage_key 
 }
 # Restorey SSH config file always, even if the script ends with an error
 trap restore_ssh_config EXIT
@@ -152,16 +215,8 @@ do
             TENANT_ID="$2"
             shift 2
         ;;
-        -s|--storage-account)
-            STORAGE_ACCT="$2"
-            shift 2
-        ;;
-        -k|--storage-key)
-            STORAGE_KEY="$2"
-            shift 2
-        ;;
-        --env-name)
-            ENV_NAME="$2"
+        -l|--location)
+            LOCATION="$2"
             shift 2
         ;;
         -n|--user-namespace)
@@ -220,7 +275,7 @@ else
     || { echo "The identity file $IDENTITYFILE is not a RSA Private Key file."; echo "A RSA private key file starts with '-----BEGIN [RSA|OPENSSH] PRIVATE KEY-----''"; exit 1; }
 fi
 
-if [[ -z "$SPN_CLIENT_ID" -a -z "$SPN_CLIENT_SECRET"]]
+if [ -z "$SPN_CLIENT_ID" -a -z "$SPN_CLIENT_SECRET" ]
 then
     echo ""
     echo "[ERR] Either SPN details or apimodel should be provided"
@@ -235,24 +290,10 @@ then
     printUsage
 fi
 
-if [ -z "$STORAGE_ACCT" ]
+if [ -z "$LOCATION" ]
 then
     echo ""
-    echo "[ERR] --storage-account is required"
-    printUsage
-fi
-
-if [ -z "$STORAGE_KEY" ]
-then
-    echo ""
-    echo "[ERR] --storage-key is required"
-    printUsage
-fi
-
-if [ -z "$ENV_NAME" ]
-then
-    echo ""
-    echo "[ERR] --env-name is required"
+    echo "[ERR] --tenant-id is required"
     printUsage
 fi
 
@@ -307,6 +348,16 @@ if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Aborting log collection process"
     exit 1
 fi
+
+#login into azurestack using spn id and secret
+login_azs $SPN_CLIENT_ID \
+    $SPN_CLIENT_SECRET \
+    $TENANT_ID
+
+askSubscription
+askName
+createResourceGroup $LOCATION
+createStorageAccount $LOCATION
 
 if [ -n "$MASTER_HOST" ]
 then
@@ -374,14 +425,6 @@ fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Done collecting Kubernetes logs"
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Log in to AzureStack using Azure Cli"
-
-login_azs $SPN_CLIENT_ID \
-    $SPN_CLIENT_SECRET \
-    $TENANT_ID \
-    $STORAGE_ACCT \
-    $STORAGE_KEY \
-    $ENV_NAME
-
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Upload the logs to storage Account $STORAGE_ACCT"
 
 upload_logs $LOGFILEFOLDER \
