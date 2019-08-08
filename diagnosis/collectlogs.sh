@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 
 NOW=`date +%Y%m%d%H%M%S`
 LOGDIRECTORY="$HOSTNAME-$NOW"
@@ -83,10 +83,8 @@ do
     echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Dumping $service service status and journal" | tee -a $TRACEFILENAME
     if systemctl list-units | grep -q $service.service; then
         sudo systemctl show $service &> $LOGDIRECTORY/${service}_status.log
-        # journal can be long, do not collect everything
-        # TODO make this smarter
-        sudo journalctl -u $service | head -n 10000 &> $LOGDIRECTORY/${service}_journal_head.log
-        sudo journalctl -u $service | tail -n 10000 &> $LOGDIRECTORY/${service}_journal_tail.log
+        # TODO use --until --since --lines to limit size
+        sudo journalctl --utc -o short-iso -u $service &> $LOGDIRECTORY/${service}.service.log
         
         if systemctl is-active --quiet $service.service | grep inactive; then
             echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] The $service service is not running" | tee -a $ERRFILENAME
