@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 
 NOW=`date +%Y%m%d%H%M%S`
 LOGDIRECTORY="$HOSTNAME-$NOW"
@@ -38,9 +38,6 @@ try_copy_directory_content /var/log/azure/ $LOGDIRECTORY/cse
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for apt logs" | tee -a $TRACEFILENAME
 mkdir -p $LOGDIRECTORY/apt/
 try_copy_directory_content /var/log/apt/ $LOGDIRECTORY/apt
-
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Dumping system journal" | tee -a $TRACEFILENAME
-sudo journalctl &> $LOGDIRECTORY/journalctl.log
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for known issues and misconfigurations" | tee -a $TRACEFILENAME
 find_cse_errors $LOGDIRECTORY/cse/cluster-provision.log
