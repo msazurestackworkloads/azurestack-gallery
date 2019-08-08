@@ -109,6 +109,33 @@ retryable() {
     exit 1
 }
 
+requirements() {
+    found=0
+
+    azureversion=$(az --version)
+    if [ $? -eq 0 ]; then
+        found=$((found + 1))
+        echo "Found azure-cli version: $azureversion"
+    else
+        echo "azure-cli is missing. Please install azure-cli from"
+        echo "https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest"
+        echo "Alternatively, you can use the Cloud Shell https://docs.microsoft.com/en-us/azure/cloud-shell/overview right from the Azure Portal or even VS Code."
+    fi
+
+    jqversion=$(jq --version)
+    if [ $? -eq 0 ]; then
+        found=$((found + 1))
+        echo "Found jq version: $jqversion"
+    else
+        echo "jq is missing. Please install jq from"
+        echo "https://stedolan.github.io/jq/"
+    fi
+
+    if [ $found -lt 2 ]; then
+        exit 1
+    fi
+}
+
 
 function upload_logs()
 {   
@@ -302,7 +329,7 @@ echo "namespaces:        ${NAMESPACES:-all}"
 echo "spn-client-id:     $SPN_CLIENT_ID"
 echo "spn-client-secret: $SPN_CLIENT_SECRET"
 echo "tenant-id:         $TENANT_ID"
-echo "env-name:          $ENV_NAME"
+echo "location:          $LOCATION"
 echo ""
 
 NOW=`date +%Y%m%d%H%M%S`
@@ -336,6 +363,9 @@ if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Aborting log collection process"
     exit 1
 fi
+
+#checks with azurecli and jq are installed
+requirements
 
 #login into azurestack using spn id and secret
 login_azs $SPN_CLIENT_ID \
