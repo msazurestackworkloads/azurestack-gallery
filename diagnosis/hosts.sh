@@ -9,6 +9,7 @@
 
 WD=$1
 mkdir -p $WD
+TMP=$(mktemp -d)
 
 HOSTLIST=$WD/host.list
 rm -f $HOSTLIST
@@ -24,10 +25,9 @@ do
     ping -c 1 -W 1 $ip | grep "64 bytes" | cut -d " " -f 4 | cut -d ":" -f 1 >> $HOSTLIST
 done
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO] Dumping cluster-info"
-kubectl cluster-info &> $WD/cluster-info.log
-kubectl cluster-info dump &> $WD/cluster-info-dump.log
-kubectl get events -n kube-system &> $WD/kube-system.events
+echo "[$(date +%Y%m%d%H%M%S)][INFO] Collecting cluster snapshot"
+kubectl cluster-info dump --output-directory ${TMP}
+cp ${TMP}/*.json ${TMP}/kube-system/*.json ${WD}
 
-cd $WD/ && tar -czf ../cluster-info.$WD . && cd
-rm -rf $WD
+tar -zcf ${WD}.tar.gz ${WD} 
+rm -rf ${WD}
