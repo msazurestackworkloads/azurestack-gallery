@@ -23,6 +23,45 @@ function restore_ssh_config
     fi
 }
 
+retrycmd_if_failure() 
+{ 
+    retries=$1; 
+    wait=$2; 
+    for i in $(seq 1 $retries); do 
+        ${@:3}; [ $? -eq 0  ] && break || sleep $wait; 
+    done; 
+    log_level -i "Command Executed $i times."; 
+}
+
+
+function login_azs()
+{
+    local spn_id=$1
+    local spn_secret=$2
+    local tenant_id=$3
+    local storage_acct=$4
+    local storage_key=$5
+    local env_name=$6
+
+    az cloud set -n $env_name
+    az login --service-principal -u $spn_id -p $spn_secret --tenant $tenant_id
+
+}
+
+function upload_logs()
+{   
+    local file_to_upload=$1    
+    local storage_acct=$2
+    local storage_key=$3
+
+    CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
+    container_name="AzureStack_KubernetesLogs_$CURRENTDATE"
+    blob_name="KubernetesLogs_$CURRENTDATE"
+    export AZURE_STORAGE_ACCOUNT=$storage_acct
+    export AZURE_STORAGE_KEY=$storage_key
+    az storage container create --name $container_name
+    az storage blob upload --container-name $container_name --file $file_to_upload --name $blob_name
+}
 # Restorey SSH config file always, even if the script ends with an error
 trap restore_ssh_config EXIT
 
@@ -101,6 +140,30 @@ do
             USER="$2"
             shift 2
         ;;
+        --spn-client-id)
+            SPN_CLIENT_ID="$2"
+            shift 2
+        ;;
+        --spn-client-secret)
+            SPN_CLIENT_SECRET="$2"
+            shift 2
+        ;;
+        -t|--tenant-id)
+            TENANT_ID="$2"
+            shift 2
+        ;;
+        -s|--storage-account)
+            STORAGE_ACCT="$2"
+            shift 2
+        ;;
+        -k|--storage-key)
+            STORAGE_KEY="$2"
+            shift 2
+        ;;
+        --env-name)
+            ENV_NAME="$2"
+            shift 2
+        ;;
         -n|--user-namespace)
             NAMESPACES="$NAMESPACES $2"
             shift 2
@@ -157,15 +220,55 @@ else
     || { echo "The identity file $IDENTITYFILE is not a RSA Private Key file."; echo "A RSA private key file starts with '-----BEGIN [RSA|OPENSSH] PRIVATE KEY-----''"; exit 1; }
 fi
 
+if [[ -z "$SPN_CLIENT_ID" -a -z "$SPN_CLIENT_SECRET"]]
+then
+    echo ""
+    echo "[ERR] Either SPN details or apimodel should be provided"
+    printUsage
+    exit 1
+fi
+
+if [ -z "$TENANT_ID" ]
+then
+    echo ""
+    echo "[ERR] --tenant-id is required"
+    printUsage
+fi
+
+if [ -z "$STORAGE_ACCT" ]
+then
+    echo ""
+    echo "[ERR] --storage-account is required"
+    printUsage
+fi
+
+if [ -z "$STORAGE_KEY" ]
+then
+    echo ""
+    echo "[ERR] --storage-key is required"
+    printUsage
+fi
+
+if [ -z "$ENV_NAME" ]
+then
+    echo ""
+    echo "[ERR] --env-name is required"
+    printUsage
+fi
+
 test $ALLNAMESPACES -eq 0 && unset NAMESPACES
 
 # Print user input
 echo ""
-echo "user:             $USER"
-echo "identity-file:    $IDENTITYFILE"
-echo "master-host:      $MASTER_HOST"
-echo "vmd-host:         $DVM_HOST"
-echo "namespaces:       ${NAMESPACES:-all}"
+echo "user:              $USER"
+echo "identity-file:     $IDENTITYFILE"
+echo "master-host:       $MASTER_HOST"
+echo "vmd-host:          $DVM_HOST"
+echo "namespaces:        ${NAMESPACES:-all}"
+echo "spn-client-id:     $SPN_CLIENT_ID"
+echo "spn-client-secret: $SPN_CLIENT_SECRET"
+echo "tenant-id:         $TENANT_ID"
+echo "env-name:          $ENV_NAME"
 echo ""
 
 NOW=`date +%Y%m%d%H%M%S`
@@ -270,4 +373,19 @@ then
 fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Done collecting Kubernetes logs"
+echo "[$(date +%Y%m%d%H%M%S)][INFO] Log in to AzureStack using Azure Cli"
+
+login_azs $SPN_CLIENT_ID \
+    $SPN_CLIENT_SECRET \
+    $TENANT_ID \
+    $STORAGE_ACCT \
+    $STORAGE_KEY \
+    $ENV_NAME
+
+echo "[$(date +%Y%m%d%H%M%S)][INFO] Upload the logs to storage Account $STORAGE_ACCT"
+
+upload_logs $LOGFILEFOLDER \
+        $STORAGE_ACCT \
+        $STORAGE_KEY
+
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Logs can be found in this location: $LOGFILEFOLDER"
