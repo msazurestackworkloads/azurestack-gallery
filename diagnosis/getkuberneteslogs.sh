@@ -22,15 +22,6 @@ restore_ssh_config() {
     fi
 }
 
-retrycmd_if_failure() { 
-    retries=$1; 
-    wait=$2; 
-    for i in $(seq 1 $retries); do 
-        ${@:3}; [ $? -eq 0  ] && break || sleep $wait; 
-    done; 
-    log_level -i "Command Executed $i times."; 
-}
-
 login_azs() {
     local spn_id=$1
     local spn_secret=$2
@@ -181,7 +172,7 @@ NAMESPACES="kube-system"
 ALLNAMESPACES=1
 # Revert once CI passes the new flag => STRICT_HOST_KEY_CHECKING="ask"
 STRICT_HOST_KEY_CHECKING="no"
-
+source ./common.sh
 # Handle named parameters
 while [[ "$#" -gt 0 ]]
 do

@@ -77,3 +77,19 @@ try_print_directory_tree()
         echo "[$(date +%Y%m%d%H%M%S)][WARN][$HOSTNAME] Expected directory not found: $1" | tee -a $ERRFILENAME
     fi
 }
+
+###
+#   <summary>
+#       Retires the command for specifed retry count in case of failure
+#   </summary>
+#   <param name="1">Retry commands</param>
+#   <param name="2">Wait for specified time</param>
+###
+retrycmd_if_failure() { 
+    retries=$1; 
+    wait=$2; 
+    for i in $(seq 1 $retries); do 
+        ${@:3}; [ $? -eq 0  ] && break || sleep $wait; 
+    done; 
+    log_level -i "Command Executed $i times."; 
+}
