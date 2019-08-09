@@ -26,8 +26,28 @@ do
 done
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Collecting cluster snapshot"
-kubectl cluster-info dump --output-directory ${TMP}
+kubectl cluster-info dump --output-directory ${TMP} &> /dev/null
 cp ${TMP}/*.json ${TMP}/kube-system/*.json ${WD}
+
+TENANT_ID=$(sudo jq -r '.tenantId' /etc/kubernetes/azure.json)
+PODS=$(find ${TMP}/kube-system -mindepth 1 -maxdepth 1 -type d -printf '%f\n')
+
+for pod in ${PODS}
+do
+    jq --arg name "${pod}" --arg tenant "${TENANT_ID}"  '.items[] | select (.metadata.name == $name) | {
+            Name: .metadata.name,
+            Type: "Container",
+            TenantId: $tenant,
+            Hostname: .spec.nodeName,
+            Image: .spec.containers[0].image,
+            ContainerID: .status.containerStatuses[0].containerID,
+            Verbosity: (.spec.containers[0].args[-1] // "") }' ${WD}/pods.json | \
+    sed 's/docker:\/\///g' | \
+sed s/--v=//g | \
+sed s/--.*\"$/\"/g | \
+    sed 's/"\/.*"$/\"\"/g' > ${WD}/${pod}.meta
+    # TODO the sed command above a hack to clean up data, need to get rid of them
+done
 
 tar -zcf ${WD}.tar.gz ${WD} 
 rm -rf ${WD}
