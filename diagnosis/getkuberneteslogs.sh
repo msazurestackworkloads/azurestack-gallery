@@ -28,8 +28,7 @@ fi
 
 NAMESPACES="kube-system"
 ALLNAMESPACES=1
-# Revert once CI passes the new flag => STRICT_HOST_KEY_CHECKING="ask"
-STRICT_HOST_KEY_CHECKING="no"
+STRICT_HOST_KEY_CHECKING="ask"
 
 # Handle named parameters
 while [[ "$#" -gt 0 ]]
@@ -148,7 +147,7 @@ then
     mv $LOGFILEFOLDER/$NOW $LOGFILEFOLDER/cluster-snapshot-$NOW
     
     SSH_FLAGS="-q -t -J ${USER}@${MASTER_HOST} -i ${IDENTITYFILE}"
-    SCP_FLAGS="-q -o ProxyJump=${USER}@${MASTER_HOST} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
+    SCP_FLAGS="-q -o ProxyJump=${USER}@${MASTER_HOST} -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
     
     for host in $(cat $LOGFILEFOLDER/host.list)
     do
@@ -176,7 +175,7 @@ if [ -n "$DVM_HOST" ]
 then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect VMD logs"
     SSH_FLAGS="-q -t -i ${IDENTITYFILE}"
-    SCP_FLAGS="-q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
+    SCP_FLAGS="-q -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
     scp ${SCP_FLAGS} common.sh ${USER}@${DVM_HOST}:/home/${USER}/
