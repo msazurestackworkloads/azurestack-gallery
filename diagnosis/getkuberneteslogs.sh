@@ -184,10 +184,11 @@ then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Looking for cluster hosts"
     scp -q hosts.sh $USER@$MASTER_HOST:/home/$USER/hosts.sh
     ssh -tq $USER@$MASTER_HOST "sudo chmod 744 hosts.sh; ./hosts.sh $NOW"
-    scp -q $USER@$MASTER_HOST:"/home/$USER/cluster-info.$NOW" $LOGFILEFOLDER/cluster-info.tar.gz
-    ssh -tq $USER@$MASTER_HOST "sudo rm -f cluster-info.$NOW hosts.sh"
-    tar -xzf $LOGFILEFOLDER/cluster-info.tar.gz -C $LOGFILEFOLDER
-    rm $LOGFILEFOLDER/cluster-info.tar.gz
+    scp -q $USER@$MASTER_HOST:"/home/$USER/$NOW.tar.gz" $LOGFILEFOLDER/cluster-snapshot.tar.gz
+    ssh -tq $USER@$MASTER_HOST "sudo rm -f $NOW.tar.gz hosts.sh"
+    tar -xzf $LOGFILEFOLDER/cluster-snapshot.tar.gz -C $LOGFILEFOLDER
+    rm $LOGFILEFOLDER/cluster-snapshot.tar.gz
+    mv $LOGFILEFOLDER/$NOW $LOGFILEFOLDER/cluster-snapshot-$NOW
     
     # Configure SSH bastion host. Technically only needed for worker nodes.
     for host in $(cat $LOGFILEFOLDER/host.list)
