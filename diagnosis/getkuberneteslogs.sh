@@ -47,6 +47,7 @@ askSubscription()
         az account set --subscription $azure_subscription_id
         if [ $? -ne 0 ]; then
             echo "$(date +%Y%m%d%H%M%S)][ERR] Error using subscription_id: $azure_subscription_id"
+            exit 1
         fi
     else
         echo "$(date +%Y%m%d%H%M%S)][ERR] Subscription Id not provided"
