@@ -398,7 +398,7 @@ validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTA
 if [ "$WINDOWS_AGENT_COUNT" != "0" ]; then
     log_level -i "Update cluster definition with Windows node details."
 
-    WINDOWS_PACKAGE_FULL_URL="$WINDOWS_PACKAGE_NAME/$WINDOWS_PACKAGE_URL"
+    WINDOWS_PACKAGE_FULL_URL="$WINDOWS_PACKAGE_URL/$WINDOWS_PACKAGE_NAME"
     log_level -i "WINDOWS_PACKAGE_FULL_URL: $WINDOWS_PACKAGE_FULL_URL"
     cat $AZURESTACK_CONFIGURATION | \
     jq --arg WINDOWS_ADMIN_USERNAME $WINDOWS_ADMIN_USERNAME '.properties.windowsProfile.adminUsername=$WINDOWS_ADMIN_USERNAME' | \
