@@ -1,6 +1,6 @@
 #!/bin/bash
 
-restore_ssh_config ()
+restore_ssh_config()
 {
     # Restore only if previously backed up
     if [[ -v SSH_CONFIG_BAK ]]; then
@@ -36,14 +36,6 @@ requirements() {
     fi
 }
 
-login_azs() {
-    local spn_id=$1
-    local spn_secret=$2
-    local tenant_id=$3
-    
-    az login --service-principal -u $spn_id -p $spn_secret --tenant $tenant_id
-}
-
 # Restorey SSH config file always, even if the script ends with an error
 trap restore_ssh_config EXIT
 
@@ -54,7 +46,7 @@ printUsage()
     echo "  $0 -i id_rsa -m 192.168.102.34 -u azureuser -n default -n monitoring --disable-host-key-checking"
     echo "  $0 --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32"
     echo "  $0 --identity-file id_rsa --master-host 192.168.102.34 --user azureuser --vmd-host 192.168.102.32"
-    echo "  $0 --identity-file id_rsa --master-host 192.168.102.34 --user azureuser --vmd-host 192.168.102.32"
+    echo "  $0 --identity-file id_rsa --master-host 192.168.102.34 --user azureuser --vmd-host 192.168.102.32 --spn-client-id 00000000-aaaa-aaaa-0000-aaaaaaaaaaaa --spn-client-secret 00000000-aaaa-aaaa-0000-aaaaaaaaaaaa --tenant-id 00000000-0000-0000-0000-000000000000 --upload-logs"
     echo ""
     echo "Options:"
     echo "  -u, --user                      User name associated to the identifity-file"
@@ -63,10 +55,10 @@ printUsage()
     echo "  -d, --vmd-host                  The DVM's public IP or FQDN (host name starts with 'vmd-')"
     echo "  --spn-client-id                 Service Principal client Id used to create the Kubernetes cluster"
     echo "  --spn-client-secret             Service Principal client secret used to create the Kubernetes cluster"
-    echo "  -t, --tenant-id                 Tenant id"
+    echo "  -t, --tenant-id                 Tenant Id"
     echo "  -n, --user-namespace            Collect logs for containers in the passed namespace (kube-system logs are always collected)"
     echo "  --all-namespaces                Collect logs for all containers. Overrides the user-namespace flag"
-    echo "  --upload-logs                   Enable uploading logs to storage account"
+    echo "  --upload-logs                   Stores the retrieved logs in an Azure Stack storage account"
     echo "  --disable-host-key-checking     Sets SSH StrictHostKeyChecking option to \"no\" while the script executes. Use only when building automation in a save environment."
     echo "  -h, --help                      Print the command usage"
     exit 1
@@ -179,7 +171,7 @@ fi
 if [ -z "$SPN_CLIENT_ID" -a -z "$SPN_CLIENT_SECRET" ] && [ -n "$UPLOAD_LOGS" ]
 then
     echo ""
-    echo "[ERR] Service Principle details should be provided when upload-storage-account is set to Y"
+    echo "[ERR] Service Principal details should be provided if logs are stored in a storage account"
     printUsage
     exit 1
 fi
@@ -187,14 +179,14 @@ fi
 if [ -z "$TENANT_ID" ] && [ -n "$UPLOAD_LOGS" ]
 then
     echo ""
-    echo "[ERR] --tenant-id is required when upload-storage-account is set to Y"
+    echo "[ERR] Tenant Id should be provided if logs are stored in a storage account"
     printUsage
 fi
 
 if [ -z "$LOCATION" ] && [ -n "$UPLOAD_LOGS" ]
 then
     echo ""
-    echo "[ERR] --tenant-id is required when upload-storage-account is set to Y"
+    echo "[ERR] Location should be provided if logs are stored in a storage account"
     printUsage
 fi
 
@@ -320,9 +312,10 @@ echo "[$(date +%Y%m%d%H%M%S)][INFO] Logs can be found in this location: $LOGFILE
 if [ -n "$UPLOAD_LOGS" ]; then
     #checks if azure-cli is installed   
     requirements
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Log in to AzureStack using Azure CLI"
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Logging into AzureStack using Azure CLI"
     #login into azurestack using spn id and secret
-    login_azs $SPN_CLIENT_ID \
-        $SPN_CLIENT_SECRET \
-        $TENANT_ID
+    az login --service-principal -u $spn_id -p $spn_secret --tenant $tenant_id
+    if [ $? -eq 0 ]; then
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] Error logging into AzureStack"
+    fi
 fi
