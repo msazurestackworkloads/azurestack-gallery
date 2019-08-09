@@ -1,31 +1,5 @@
 #!/bin/bash
 
-function restore_ssh_config
-{
-    # Restore only if previously backed up
-    if [[ -v SSH_CONFIG_BAK ]]; then
-        if [ -f $SSH_CONFIG_BAK ]; then
-            rm ~/.ssh/config
-            mv $SSH_CONFIG_BAK ~/.ssh/config
-        fi
-    fi
-    
-    # Restore only if previously backed up
-    if [[ -v SSH_KEY_BAK ]]; then
-        if [ -f $SSH_KEY_BAK ]; then
-            rm ~/.ssh/id_rsa
-            mv $SSH_KEY_BAK ~/.ssh/id_rsa
-            # Remove if empty
-            if [ -a ~/.ssh/id_rsa -a ! -s ~/.ssh/id_rsa ]; then
-                rm ~/.ssh/id_rsa
-            fi
-        fi
-    fi
-}
-
-# Restorey SSH config file always, even if the script ends with an error
-trap restore_ssh_config EXIT
-
 function printUsage
 {
     echo ""
@@ -46,7 +20,6 @@ function printUsage
     echo "  -h, --help                      Print the command usage"
     exit 1
 }
-
 
 if [ "$#" -eq 0 ]
 then
@@ -151,22 +124,6 @@ LOGFILEFOLDER="./KubernetesLogs_$CURRENTDATE"
 mkdir -p $LOGFILEFOLDER
 mkdir -p ~/.ssh
 
-# Backup .ssh/config
-SSH_CONFIG_BAK=~/.ssh/config.$NOW
-if [ ! -f ~/.ssh/config ]; then touch ~/.ssh/config; fi
-mv ~/.ssh/config $SSH_CONFIG_BAK;
-
-# Backup .ssh/id_rsa
-SSH_KEY_BAK=~/.ssh/id_rsa.$NOW
-if [ ! -f ~/.ssh/id_rsa ]; then touch ~/.ssh/id_rsa; fi
-mv ~/.ssh/id_rsa $SSH_KEY_BAK;
-cp $IDENTITYFILE ~/.ssh/id_rsa
-
-echo "Host *" >> ~/.ssh/config
-echo "    StrictHostKeyChecking $STRICT_HOST_KEY_CHECKING" >> ~/.ssh/config
-echo "    UserKnownHostsFile /dev/null" >> ~/.ssh/config
-echo "    LogLevel ERROR" >> ~/.ssh/config
-
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Testing SSH keys"
 TEST_HOST="${MASTER_HOST:-$DVM_HOST}"
 ssh -q $USER@$TEST_HOST "exit"
@@ -190,31 +147,26 @@ then
     rm $LOGFILEFOLDER/cluster-snapshot.tar.gz
     mv $LOGFILEFOLDER/$NOW $LOGFILEFOLDER/cluster-snapshot-$NOW
     
-    # Configure SSH bastion host. Technically only needed for worker nodes.
-    for host in $(cat $LOGFILEFOLDER/host.list)
-    do
-        # https://en.wikibooks.org/wiki/OpenSSH/Cookbook/Proxies_and_Jump_Hosts#Passing_Through_One_or_More_Gateways_Using_ProxyJump
-        echo "Host $host" >> ~/.ssh/config
-        echo "    ProxyJump $USER@$MASTER_HOST" >> ~/.ssh/config
-    done
+    SSH_FLAGS="-q -t -J ${USER}@${MASTER_HOST} -i ${IDENTITYFILE}"
+    SCP_FLAGS="-q -o ProxyJump=${USER}@${MASTER_HOST} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
     
     for host in $(cat $LOGFILEFOLDER/host.list)
     do
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host $host"
         
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
-        scp -q -r common.sh $USER@$host:/home/$USER/
-        scp -q -r detectors.sh $USER@$host:/home/$USER/
-        scp -q -r collectlogs.sh $USER@$host:/home/$USER/
-        ssh -q -t $USER@$host "sudo chmod 744 common.sh detectors.sh collectlogs.sh; ./collectlogs.sh $NAMESPACES;"
+        scp ${SCP_FLAGS} common.sh ${USER}@${host}:/home/${USER}/
+        scp ${SCP_FLAGS} detectors.sh ${USER}@${host}:/home/${USER}/
+        scp ${SCP_FLAGS} collectlogs.sh ${USER}@${host}:/home/${USER}/
+        ssh ${SSH_FLAGS} ${USER}@${host} "sudo chmod 744 common.sh detectors.sh collectlogs.sh; ./collectlogs.sh ${NAMESPACES};"
         
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
-        scp -q $USER@$host:"/home/$USER/kube_logs.tar.gz" $LOGFILEFOLDER/kube_logs.tar.gz
+        scp ${SCP_FLAGS} ${USER}@${host}:"/home/${USER}/kube_logs.tar.gz" ${LOGFILEFOLDER}/kube_logs.tar.gz
         tar -xzf $LOGFILEFOLDER/kube_logs.tar.gz -C $LOGFILEFOLDER
         rm $LOGFILEFOLDER/kube_logs.tar.gz
         
         # Removing temp files from node
-        ssh -q -t $USER@$host "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh kube_logs.tar.gz"
+        ssh ${SSH_FLAGS} ${USER}@${host} "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh kube_logs.tar.gz"
     done
     
     rm $LOGFILEFOLDER/host.list
@@ -223,20 +175,22 @@ fi
 if [ -n "$DVM_HOST" ]
 then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect VMD logs"
+    SSH_FLAGS="-q -t -i ${IDENTITYFILE}"
+    SCP_FLAGS="-q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
-    scp -q -r common.sh $USER@$DVM_HOST:/home/$USER/
-    scp -q -r detectors.sh $USER@$DVM_HOST:/home/$USER/
-    scp -q -r collectlogsdvm.sh $USER@$DVM_HOST:/home/$USER/
-    ssh -q -t $USER@$DVM_HOST "sudo chmod 744 common.sh detectors.sh collectlogsdvm.sh; ./collectlogsdvm.sh;"
+    scp ${SCP_FLAGS} common.sh ${USER}@${DVM_HOST}:/home/${USER}/
+    scp ${SCP_FLAGS} detectors.sh ${USER}@${DVM_HOST}:/home/${USER}/
+    scp ${SCP_FLAGS} collectlogsdvm.sh ${USER}@${DVM_HOST}:/home/${USER}/
+    ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "sudo chmod 744 common.sh detectors.sh collectlogsdvm.sh; ./collectlogsdvm.sh;"
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
-    scp -q $USER@$DVM_HOST:"/home/$USER/dvm_logs.tar.gz" $LOGFILEFOLDER/dvm_logs.tar.gz
+    scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:"/home/${USER}/dvm_logs.tar.gz" ${LOGFILEFOLDER}/dvm_logs.tar.gz
     tar -xzf $LOGFILEFOLDER/dvm_logs.tar.gz -C $LOGFILEFOLDER
     rm $LOGFILEFOLDER/dvm_logs.tar.gz
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Removing temp files from DVM"
-    ssh -q -t $USER@$DVM_HOST "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh dvm_logs.tar.gz"
+    ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh dvm_logs.tar.gz"
 fi
 
 # Aggregate ERRORS.txt
