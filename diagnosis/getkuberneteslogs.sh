@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function restore_ssh_config
+restore_ssh_config ()
 {
     # Restore only if previously backed up
     if [[ -v SSH_CONFIG_BAK ]]; then
@@ -23,10 +23,31 @@ function restore_ssh_config
     fi
 }
 
+requirements() {
+    found=0
+
+    azureversion=$(az --version)
+    if [ $? -eq 0 ]; then
+        found=$((found + 1))
+        echo "Found azure-cli version: $azureversion"
+    else
+        echo "azure-cli is missing. Please install azure-cli from"
+        echo "https://docs.microsoft.com/en-us/azure-stack/user/azure-stack-version-profiles-azurecli2"
+    fi
+}
+
+login_azs() {
+    local spn_id=$1
+    local spn_secret=$2
+    local tenant_id=$3
+    
+    az login --service-principal -u $spn_id -p $spn_secret --tenant $tenant_id
+}
+
 # Restorey SSH config file always, even if the script ends with an error
 trap restore_ssh_config EXIT
 
-function printUsage
+printUsage()
 {
     echo ""
     echo "Usage:"
@@ -40,8 +61,12 @@ function printUsage
     echo "  -i, --identity-file             RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')"
     echo "  -m, --master-host               A master node's public IP or FQDN (host name starts with 'k8s-master-')"
     echo "  -d, --vmd-host                  The DVM's public IP or FQDN (host name starts with 'vmd-')"
+    echo "  --spn-client-id                 Service Principal client Id used to create the Kubernetes cluster"
+    echo "  --spn-client-secret             Service Principal client secret used to create the Kubernetes cluster"
+    echo "  -t, --tenant-id                 Tenant id"
     echo "  -n, --user-namespace            Collect logs for containers in the passed namespace (kube-system logs are always collected)"
     echo "  --all-namespaces                Collect logs for all containers. Overrides the user-namespace flag"
+    echo "  --upload-logs                   Enable uploading logs to storage account"
     echo "  --disable-host-key-checking     Sets SSH StrictHostKeyChecking option to \"no\" while the script executes. Use only when building automation in a save environment."
     echo "  -h, --help                      Print the command usage"
     exit 1
@@ -57,6 +82,7 @@ NAMESPACES="kube-system"
 ALLNAMESPACES=1
 # Revert once CI passes the new flag => STRICT_HOST_KEY_CHECKING="ask"
 STRICT_HOST_KEY_CHECKING="no"
+UPLOAD_LOGS=""
 
 # Handle named parameters
 while [[ "$#" -gt 0 ]]
@@ -78,12 +104,28 @@ do
             USER="$2"
             shift 2
         ;;
+        --spn-client-id)
+            SPN_CLIENT_ID="$2"
+            shift 2
+        ;;
+        --spn-client-secret)
+            SPN_CLIENT_SECRET="$2"
+            shift 2
+        ;;
+        -t|--tenant-id)
+            TENANT_ID="$2"
+            shift 2
+        ;;
         -n|--user-namespace)
             NAMESPACES="$NAMESPACES $2"
             shift 2
         ;;
         --all-namespaces)
             ALLNAMESPACES=0
+            shift
+        ;;
+        --upload-logs)
+            UPLOAD_LOGS="true"
             shift
         ;;
         --disable-host-key-checking)
@@ -134,15 +176,41 @@ else
     || { echo "The identity file $IDENTITYFILE is not a RSA Private Key file."; echo "A RSA private key file starts with '-----BEGIN [RSA|OPENSSH] PRIVATE KEY-----''"; exit 1; }
 fi
 
+if [ -z "$SPN_CLIENT_ID" -a -z "$SPN_CLIENT_SECRET" ] && [ -n "$UPLOAD_LOGS" ]
+then
+    echo ""
+    echo "[ERR] Service Principle details should be provided when upload-storage-account is set to Y"
+    printUsage
+    exit 1
+fi
+
+if [ -z "$TENANT_ID" ] && [ -n "$UPLOAD_LOGS" ]
+then
+    echo ""
+    echo "[ERR] --tenant-id is required when upload-storage-account is set to Y"
+    printUsage
+fi
+
+if [ -z "$LOCATION" ] && [ -n "$UPLOAD_LOGS" ]
+then
+    echo ""
+    echo "[ERR] --tenant-id is required when upload-storage-account is set to Y"
+    printUsage
+fi
+
 test $ALLNAMESPACES -eq 0 && unset NAMESPACES
 
 # Print user input
 echo ""
-echo "user:             $USER"
-echo "identity-file:    $IDENTITYFILE"
-echo "master-host:      $MASTER_HOST"
-echo "vmd-host:         $DVM_HOST"
-echo "namespaces:       ${NAMESPACES:-all}"
+echo "user:                    $USER"
+echo "identity-file:           $IDENTITYFILE"
+echo "master-host:             $MASTER_HOST"
+echo "vmd-host:                $DVM_HOST"
+echo "spn-client-id:           $SPN_CLIENT_ID"
+echo "spn-client-secret:       $SPN_CLIENT_SECRET"
+echo "tenant-id:               $TENANT_ID"
+echo "upload-logs:             $UPLOAD_LOGS"
+echo "namespaces:              ${NAMESPACES:-all}"
 echo ""
 
 NOW=`date +%Y%m%d%H%M%S`
@@ -248,3 +316,13 @@ fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Done collecting Kubernetes logs"
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Logs can be found in this location: $LOGFILEFOLDER"
+
+if [ -n "$UPLOAD_LOGS" ]; then
+    #checks if azure-cli is installed   
+    requirements
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Log in to AzureStack using Azure CLI"
+    #login into azurestack using spn id and secret
+    login_azs $SPN_CLIENT_ID \
+        $SPN_CLIENT_SECRET \
+        $TENANT_ID
+fi
