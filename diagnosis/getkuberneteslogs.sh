@@ -41,6 +41,7 @@ askSubscription()
         echo "$(date +%Y%m%d%H%M%S)][ERR] Unable to list subscriptions"
         exit 1
     fi
+    
     echo ""
     echo "Please enter subscription id of the kubernetes cluster you wish to collect log.If you do not see a valid account"
     echo "in the list press Ctrl+C to abort and provide the valid service principal details of kubernetes cluster."
