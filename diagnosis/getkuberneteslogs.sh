@@ -25,15 +25,12 @@ restore_ssh_config()
 
 requirements()
 {
-    found=0
-
     azureversion=$(az --version)
     if [ $? -eq 0 ]; then
-        found=$((found + 1))
         echo "Found azure-cli version: $azureversion"
     else
         echo "azure-cli is missing. Please install azure-cli from"
-        echo "https://docs.microsoft.com/en-us/azure-stack/user/azure-stack-version-profiles-azurecli2"
+        echo "https://docs.microsoft.com/azure-stack/user/azure-stack-version-profiles-azurecli2"
     fi
 }
 
