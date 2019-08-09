@@ -88,9 +88,9 @@
       {
         "name": "masterPoolProfileVMSize",
         "type": "Microsoft.Common.DropDown",
-        "label": "The VMSize of Kubernetes master VMs",
+        "label": "The virtual machine size of the Kubernetes master nodes",
         "defaultValue": "Standard_D2_v2",
-        "toolTip": "The VMSize of Kubernetes master VMs",
+        "toolTip": "The virtual machine size of the Kubernetes master nodes",
         "constraints": {
           "allowedValues": [
             {
@@ -172,9 +172,9 @@
       {
         "name": "agentPoolProfileCount",
         "type": "Microsoft.Common.DropDown",
-        "label": "Kubernetes node pool profile count",
+        "label": "Kubernetes linux node pool profile count",
         "defaultValue": "3",
-        "toolTip": "The number of agents for the Kubernetes cluster.",
+        "toolTip": "The number of linux agents for Kubernetes cluster.",
         "constraints": {
           "allowedValues": [{
               "label": "1",
@@ -245,9 +245,9 @@
       {
         "name": "agentPoolProfileVMSize",
         "type": "Microsoft.Common.DropDown",
-        "label": "The VMSize of Kubernetes node VMs",
+        "label": "The virtual machine size of Kubernetes linux agent nodes",
         "defaultValue": "Standard_D2_v2",
-        "toolTip": "The VMSize of Kubernetes node VMs",
+        "toolTip": "The virtual machine size of Kubernetes linux agent nodes",
         "constraints": {
           "allowedValues": [
             {
@@ -525,7 +525,7 @@
         "type": "Microsoft.Common.TextBox",
         "label": "Kubernetes Windows node pool profile count",
         "defaultValue": "0",
-        "toolTip": "The number of Windows agents for the Kubernetes cluster.",
+        "toolTip": "The number of Windows agent nodes in Kubernetes cluster.",
         "constraints": {
           "allowedValues": [{
               "label": "0",
@@ -577,9 +577,9 @@
       {
         "name": "windowsAgentPoolProfileVMSize",
         "type": "Microsoft.Common.DropDown",
-        "label": "The VMSize of Kubernetes Windows node VMs",
+        "label": "The virtual machine size of the Kubernetes Windows agent nodes",
         "defaultValue": "Standard_D2_v2",
-        "toolTip": "The VMSize of Kubernetes Windows node VMs",
+        "toolTip": "The virtual machine size of the Kubernetes Windows agent nodes",
         "constraints": {
           "allowedValues": [
             {

@@ -24,28 +24,28 @@
     "agentPoolProfileCount": {
       "defaultValue": 3,
       "metadata": {
-        "description": "Kubernetes Node Pool Profile Count"
+        "description": "Kubernetes linux node pool profile count"
       },
       "type": "int"
     },
     "agentPoolProfileVMSize": {
       "defaultValue": "Standard_D2_v2",
       "metadata": {
-        "description": "The VMSize of Kubernetes node VMs"
+        "description": "The virtual machine size of the Kubernetes linux agent nodes"
       },
       "type": "string"
     },
     "masterPoolProfileCount": {
       "defaultValue": 3,
       "metadata": {
-        "description": "Kubernetes Master Pool Profile Count"
+        "description": "Kubernetes master pool profile count"
       },
       "type": "int"
     },
     "masterPoolProfileVMSize": {
       "defaultValue": "Standard_D2_v2",
       "metadata": {
-        "description": "The VMSize of Kubernetes master VMs"
+        "description": "The virtual machine size of the Kubernetes master nodes"
       },
       "type": "string"
     },
@@ -189,7 +189,7 @@
     "windowsAgentPoolProfileVMSize": {
       "defaultValue": "Standard_D2_v2",
       "metadata": {
-        "description": "The VMSize of Kubernetes Windows node VMs"
+        "description": "The virtual machine size of the Kubernetes Windows agent nodes"
       },
       "type": "string"
     },
