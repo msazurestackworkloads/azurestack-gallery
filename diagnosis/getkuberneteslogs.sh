@@ -37,23 +37,27 @@ requirements()
 askSubscription() 
 {
     az account list -otable
+    if [ $? -ne 0 ]; then
+        echo "$(date +%Y%m%d%H%M%S)][ERR] Unable to list subscriptions"
+        exit 1
+    fi
     echo ""
     echo "Please enter subscription id of the kubernetes cluster you wish to collect log.If you do not see a valid account"
     echo "in the list press Ctrl+C to abort and provide the valid service principal details of kubernetes cluster."
     echo -n "> "
-    read azure_subscription_id
+    read azs_subscription_id
 
-    if [ "$azure_subscription_id" != "" ]; then
-        az account set --subscription $azure_subscription_id
+    if [ "$azs_subscription_id" != "" ]; then
+        az account set --subscription $azs_subscription_id
         if [ $? -ne 0 ]; then
-            echo "$(date +%Y%m%d%H%M%S)][ERR] Error using subscription_id: $azure_subscription_id"
+            echo "$(date +%Y%m%d%H%M%S)][ERR] Error using subscription_id: $azs_subscription_id"
             exit 1
         fi
     else
         echo "$(date +%Y%m%d%H%M%S)][ERR] Subscription Id not provided"
         exit 1
     fi
-    echo "$(date +%Y%m%d%H%M%S)][INFO] Using subscription_id: $azure_subscription_id"
+    echo "$(date +%Y%m%d%H%M%S)][INFO] Using subscription_id: $azs_subscription_id"
 }
 
 # Restorey SSH config file always, even if the script ends with an error
