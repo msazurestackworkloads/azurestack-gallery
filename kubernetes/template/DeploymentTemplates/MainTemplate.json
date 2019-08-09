@@ -231,8 +231,8 @@
   },
   "resources": [
     {
-      "apiVersion": "2015-01-01",
-      "name": "dvmdeployment",
+      "apiVersion": "2017-05-10",
+      "name": "pid-30ce5998-43ae-4ba0-86b4-62bfc6da5e67",
       "type": "Microsoft.Resources/deployments",
       "properties": {
         "mode": "Incremental",
