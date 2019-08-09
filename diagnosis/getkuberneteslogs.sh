@@ -1,7 +1,6 @@
 #!/bin/bash
 
-function restore_ssh_config
-{
+restore_ssh_config() {
     # Restore only if previously backed up
     if [[ -v SSH_CONFIG_BAK ]]; then
         if [ -f $SSH_CONFIG_BAK ]; then
@@ -23,8 +22,7 @@ function restore_ssh_config
     fi
 }
 
-retrycmd_if_failure() 
-{ 
+retrycmd_if_failure() { 
     retries=$1; 
     wait=$2; 
     for i in $(seq 1 $retries); do 
@@ -33,9 +31,7 @@ retrycmd_if_failure()
     log_level -i "Command Executed $i times."; 
 }
 
-
-function login_azs()
-{
+login_azs() {
     local spn_id=$1
     local spn_secret=$2
     local tenant_id=$3
@@ -57,7 +53,7 @@ askSubscription() {
     else
         azure_subscription_id=$(az account list --output json | jq -r '.[] | select(.isDefault==true) | .id')
     fi
-    echo "Using subscription_id: $azure_subscription_id"
+    echo "$(date +%Y%m%d%H%M%S)][INFO] Using subscription_id: $azure_subscription_id"
 }
 
 askName() {
@@ -71,42 +67,27 @@ askName() {
 
 createResourceGroup() {
     local location=$1
-    echo "==> Creating resource group"
+    echo "$(date +%Y%m%d%H%M%S)][INFO] Creating resource group"
     az group create -n $meta_name -l $location
     if [ $? -eq 0 ]; then
         azure_group_name=$meta_name
     else
-        echo "Error creating resource group: $meta_name"
+        echo "$(date +%Y%m%d%H%M%S)][ERR] Error creating resource group: $meta_name"
         return 1
     fi
 }
 
 createStorageAccount() {
-
     local location=$1 
 
-    echo "==> Creating storage account"
+    echo "$(date +%Y%m%d%H%M%S)][INFO] Creating storage account"
     az storage account create --name $meta_name --resource-group $meta_name --location $location --kind Storage --sku Standard_LRS
     if [ $? -eq 0 ]; then
         azure_storage_name=$meta_name
     else
-        echo "Error creating storage account: $meta_name"
+        echo "$(date +%Y%m%d%H%M%S)][ERR] Error creating storage account: $meta_name"
         return 1
     fi
-}
-
-
-retryable() {
-    n=0
-    until [ $n -ge $1 ]
-    do
-        $2 && return 0
-        echo "$2 failed. Retrying..."
-        n=$[$n+1]
-        doSleep
-    done
-    echo "$2 failed after $1 tries. Exiting."
-    exit 1
 }
 
 requirements() {
@@ -118,8 +99,7 @@ requirements() {
         echo "Found azure-cli version: $azureversion"
     else
         echo "azure-cli is missing. Please install azure-cli from"
-        echo "https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest"
-        echo "Alternatively, you can use the Cloud Shell https://docs.microsoft.com/en-us/azure/cloud-shell/overview right from the Azure Portal or even VS Code."
+        echo "https://docs.microsoft.com/en-us/azure-stack/user/azure-stack-version-profiles-azurecli2"
     fi
 
     jqversion=$(jq --version)
@@ -136,43 +116,37 @@ requirements() {
     fi
 }
 
-
-function upload_logs()
-{   
+upload_logs() {   
     local file_to_upload=$1    
     local storage_acct=$2
-    local storage_key=$3
 
-    storage_key=$(az storage account keys list -g $metaname -n $metaname | jq '.[0].value ')
-    if [ "$storage_key" == "" ]; then
-        echo "Unable to retrieve the storage key for the stroage account $meta_name"
+    access_key=$(az storage account keys list -g $metaname -n $metaname | jq '.[0].value ')
+    if [ "$access_key" == "" ]; then
+        echo "$(date +%Y%m%d%H%M%S)][ERR] Unable to retrieve access key for stroage account $meta_name"
         exit
     fi 
 
-    CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
     container_name="AzureStack_KubernetesLogs_$CURRENTDATE"
     blob_name="KubernetesLogs_$CURRENTDATE"
     
-    az storage container create --name $container_name --account-name $meta_name --account-key $storage_key
+    az storage container create --name $container_name --account-name $meta_name --account-key $access_key
     if [ $? -ne 0 ]: then
-        echo "Error creating the container $container_name"
+        echo "$(date +%Y%m%d%H%M%S)][ERR] Error creating blob container $container_name"
         exit 1
     else    
-        echo "Container $container_name created"
+        echo "$(date +%Y%m%d%H%M%S)][INFO] Container $container_name created"
     fi
 
-    az storage blob upload --container-name $container_name --file $file_to_upload --name $blob_name --account-name $meta_name --account-key $storage_key 
+    az storage blob upload --container-name $container_name --file $file_to_upload --name $blob_name --account-name $meta_name --account-key $access_key 
     if [ $? -ne 0 ]: then
-        echo "Error uploading file to container $container_name"
+        echo "$(date +%Y%m%d%H%M%S)][ERR] Error uploading file to container $container_name"
         exit 1
     fi
-
 }
 # Restorey SSH config file always, even if the script ends with an error
 trap restore_ssh_config EXIT
 
-function printUsage
-{
+printUsage() {
     echo ""
     echo "Usage:"
     echo "  $0 -i id_rsa -m 192.168.102.34 -u azureuser -n default -n monitoring --disable-host-key-checking"
@@ -185,8 +159,13 @@ function printUsage
     echo "  -i, --identity-file             RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')"
     echo "  -m, --master-host               A master node's public IP or FQDN (host name starts with 'k8s-master-')"
     echo "  -d, --vmd-host                  The DVM's public IP or FQDN (host name starts with 'vmd-')"
+    echo "  --spn-client-id                 Service Principle client Id used to create the Kubernetes cluster"
+    echo "  --spn-client-secret             Service Principle client secret used to create the Kubernetes cluster"
+    echo "  -t, --tenant-id                 Tenant id"
+    echo "  -l, --location                  Location"
     echo "  -n, --user-namespace            Collect logs for containers in the passed namespace (kube-system logs are always collected)"
     echo "  --all-namespaces                Collect logs for all containers. Overrides the user-namespace flag"
+    echo "  --upload-storage-account        Upload logs to storage account. Specify Y to upload logs to Storage Account. Specify N to disable upload logs to Storage Account "
     echo "  --disable-host-key-checking     Sets SSH StrictHostKeyChecking option to \"no\" while the script executes. Use only when building automation in a save environment."
     echo "  -h, --help                      Print the command usage"
     exit 1
@@ -247,6 +226,10 @@ do
             ALLNAMESPACES=0
             shift
         ;;
+        --upload-storage-account)
+            UPLOAD_STORAGE_ACCOUNT="$2"
+            shift
+        ;;
         --disable-host-key-checking)
             STRICT_HOST_KEY_CHECKING="no"
             shift
@@ -295,25 +278,31 @@ else
     || { echo "The identity file $IDENTITYFILE is not a RSA Private Key file."; echo "A RSA private key file starts with '-----BEGIN [RSA|OPENSSH] PRIVATE KEY-----''"; exit 1; }
 fi
 
-if [ -z "$SPN_CLIENT_ID" -a -z "$SPN_CLIENT_SECRET" ]
+if [ "$UPLOAD_STORAGE_ACCOUNT"=="Y" ]; then
+    echo "Kubernetes Logs will be uploaded to storage account."
+else
+    echo "Kubernetes Logs will not be uploaded to storage account."
+fi
+
+if [ -z "$SPN_CLIENT_ID" -a -z "$SPN_CLIENT_SECRET" ] && [ "$UPLOAD_STORAGE_ACCOUNT"=="Y" ]
 then
     echo ""
-    echo "[ERR] Either SPN details or apimodel should be provided"
+    echo "[ERR] Service Principle details should be provided when upload-storage-account is set to Y"
     printUsage
     exit 1
 fi
 
-if [ -z "$TENANT_ID" ]
+if [ -z "$TENANT_ID" ] && [ "$UPLOAD_STORAGE_ACCOUNT"=="Y" ]
 then
     echo ""
-    echo "[ERR] --tenant-id is required"
+    echo "[ERR] --tenant-id is required when upload-storage-account is set to Y"
     printUsage
 fi
 
-if [ -z "$LOCATION" ]
+if [ -z "$LOCATION" ] && [ "$UPLOAD_STORAGE_ACCOUNT"=="Y" ]
 then
     echo ""
-    echo "[ERR] --tenant-id is required"
+    echo "[ERR] --tenant-id is required when upload-storage-account is set to Y"
     printUsage
 fi
 
@@ -321,15 +310,16 @@ test $ALLNAMESPACES -eq 0 && unset NAMESPACES
 
 # Print user input
 echo ""
-echo "user:              $USER"
-echo "identity-file:     $IDENTITYFILE"
-echo "master-host:       $MASTER_HOST"
-echo "vmd-host:          $DVM_HOST"
-echo "namespaces:        ${NAMESPACES:-all}"
-echo "spn-client-id:     $SPN_CLIENT_ID"
-echo "spn-client-secret: $SPN_CLIENT_SECRET"
-echo "tenant-id:         $TENANT_ID"
-echo "location:          $LOCATION"
+echo "user:                    $USER"
+echo "identity-file:           $IDENTITYFILE"
+echo "master-host:             $MASTER_HOST"
+echo "vmd-host:                $DVM_HOST"
+echo "namespaces:              ${NAMESPACES:-all}"
+echo "spn-client-id:           $SPN_CLIENT_ID"
+echo "spn-client-secret:       $SPN_CLIENT_SECRET"
+echo "tenant-id:               $TENANT_ID"
+echo "location:                $LOCATION"
+echo "upload-storage-account:  $UPLOAD_STORAGE_ACCOUNT"
 echo ""
 
 NOW=`date +%Y%m%d%H%M%S`
@@ -363,19 +353,6 @@ if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Aborting log collection process"
     exit 1
 fi
-
-#checks with azurecli and jq are installed
-requirements
-
-#login into azurestack using spn id and secret
-login_azs $SPN_CLIENT_ID \
-    $SPN_CLIENT_SECRET \
-    $TENANT_ID
-
-askSubscription
-askName
-createResourceGroup $LOCATION
-createStorageAccount $LOCATION
 
 if [ -n "$MASTER_HOST" ]
 then
@@ -446,11 +423,25 @@ then
 fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Done collecting Kubernetes logs"
-echo "[$(date +%Y%m%d%H%M%S)][INFO] Log in to AzureStack using Azure Cli"
-echo "[$(date +%Y%m%d%H%M%S)][INFO] Upload the logs to storage Account $STORAGE_ACCT"
-
-upload_logs $LOGFILEFOLDER \
-        $STORAGE_ACCT \
-        $STORAGE_KEY
-
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Logs can be found in this location: $LOGFILEFOLDER"
+
+if [ "$UPLOAD_STORAGE_ACCOUNT" == "Y" ]; then
+#checks if azure-cli and jq are installed
+requirements
+
+echo "[$(date +%Y%m%d%H%M%S)][INFO] Log in to AzureStack using Azure CLI"
+
+#login into azurestack using spn id and secret
+login_azs $SPN_CLIENT_ID \
+    $SPN_CLIENT_SECRET \
+    $TENANT_ID
+
+askSubscription
+askName
+createResourceGroup $LOCATION
+createStorageAccount $LOCATION
+
+echo "[$(date +%Y%m%d%H%M%S)][INFO] Upload the logs to storage Account $STORAGE_ACCT"
+upload_logs $LOGFILEFOLDER \
+        $STORAGE_ACCT 
+fi
