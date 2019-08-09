@@ -23,7 +23,8 @@ restore_ssh_config()
     fi
 }
 
-requirements() {
+requirements()
+{
     found=0
 
     azureversion=$(az --version)
@@ -63,7 +64,6 @@ printUsage()
     echo "  -h, --help                      Print the command usage"
     exit 1
 }
-
 
 if [ "$#" -eq 0 ]
 then
@@ -315,7 +315,7 @@ if [ -n "$UPLOAD_LOGS" ]; then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Logging into AzureStack using Azure CLI"
     #login into azurestack using spn id and secret
     az login --service-principal -u $spn_id -p $spn_secret --tenant $tenant_id
-    if [ $? -eq 0 ]; then
+    if [ $? -ne 0 ]; then
         echo "[$(date +%Y%m%d%H%M%S)][ERR] Error logging into AzureStack"
     fi
 fi
