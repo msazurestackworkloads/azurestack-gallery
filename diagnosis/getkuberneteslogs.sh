@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./common.sh
+
 restore_ssh_config() {
     # Restore only if previously backed up
     if [[ -v SSH_CONFIG_BAK ]]; then
@@ -150,13 +152,13 @@ printUsage() {
     echo "  -i, --identity-file             RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')"
     echo "  -m, --master-host               A master node's public IP or FQDN (host name starts with 'k8s-master-')"
     echo "  -d, --vmd-host                  The DVM's public IP or FQDN (host name starts with 'vmd-')"
-    echo "  --spn-client-id                 Service Principle client Id used to create the Kubernetes cluster"
-    echo "  --spn-client-secret             Service Principle client secret used to create the Kubernetes cluster"
+    echo "  --spn-client-id                 Service Principal client Id used to create the Kubernetes cluster"
+    echo "  --spn-client-secret             Service Principal client secret used to create the Kubernetes cluster"
     echo "  -t, --tenant-id                 Tenant id"
     echo "  -l, --location                  Location"
     echo "  -n, --user-namespace            Collect logs for containers in the passed namespace (kube-system logs are always collected)"
     echo "  --all-namespaces                Collect logs for all containers. Overrides the user-namespace flag"
-    echo "  --upload-storage-account        Upload logs to storage account. Specify Y to upload logs to Storage Account. Specify N to disable upload logs to Storage Account "
+    echo "  --upload-logs                   Enable uploading logs to storage account"
     echo "  --disable-host-key-checking     Sets SSH StrictHostKeyChecking option to \"no\" while the script executes. Use only when building automation in a save environment."
     echo "  -h, --help                      Print the command usage"
     exit 1
@@ -172,7 +174,8 @@ NAMESPACES="kube-system"
 ALLNAMESPACES=1
 # Revert once CI passes the new flag => STRICT_HOST_KEY_CHECKING="ask"
 STRICT_HOST_KEY_CHECKING="no"
-source ./common.sh
+UPLOAD_LOGS=""
+
 # Handle named parameters
 while [[ "$#" -gt 0 ]]
 do
@@ -217,8 +220,8 @@ do
             ALLNAMESPACES=0
             shift
         ;;
-        --upload-storage-account)
-            UPLOAD_STORAGE_ACCOUNT="$2"
+        --upload-logs)
+            UPLOAD_LOGS="true"
             shift
         ;;
         --disable-host-key-checking)
@@ -269,13 +272,7 @@ else
     || { echo "The identity file $IDENTITYFILE is not a RSA Private Key file."; echo "A RSA private key file starts with '-----BEGIN [RSA|OPENSSH] PRIVATE KEY-----''"; exit 1; }
 fi
 
-if [ "$UPLOAD_STORAGE_ACCOUNT"=="Y" ]; then
-    echo "Kubernetes Logs will be uploaded to storage account."
-else
-    echo "Kubernetes Logs will not be uploaded to storage account."
-fi
-
-if [ -z "$SPN_CLIENT_ID" -a -z "$SPN_CLIENT_SECRET" ] && [ "$UPLOAD_STORAGE_ACCOUNT"=="Y" ]
+if [ -z "$SPN_CLIENT_ID" -a -z "$SPN_CLIENT_SECRET" ] && [ -n "$UPLOAD_LOGS" ]
 then
     echo ""
     echo "[ERR] Service Principle details should be provided when upload-storage-account is set to Y"
@@ -283,14 +280,14 @@ then
     exit 1
 fi
 
-if [ -z "$TENANT_ID" ] && [ "$UPLOAD_STORAGE_ACCOUNT"=="Y" ]
+if [ -z "$TENANT_ID" ] && [ -n "$UPLOAD_LOGS" ]
 then
     echo ""
     echo "[ERR] --tenant-id is required when upload-storage-account is set to Y"
     printUsage
 fi
 
-if [ -z "$LOCATION" ] && [ "$UPLOAD_STORAGE_ACCOUNT"=="Y" ]
+if [ -z "$LOCATION" ] && [ -n "$UPLOAD_LOGS" ]
 then
     echo ""
     echo "[ERR] --tenant-id is required when upload-storage-account is set to Y"
@@ -310,7 +307,7 @@ echo "spn-client-id:           $SPN_CLIENT_ID"
 echo "spn-client-secret:       $SPN_CLIENT_SECRET"
 echo "tenant-id:               $TENANT_ID"
 echo "location:                $LOCATION"
-echo "upload-storage-account:  $UPLOAD_STORAGE_ACCOUNT"
+echo "upload-logs:             $UPLOAD_LOGS"
 echo ""
 
 NOW=`date +%Y%m%d%H%M%S`
@@ -416,7 +413,7 @@ fi
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Done collecting Kubernetes logs"
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Logs can be found in this location: $LOGFILEFOLDER"
 
-if [ "$UPLOAD_STORAGE_ACCOUNT" == "Y" ]; then
+if [ -n "$UPLOAD_LOGS" ]; then
 #checks if azure-cli and jq are installed
 requirements
 
