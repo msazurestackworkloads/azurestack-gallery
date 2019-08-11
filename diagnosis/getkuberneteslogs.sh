@@ -25,7 +25,7 @@ printUsage()
     echo "  -i, --identity-file             RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')"
     echo "  -m, --master-host               A master node's public IP or FQDN (host name starts with 'k8s-master-')"
     echo "  -d, --vmd-host                  The DVM's public IP or FQDN (host name starts with 'vmd-')"
-    echo "  -r, --resource-group            Resource group of kubernetes cluster"
+    echo "  -r, --resource-group            Kubernetes cluster resource group"
     echo "  -n, --user-namespace            Collect logs for containers in the passed namespace (kube-system logs are always collected)"
     echo "  --all-namespaces                Collect logs for all containers. Overrides the user-namespace flag"
     echo "  --upload-logs                   Stores the retrieved logs in an Azure Stack storage account"
