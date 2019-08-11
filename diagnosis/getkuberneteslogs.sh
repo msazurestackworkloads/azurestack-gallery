@@ -128,10 +128,10 @@ else
     || { echo "The identity file $IDENTITYFILE is not a RSA Private Key file."; echo "A RSA private key file starts with '-----BEGIN [RSA|OPENSSH] PRIVATE KEY-----''"; exit 1; }
 fi
 
-if [ -z "$RESOURCE_GROUP" ] && [ -n "$UPLOAD_LOGS" ]
+if [ -z "$RESOURCE_GROUP" ]
 then
     echo ""
-    echo "[ERR] Resource group should be provided if logs are stored in a storage account"
+    echo "[ERR] Resource group should be provided"
     printUsage
     exit 1
 fi
@@ -165,27 +165,25 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-if [ -n "$UPLOAD_LOGS" ]; then
-    #checks if azure-cli is installed   
-    requirements
+#checks if azure-cli is installed   
+requirements
 
-    #workaround for SSL interception
-    export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=1 
-    export ADAL_PYTHON_SSL_NO_VERIFY=1
+#workaround for SSL interception
+export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=1 
+export ADAL_PYTHON_SSL_NO_VERIFY=1
 
-    #Validate resource-group
-    location=$(az group show -n $RESOURCE_GROUP --query location)
-    if [ $? -ne 0 ]; then
-         echo "[$(date +%Y%m%d%H%M%S)][ERR] Specified Resource group not found."
-         exit 1
-    fi
+#Validate resource-group
+location=$(az group show -n $RESOURCE_GROUP --query location)
+if [ $? -ne 0 ]; then
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] Specified Resource group not found."
+        exit 1
+fi
 
-    #Get the master nodes from the resource group
-    master_nodes=$(az resource list -g $RESOURCE_GROUP --resource-type "Microsoft.Compute/virtualMachines" --query "[?tags.poolName=='master'].{Name:name}" --output table)
-    if [ $? -ne 0 ]; then
-         echo "[$(date +%Y%m%d%H%M%S)][ERR] Kubernetes master nodes not found in the resource group."
-         exit 1
-    fi
+#Get the master nodes from the resource group
+master_nodes=$(az resource list -g $RESOURCE_GROUP --resource-type "Microsoft.Compute/virtualMachines" --query "[?tags.poolName=='master'].{Name:name}" --output table)
+if [ $? -ne 0 ]; then
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] Kubernetes master nodes not found in the resource group."
+        exit 1
 fi
 
 if [ -n "$MASTER_HOST" ]
