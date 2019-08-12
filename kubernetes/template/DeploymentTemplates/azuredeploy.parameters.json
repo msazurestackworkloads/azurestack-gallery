@@ -74,6 +74,24 @@
     "availabilityProfile": {
       "value": "AvailabilitySet"
     },
+    "windowsAgentPoolProfileCount": {
+      "value": "0"
+    },
+    "windowsAgentPoolProfileVMSize": {
+      "value": "Standard_D2_v2"
+    },
+    "windowsAdminUsername": {
+      "value": "azureuser"
+    },
+    "windowsAdminPassword": {
+      "value": ""
+    },
+    "windowsPackageBaseURL": {
+      "value": ""
+    },
+    "windowsPackageName": {
+      "value": ""
+    },
     "kubernetesImageBase": {
       "value": ""
     }
