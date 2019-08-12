@@ -8,7 +8,8 @@
             "kubernetesConfig": {
                 "kubernetesImageBase": "",
                 "useInstanceMetadata": false,
-                "networkPlugin": "flannel"
+                "networkPlugin": "flannel",
+                "customWindowsPackageURL": ""
             }
         },
         "customCloudProfile": {
@@ -41,6 +42,15 @@
                     }
                 ]
             }
+        },
+        "windowsProfile": {
+            "adminUsername": "azureuser",
+            "adminPassword": "",
+            "imageVersion": "latest",
+            "WindowsPublisher": "MicrosoftWindowsServer",
+            "WindowsOffer": "WindowsServer",
+            "WindowsSku": "2019-Datacenter-Core-with-Containers",
+            "sshEnabled": true
         },
         "servicePrincipalProfile": {
             "clientId": "",
