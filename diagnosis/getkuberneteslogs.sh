@@ -177,23 +177,30 @@ mkdir -p ~/.ssh
 
 if [ -n "$DVM_HOST" ]
 then
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect VMD logs"
-    SSH_FLAGS="-q -t -i ${IDENTITYFILE}"
-    SCP_FLAGS="-q -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
-    
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
-    scp ${SCP_FLAGS} common.sh ${USER}@${DVM_HOST}:/home/${USER}/
-    scp ${SCP_FLAGS} detectors.sh ${USER}@${DVM_HOST}:/home/${USER}/
-    scp ${SCP_FLAGS} collectlogsdvm.sh ${USER}@${DVM_HOST}:/home/${USER}/
-    ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "sudo chmod 744 common.sh detectors.sh collectlogsdvm.sh; ./collectlogsdvm.sh;"
-    
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
-    scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:"/home/${USER}/dvm_logs.tar.gz" ${LOGFILEFOLDER}/dvm_logs.tar.gz
-    tar -xzf $LOGFILEFOLDER/dvm_logs.tar.gz -C $LOGFILEFOLDER
-    rm $LOGFILEFOLDER/dvm_logs.tar.gz
-    
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Removing temp files from DVM"
-    ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh dvm_logs.tar.gz"
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Testing SSH keys"
+    ssh -q $USER@$DVM_HOST "exit"
+    if [ $? -ne 0 ]; then
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to the server"
+        exit 1
+    else
+        echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect VMD logs"
+        SSH_FLAGS="-q -t -i ${IDENTITYFILE}"
+        SCP_FLAGS="-q -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
+        
+        echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
+        scp ${SCP_FLAGS} common.sh ${USER}@${DVM_HOST}:/home/${USER}/
+        scp ${SCP_FLAGS} detectors.sh ${USER}@${DVM_HOST}:/home/${USER}/
+        scp ${SCP_FLAGS} collectlogsdvm.sh ${USER}@${DVM_HOST}:/home/${USER}/
+        ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "sudo chmod 744 common.sh detectors.sh collectlogsdvm.sh; ./collectlogsdvm.sh;"
+        
+        echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
+        scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:"/home/${USER}/dvm_logs.tar.gz" ${LOGFILEFOLDER}/dvm_logs.tar.gz
+        tar -xzf $LOGFILEFOLDER/dvm_logs.tar.gz -C $LOGFILEFOLDER
+        rm $LOGFILEFOLDER/dvm_logs.tar.gz
+        
+        echo "[$(date +%Y%m%d%H%M%S)][INFO] Removing temp files from DVM"
+        ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh dvm_logs.tar.gz"
+    fi
 fi
 
 #checks if azure-cli is installed
