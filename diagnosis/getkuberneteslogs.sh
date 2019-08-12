@@ -25,15 +25,14 @@ printUsage()
 {
     echo ""
     echo "Usage:"
-    echo "  $0 -i id_rsa -m 192.168.102.34 -u azureuser -n default -n monitoring --disable-host-key-checking"
+    echo "  $0 -i id_rsa -d 192.168.102.34 -u azureuser -n default -n monitoring --disable-host-key-checking"
     echo "  $0 --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32"
-    echo "  $0 --identity-file id_rsa --master-host 192.168.102.34 --user azureuser --vmd-host 192.168.102.32"
-    echo "  $0 --identity-file id_rsa --master-host 192.168.102.34 --user azureuser --vmd-host 192.168.102.32 --resource-group myresgrp --upload-logs"
+    echo "  $0 --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32"
+    echo "  $0 --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32 --resource-group myresgrp --upload-logs"
     echo ""
     echo "Options:"
     echo "  -u, --user                      User name associated to the identifity-file"
     echo "  -i, --identity-file             RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')"
-    echo "  -m, --master-host               A master node's public IP or FQDN (host name starts with 'k8s-master-')"
     echo "  -d, --vmd-host                  The DVM's public IP or FQDN (host name starts with 'vmd-')"
     echo "  -r, --resource-group            Kubernetes cluster resource group"
     echo "  -n, --user-namespace            Collect logs for containers in the passed namespace (kube-system logs are always collected)"
@@ -60,10 +59,6 @@ do
     case $1 in
         -i|--identity-file)
             IDENTITYFILE="$2"
-            shift 2
-        ;;
-        -m|--master-host)
-            MASTER_HOST="$2"
             shift 2
         ;;
         -d|--vmd-host)
@@ -120,10 +115,10 @@ then
     printUsage
 fi
 
-if [ -z "$DVM_HOST" -a -z "$MASTER_HOST" ]
+if [ -z "$DVM_HOST" ]
 then
     echo ""
-    echo "[ERR] Either --vmd-host or --master-host should be provided"
+    echo "[ERR] Either --vmd-host should be provided"
     printUsage
 fi
 
@@ -152,7 +147,6 @@ test $ALLNAMESPACES -eq 0 && unset NAMESPACES
 echo ""
 echo "user:                    $USER"
 echo "identity-file:           $IDENTITYFILE"
-echo "master-host:             $MASTER_HOST"
 echo "vmd-host:                $DVM_HOST"
 echo "resource-group:          $RESOURCE_GROUP"
 echo "upload-logs:             $UPLOAD_LOGS"
@@ -183,20 +177,20 @@ export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=1
 export ADAL_PYTHON_SSL_NO_VERIFY=1
 
 #Validate resource-group
-location=$(az group show -n $RESOURCE_GROUP --query location)
+LOCATION=$(az group show -n $RESOURCE_GROUP --query location)
 if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Specified Resource group not found."
     exit 1
 fi
 
 #Get the master nodes from the resource group
-master_nodes=$(az resource list -g $RESOURCE_GROUP --resource-type "Microsoft.Compute/virtualMachines" --query "[?tags.poolName=='master'].{Name:name}" --output tsv)
+MASTER_NODES=$(az resource list -g $RESOURCE_GROUP --resource-type "Microsoft.Compute/virtualMachines" --query "[?tags.poolName=='master'].{Name:name}" --output tsv)
 if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Kubernetes master nodes not found in the resource group."
     exit 1
 fi
 
-MASTER_HOST=$(az network public-ip list -g $RESOURCE_GROUP --query "[?contains(name,'k8s-master')].{Name:name,ip:ipAddress}" --output tsv)
+MASTER_IP=$(az network public-ip list -g $RESOURCE_GROUP --query "[?contains(name,'k8s-master')].{Name:name,ip:ipAddress}" --output tsv)
 if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Kubernetes master node ip not found in the resource group."
     exit 1
