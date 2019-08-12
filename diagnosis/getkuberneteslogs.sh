@@ -12,12 +12,27 @@ trap restoreAzureCLIVariables EXIT
 
 checkRequirements()
 {
+    found=0
     azureversion=$(az --version)
     if [ $? -eq 0 ]; then
+        found=$((found + 1))
         echo "Found azure-cli version: $azureversion"
     else
         echo "azure-cli is missing. Please install azure-cli from"
         echo "https://docs.microsoft.com/azure-stack/user/azure-stack-version-profiles-azurecli2"
+    fi
+    
+    jqversion=$(jq --version)
+    if [ $? -eq 0 ]; then
+        found=$((found + 1))
+        echo "Found jq version: $jqversion"
+    else
+        echo "jq is missing. Please install jq from"
+        echo "https://stedolan.github.io/jq/"
+    fi
+    
+    if [ $found -lt 2 ]; then
+        exit 1
     fi
 }
 
@@ -34,17 +49,15 @@ printUsage()
 {
     echo ""
     echo "Usage:"
-    echo "  $0 -i id_rsa -m 192.168.102.34 -u azureuser -n default -n monitoring --disable-host-key-checking"
-    echo "  $0 --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32"
-    echo "  $0 --identity-file id_rsa --master-host 192.168.102.34 --user azureuser --vmd-host 192.168.102.32"
-    echo "  $0 --identity-file id_rsa --master-host 192.168.102.34 --user azureuser --vmd-host 192.168.102.32 --resource-group myresgrp --upload-logs"
+    echo "  $0 -i id_rsa -d 192.168.102.34 -g myresgrp -u azureuser -n default -n monitoring --disable-host-key-checking"
+    echo "  $0 --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32 --resource-group myresgrp"
+    echo "  $0 --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32 --resource-group myresgrp --upload-logs"
     echo ""
     echo "Options:"
     echo "  -u, --user                      User name associated to the identifity-file"
     echo "  -i, --identity-file             RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')"
-    echo "  -m, --master-host               A master node's public IP or FQDN (host name starts with 'k8s-master-')"
     echo "  -d, --vmd-host                  The DVM's public IP or FQDN (host name starts with 'vmd-')"
-    echo "  -r, --resource-group            Kubernetes cluster resource group"
+    echo "  -g, --resource-group            Kubernetes cluster resource group"
     echo "  -n, --user-namespace            Collect logs for containers in the passed namespace (kube-system logs are always collected)"
     echo "  --all-namespaces                Collect logs for all containers. Overrides the user-namespace flag"
     echo "  --upload-logs                   Stores the retrieved logs in an Azure Stack storage account"
@@ -69,10 +82,6 @@ do
     case $1 in
         -i|--identity-file)
             IDENTITYFILE="$2"
-            shift 2
-        ;;
-        -m|--master-host)
-            MASTER_HOST="$2"
             shift 2
         ;;
         -d|--vmd-host)
@@ -129,13 +138,6 @@ then
     printUsage
 fi
 
-if [ -z "$DVM_HOST" -a -z "$MASTER_HOST" ]
-then
-    echo ""
-    echo "[ERR] Either --vmd-host or --master-host should be provided"
-    printUsage
-fi
-
 if [ ! -f $IDENTITYFILE ]
 then
     echo ""
@@ -161,7 +163,6 @@ test $ALLNAMESPACES -eq 0 && unset NAMESPACES
 echo ""
 echo "user:                    $USER"
 echo "identity-file:           $IDENTITYFILE"
-echo "master-host:             $MASTER_HOST"
 echo "vmd-host:                $DVM_HOST"
 echo "resource-group:          $RESOURCE_GROUP"
 echo "upload-logs:             $UPLOAD_LOGS"
@@ -174,14 +175,32 @@ LOGFILEFOLDER="./KubernetesLogs_$CURRENTDATE"
 mkdir -p $LOGFILEFOLDER
 mkdir -p ~/.ssh
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO] Testing SSH keys"
-TEST_HOST="${MASTER_HOST:-$DVM_HOST}"
-ssh -q $USER@$TEST_HOST "exit"
-
-if [ $? -ne 0 ]; then
-    echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to the server"
-    echo "[$(date +%Y%m%d%H%M%S)][ERR] Aborting log collection process"
-    exit 1
+if [ -n "$DVM_HOST" ]
+then
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Testing SSH keys"
+    ssh -q $USER@$DVM_HOST "exit"
+    if [ $? -ne 0 ]; then
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to the server"
+        exit 1
+    else
+        echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect VMD logs"
+        SSH_FLAGS="-q -t -i ${IDENTITYFILE}"
+        SCP_FLAGS="-q -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
+        
+        echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
+        scp ${SCP_FLAGS} common.sh ${USER}@${DVM_HOST}:/home/${USER}/
+        scp ${SCP_FLAGS} detectors.sh ${USER}@${DVM_HOST}:/home/${USER}/
+        scp ${SCP_FLAGS} collectlogsdvm.sh ${USER}@${DVM_HOST}:/home/${USER}/
+        ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "sudo chmod 744 common.sh detectors.sh collectlogsdvm.sh; ./collectlogsdvm.sh;"
+        
+        echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
+        scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:"/home/${USER}/dvm_logs.tar.gz" ${LOGFILEFOLDER}/dvm_logs.tar.gz
+        tar -xzf $LOGFILEFOLDER/dvm_logs.tar.gz -C $LOGFILEFOLDER
+        rm $LOGFILEFOLDER/dvm_logs.tar.gz
+        
+        echo "[$(date +%Y%m%d%H%M%S)][INFO] Removing temp files from DVM"
+        ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh dvm_logs.tar.gz"
+    fi
 fi
 
 #checks if azure-cli is installed
@@ -196,34 +215,49 @@ export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=1
 export ADAL_PYTHON_SSL_NO_VERIFY=1
 
 #Validate resource-group
-location=$(az group show -n $RESOURCE_GROUP --query location)
+LOCATION=$(az group show -n $RESOURCE_GROUP --query location)
 if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Specified Resource group not found."
     exit 1
 fi
 
 #Get the master nodes from the resource group
-master_nodes=$(az resource list -g $RESOURCE_GROUP --resource-type "Microsoft.Compute/virtualMachines" --query "[?tags.poolName=='master'].{Name:name}" --output tsv)
+MASTER_NODES=$(az resource list -g $RESOURCE_GROUP --resource-type "Microsoft.Compute/virtualMachines" --query "[?tags.poolName=='master'].{Name:name}" --output tsv)
 if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Kubernetes master nodes not found in the resource group."
     exit 1
 fi
 
-if [ -n "$MASTER_HOST" ]
+MASTER_IP=$(az network public-ip list -g $RESOURCE_GROUP --output json | jq -r '.[] | select (.name | contains("'k8s-master'")) .ipAddress')
+if [ $? -ne 0 ]; then
+    echo "[$(date +%Y%m%d%H%M%S)][ERR] Kubernetes master node ip not found in the resource group."
+    exit 1
+fi
+
+echo "[$(date +%Y%m%d%H%M%S)][INFO] Testing SSH keys"
+ssh -q $USER@$MASTER_IP "exit"
+
+if [ $? -ne 0 ]; then
+    echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to the server"
+    echo "[$(date +%Y%m%d%H%M%S)][ERR] Aborting log collection process"
+    exit 1
+fi
+
+if [ -n "$MASTER_IP" ]
 then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect cluster logs"
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Looking for cluster hosts"
-    scp -q hosts.sh $USER@$MASTER_HOST:/home/$USER/hosts.sh
-    ssh -tq $USER@$MASTER_HOST "sudo chmod 744 hosts.sh; ./hosts.sh $NOW"
-    scp -q $USER@$MASTER_HOST:"/home/$USER/$NOW.tar.gz" $LOGFILEFOLDER/cluster-snapshot.tar.gz
-    ssh -tq $USER@$MASTER_HOST "sudo rm -f $NOW.tar.gz hosts.sh"
+    scp -q hosts.sh $USER@$MASTER_IP:/home/$USER/hosts.sh
+    ssh -tq $USER@$MASTER_IP "sudo chmod 744 hosts.sh; ./hosts.sh $NOW"
+    scp -q $USER@$MASTER_IP:"/home/$USER/$NOW.tar.gz" $LOGFILEFOLDER/cluster-snapshot.tar.gz
+    ssh -tq $USER@$MASTER_IP "sudo rm -f $NOW.tar.gz hosts.sh"
     tar -xzf $LOGFILEFOLDER/cluster-snapshot.tar.gz -C $LOGFILEFOLDER
     rm $LOGFILEFOLDER/cluster-snapshot.tar.gz
     mv $LOGFILEFOLDER/$NOW $LOGFILEFOLDER/cluster-snapshot-$NOW
     
-    SSH_FLAGS="-q -t -J ${USER}@${MASTER_HOST} -i ${IDENTITYFILE}"
-    SCP_FLAGS="-q -o ProxyJump=${USER}@${MASTER_HOST} -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
+    SSH_FLAGS="-q -t -J ${USER}@${MASTER_IP} -i ${IDENTITYFILE}"
+    SCP_FLAGS="-q -o ProxyJump=${USER}@${MASTER_IP} -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
     
     for host in $(cat $LOGFILEFOLDER/host.list)
     do
@@ -247,27 +281,6 @@ then
     rm $LOGFILEFOLDER/host.list
 fi
 
-if [ -n "$DVM_HOST" ]
-then
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect VMD logs"
-    SSH_FLAGS="-q -t -i ${IDENTITYFILE}"
-    SCP_FLAGS="-q -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
-    
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
-    scp ${SCP_FLAGS} common.sh ${USER}@${DVM_HOST}:/home/${USER}/
-    scp ${SCP_FLAGS} detectors.sh ${USER}@${DVM_HOST}:/home/${USER}/
-    scp ${SCP_FLAGS} collectlogsdvm.sh ${USER}@${DVM_HOST}:/home/${USER}/
-    ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "sudo chmod 744 common.sh detectors.sh collectlogsdvm.sh; ./collectlogsdvm.sh;"
-    
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
-    scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:"/home/${USER}/dvm_logs.tar.gz" ${LOGFILEFOLDER}/dvm_logs.tar.gz
-    tar -xzf $LOGFILEFOLDER/dvm_logs.tar.gz -C $LOGFILEFOLDER
-    rm $LOGFILEFOLDER/dvm_logs.tar.gz
-    
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Removing temp files from DVM"
-    ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh dvm_logs.tar.gz"
-fi
-
 # Aggregate ERRORS.txt
 if [ `find $LOGFILEFOLDER -name ERRORS.txt | wc -w` -ne "0" ];
 then
@@ -285,8 +298,8 @@ for log in $(ls ${LOGFILEFOLDER}/*/containers/*.log)
 do
     CNAME=$(basename ${log} .log)
     CMETA=${LOGFILEFOLDER}/cluster-snapshot-$NOW/${CNAME}.meta
-
-    CLOG=${SA_DIR}/${CNAME}.log    
+    
+    CLOG=${SA_DIR}/${CNAME}.log
     echo "== BEGIN HEADER ==" > ${CLOG}
     jq -r 'to_entries|map("\(.key): \(.value|tostring)")|.[]' ${CMETA} >> ${CLOG}
     echo "== END HEADER ==" >> ${CLOG}
