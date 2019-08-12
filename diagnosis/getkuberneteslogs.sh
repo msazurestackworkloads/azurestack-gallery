@@ -142,7 +142,7 @@ fi
 if [ -z "$DVM_HOST" ]
 then
     echo ""
-    echo "[ERR] Either --vmd-host should be provided"
+    echo "[ERR] --vmd-host should be provided"
     printUsage
 fi
 
