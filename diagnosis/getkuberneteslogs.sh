@@ -1,6 +1,16 @@
 #!/bin/bash
+restoreAzureCLIVariables()
+{
+    EXIT_CODE=$?
+    #restoring Azure CLI values
+    export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=0
+    export ADAL_PYTHON_SSL_NO_VERIFY=0
+    exit $EXIT_CODE
+}
 
-requirements()
+trap restoreAzureCLIVariables EXIT
+
+checkRequirements()
 {
     azureversion=$(az --version)
     if [ $? -eq 0 ]; then
@@ -131,7 +141,7 @@ fi
 if [ -z "$RESOURCE_GROUP" ]
 then
     echo ""
-    echo "[ERR] Resource group should be provided"
+    echo "[ERR] --resource-group should be provided"
     printUsage
     exit 1
 fi
@@ -166,7 +176,7 @@ if [ $? -ne 0 ]; then
 fi
 
 #checks if azure-cli is installed   
-requirements
+checkRequirements
 
 #workaround for SSL interception
 export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=1 
@@ -175,15 +185,15 @@ export ADAL_PYTHON_SSL_NO_VERIFY=1
 #Validate resource-group
 location=$(az group show -n $RESOURCE_GROUP --query location)
 if [ $? -ne 0 ]; then
-        echo "[$(date +%Y%m%d%H%M%S)][ERR] Specified Resource group not found."
-        exit 1
+    echo "[$(date +%Y%m%d%H%M%S)][ERR] Specified Resource group not found."
+    exit 1
 fi
 
 #Get the master nodes from the resource group
-master_nodes=$(az resource list -g $RESOURCE_GROUP --resource-type "Microsoft.Compute/virtualMachines" --query "[?tags.poolName=='master'].{Name:name}" --output table)
+master_nodes=$(az resource list -g $RESOURCE_GROUP --resource-type "Microsoft.Compute/virtualMachines" --query "[?tags.poolName=='master'].{Name:name}" --output tsv)
 if [ $? -ne 0 ]; then
-        echo "[$(date +%Y%m%d%H%M%S)][ERR] Kubernetes master nodes not found in the resource group."
-        exit 1
+    echo "[$(date +%Y%m%d%H%M%S)][ERR] Kubernetes master nodes not found in the resource group."
+    exit 1
 fi
 
 if [ -n "$MASTER_HOST" ]
