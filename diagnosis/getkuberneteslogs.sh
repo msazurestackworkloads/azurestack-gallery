@@ -3,8 +3,8 @@ restoreAzureCLIVariables()
 {
     EXIT_CODE=$?
     #restoring Azure CLI values
-    export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=0
-    export ADAL_PYTHON_SSL_NO_VERIFY=0
+    export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=$USER_AZURE_CLI_DISABLE_CONNECTION_VERIFICATION
+    export ADAL_PYTHON_SSL_NO_VERIFY=$USER_ADAL_PYTHON_SSL_NO_VERIFY
     exit $EXIT_CODE
 }
 
@@ -175,11 +175,15 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-#checks if azure-cli is installed   
+#checks if azure-cli is installed
 checkRequirements
 
+#get user values of azure-cli variables
+USER_AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=$AZURE_CLI_DISABLE_CONNECTION_VERIFICATION
+USER_ADAL_PYTHON_SSL_NO_VERIFY=$ADAL_PYTHON_SSL_NO_VERIFY
+
 #workaround for SSL interception
-export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=1 
+export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=1
 export ADAL_PYTHON_SSL_NO_VERIFY=1
 
 #Validate resource-group
