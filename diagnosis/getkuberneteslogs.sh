@@ -1,6 +1,16 @@
 #!/bin/bash
+restoreAzureCLIVariables()
+{
+    EXIT_CODE=$?
+    #restoring Azure CLI values
+    export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=$USER_AZURE_CLI_DISABLE_CONNECTION_VERIFICATION
+    export ADAL_PYTHON_SSL_NO_VERIFY=$USER_ADAL_PYTHON_SSL_NO_VERIFY
+    exit $EXIT_CODE
+}
 
-requirements()
+trap restoreAzureCLIVariables EXIT
+
+checkRequirements()
 {
     azureversion=$(az --version)
     if [ $? -eq 0 ]; then
@@ -27,16 +37,14 @@ printUsage()
     echo "  $0 -i id_rsa -m 192.168.102.34 -u azureuser -n default -n monitoring --disable-host-key-checking"
     echo "  $0 --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32"
     echo "  $0 --identity-file id_rsa --master-host 192.168.102.34 --user azureuser --vmd-host 192.168.102.32"
-    echo "  $0 --identity-file id_rsa --master-host 192.168.102.34 --user azureuser --vmd-host 192.168.102.32 --spn-client-id 00000000-aaaa-aaaa-0000-aaaaaaaaaaaa --spn-client-secret 00000000-aaaa-aaaa-0000-aaaaaaaaaaaa --tenant-id 00000000-0000-0000-0000-000000000000 --upload-logs"
+    echo "  $0 --identity-file id_rsa --master-host 192.168.102.34 --user azureuser --vmd-host 192.168.102.32 --resource-group myresgrp --upload-logs"
     echo ""
     echo "Options:"
     echo "  -u, --user                      User name associated to the identifity-file"
     echo "  -i, --identity-file             RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')"
     echo "  -m, --master-host               A master node's public IP or FQDN (host name starts with 'k8s-master-')"
     echo "  -d, --vmd-host                  The DVM's public IP or FQDN (host name starts with 'vmd-')"
-    echo "  --spn-client-id                 Service Principal client Id used to create the Kubernetes cluster"
-    echo "  --spn-client-secret             Service Principal client secret used to create the Kubernetes cluster"
-    echo "  -t, --tenant-id                 Tenant Id"
+    echo "  -r, --resource-group            Kubernetes cluster resource group"
     echo "  -n, --user-namespace            Collect logs for containers in the passed namespace (kube-system logs are always collected)"
     echo "  --all-namespaces                Collect logs for all containers. Overrides the user-namespace flag"
     echo "  --upload-logs                   Stores the retrieved logs in an Azure Stack storage account"
@@ -75,16 +83,8 @@ do
             USER="$2"
             shift 2
         ;;
-        --spn-client-id)
-            SPN_CLIENT_ID="$2"
-            shift 2
-        ;;
-        --spn-client-secret)
-            SPN_CLIENT_SECRET="$2"
-            shift 2
-        ;;
-        -t|--tenant-id)
-            TENANT_ID="$2"
+        -g|--resource-group)
+            RESOURCE_GROUP="$2"
             shift 2
         ;;
         -n|--user-namespace)
@@ -147,26 +147,12 @@ else
     || { echo "The identity file $IDENTITYFILE is not a RSA Private Key file."; echo "A RSA private key file starts with '-----BEGIN [RSA|OPENSSH] PRIVATE KEY-----''"; exit 1; }
 fi
 
-if [ -z "$SPN_CLIENT_ID" -a -z "$SPN_CLIENT_SECRET" ] && [ -n "$UPLOAD_LOGS" ]
+if [ -z "$RESOURCE_GROUP" ]
 then
     echo ""
-    echo "[ERR] Service Principal details should be provided if logs are stored in a storage account"
+    echo "[ERR] --resource-group should be provided"
     printUsage
     exit 1
-fi
-
-if [ -z "$TENANT_ID" ] && [ -n "$UPLOAD_LOGS" ]
-then
-    echo ""
-    echo "[ERR] Tenant Id should be provided if logs are stored in a storage account"
-    printUsage
-fi
-
-if [ -z "$LOCATION" ] && [ -n "$UPLOAD_LOGS" ]
-then
-    echo ""
-    echo "[ERR] Location should be provided if logs are stored in a storage account"
-    printUsage
 fi
 
 test $ALLNAMESPACES -eq 0 && unset NAMESPACES
@@ -177,9 +163,7 @@ echo "user:                    $USER"
 echo "identity-file:           $IDENTITYFILE"
 echo "master-host:             $MASTER_HOST"
 echo "vmd-host:                $DVM_HOST"
-echo "spn-client-id:           $SPN_CLIENT_ID"
-echo "spn-client-secret:       $SPN_CLIENT_SECRET"
-echo "tenant-id:               $TENANT_ID"
+echo "resource-group:          $RESOURCE_GROUP"
 echo "upload-logs:             $UPLOAD_LOGS"
 echo "namespaces:              ${NAMESPACES:-all}"
 echo ""
@@ -197,6 +181,31 @@ ssh -q $USER@$TEST_HOST "exit"
 if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to the server"
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Aborting log collection process"
+    exit 1
+fi
+
+#checks if azure-cli is installed
+checkRequirements
+
+#get user values of azure-cli variables
+USER_AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=$AZURE_CLI_DISABLE_CONNECTION_VERIFICATION
+USER_ADAL_PYTHON_SSL_NO_VERIFY=$ADAL_PYTHON_SSL_NO_VERIFY
+
+#workaround for SSL interception
+export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=1
+export ADAL_PYTHON_SSL_NO_VERIFY=1
+
+#Validate resource-group
+location=$(az group show -n $RESOURCE_GROUP --query location)
+if [ $? -ne 0 ]; then
+    echo "[$(date +%Y%m%d%H%M%S)][ERR] Specified Resource group not found."
+    exit 1
+fi
+
+#Get the master nodes from the resource group
+master_nodes=$(az resource list -g $RESOURCE_GROUP --resource-type "Microsoft.Compute/virtualMachines" --query "[?tags.poolName=='master'].{Name:name}" --output tsv)
+if [ $? -ne 0 ]; then
+    echo "[$(date +%Y%m%d%H%M%S)][ERR] Kubernetes master nodes not found in the resource group."
     exit 1
 fi
 
@@ -285,14 +294,3 @@ do
 done
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Logs can be found in this location: $LOGFILEFOLDER"
-
-if [ -n "$UPLOAD_LOGS" ]; then
-    #checks if azure-cli is installed   
-    requirements
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Logging into AzureStack using Azure CLI"
-    #login into azurestack using spn id and secret
-    az login --service-principal -u $spn_id -p $spn_secret --tenant $tenant_id
-    if [ $? -ne 0 ]; then
-        echo "[$(date +%Y%m%d%H%M%S)][ERR] Error logging into AzureStack"
-    fi
-fi
