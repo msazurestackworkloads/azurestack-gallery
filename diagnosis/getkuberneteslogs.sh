@@ -59,15 +59,15 @@ printUsage()
 {
     echo ""
     echo "Usage:"
-    echo "  $0 -i id_rsa -d 192.168.102.34 -u azureuser -n default -n monitoring --disable-host-key-checking"
-    echo "  $0 --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32"
+    echo "  $0 -i id_rsa -d 192.168.102.34 -g myresgrp -u azureuser -n default -n monitoring --disable-host-key-checking"
+    echo "  $0 --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32 --resource-group myresgrp"
     echo "  $0 --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32 --resource-group myresgrp --upload-logs"
     echo ""
     echo "Options:"
     echo "  -u, --user                      User name associated to the identifity-file"
     echo "  -i, --identity-file             RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')"
     echo "  -d, --vmd-host                  The DVM's public IP or FQDN (host name starts with 'vmd-')"
-    echo "  -r, --resource-group            Kubernetes cluster resource group"
+    echo "  -g, --resource-group            Kubernetes cluster resource group"
     echo "  -n, --user-namespace            Collect logs for containers in the passed namespace (kube-system logs are always collected)"
     echo "  --all-namespaces                Collect logs for all containers. Overrides the user-namespace flag"
     echo "  --upload-logs                   Stores the retrieved logs in an Azure Stack storage account"
@@ -185,6 +185,27 @@ LOGFILEFOLDER="./KubernetesLogs_$CURRENTDATE"
 mkdir -p $LOGFILEFOLDER
 mkdir -p ~/.ssh
 
+if [ -n "$DVM_HOST" ]
+then
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect VMD logs"
+    SSH_FLAGS="-q -t -i ${IDENTITYFILE}"
+    SCP_FLAGS="-q -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
+    
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
+    scp ${SCP_FLAGS} common.sh ${USER}@${DVM_HOST}:/home/${USER}/
+    scp ${SCP_FLAGS} detectors.sh ${USER}@${DVM_HOST}:/home/${USER}/
+    scp ${SCP_FLAGS} collectlogsdvm.sh ${USER}@${DVM_HOST}:/home/${USER}/
+    ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "sudo chmod 744 common.sh detectors.sh collectlogsdvm.sh; ./collectlogsdvm.sh;"
+    
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
+    scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:"/home/${USER}/dvm_logs.tar.gz" ${LOGFILEFOLDER}/dvm_logs.tar.gz
+    tar -xzf $LOGFILEFOLDER/dvm_logs.tar.gz -C $LOGFILEFOLDER
+    rm $LOGFILEFOLDER/dvm_logs.tar.gz
+    
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Removing temp files from DVM"
+    ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh dvm_logs.tar.gz"
+fi
+
 #checks if azure-cli is installed
 checkRequirements
 
@@ -217,8 +238,7 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Testing SSH keys"
-TEST_HOST="${MASTER_IP:-$DVM_HOST}"
-ssh -q $USER@$TEST_HOST "exit"
+ssh -q $USER@$MASTER_IP "exit"
 
 if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to the server"
@@ -262,27 +282,6 @@ then
     done
     
     rm $LOGFILEFOLDER/host.list
-fi
-
-if [ -n "$DVM_HOST" ]
-then
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect VMD logs"
-    SSH_FLAGS="-q -t -i ${IDENTITYFILE}"
-    SCP_FLAGS="-q -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
-    
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
-    scp ${SCP_FLAGS} common.sh ${USER}@${DVM_HOST}:/home/${USER}/
-    scp ${SCP_FLAGS} detectors.sh ${USER}@${DVM_HOST}:/home/${USER}/
-    scp ${SCP_FLAGS} collectlogsdvm.sh ${USER}@${DVM_HOST}:/home/${USER}/
-    ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "sudo chmod 744 common.sh detectors.sh collectlogsdvm.sh; ./collectlogsdvm.sh;"
-    
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
-    scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:"/home/${USER}/dvm_logs.tar.gz" ${LOGFILEFOLDER}/dvm_logs.tar.gz
-    tar -xzf $LOGFILEFOLDER/dvm_logs.tar.gz -C $LOGFILEFOLDER
-    rm $LOGFILEFOLDER/dvm_logs.tar.gz
-    
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Removing temp files from DVM"
-    ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh dvm_logs.tar.gz"
 fi
 
 # Aggregate ERRORS.txt
