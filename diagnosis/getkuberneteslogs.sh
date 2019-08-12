@@ -11,6 +11,15 @@ requirements()
     fi
 }
 
+createSADirectories()
+{
+    local SA_DIR_DATE=$(echo $NOW | head -c 8)
+    local SA_DIR_HOUR=$(echo $NOW | tail -c 7 | head -c 2)
+    local SA_DIR_MIN=$(echo $NOW | tail -c 5 | head -c 2)
+    SA_DIR="${LOGFILEFOLDER}/data/d=${SA_DIR_DATE}/h=${SA_DIR_HOUR}/m=${SA_DIR_MIN}"
+    mkdir -p ${SA_DIR}
+}
+
 printUsage()
 {
     echo ""
@@ -258,6 +267,23 @@ then
 fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Done collecting Kubernetes logs"
+
+# TODO Move inside UPLOAD_LOGS
+echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing logs"
+createSADirectories
+
+for log in $(ls ${LOGFILEFOLDER}/*/containers/*.log)
+do
+    CNAME=$(basename ${log} .log)
+    CMETA=${LOGFILEFOLDER}/cluster-snapshot-$NOW/${CNAME}.meta
+
+    CLOG=${SA_DIR}/${CNAME}.log    
+    echo "== BEGIN HEADER ==" > ${CLOG}
+    jq -r 'to_entries|map("\(.key): \(.value|tostring)")|.[]' ${CMETA} >> ${CLOG}
+    echo "== END HEADER ==" >> ${CLOG}
+    cat ${log} >> ${CLOG}
+done
+
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Logs can be found in this location: $LOGFILEFOLDER"
 
 if [ -n "$UPLOAD_LOGS" ]; then
