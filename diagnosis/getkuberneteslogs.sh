@@ -175,11 +175,11 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-#checks if azure-cli is installed   
+#checks if azure-cli is installed
 checkRequirements
 
 #workaround for SSL interception
-export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=1 
+export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=1
 export ADAL_PYTHON_SSL_NO_VERIFY=1
 
 #Validate resource-group
@@ -193,6 +193,12 @@ fi
 master_nodes=$(az resource list -g $RESOURCE_GROUP --resource-type "Microsoft.Compute/virtualMachines" --query "[?tags.poolName=='master'].{Name:name}" --output tsv)
 if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Kubernetes master nodes not found in the resource group."
+    exit 1
+fi
+
+MASTER_HOST=$(az network public-ip list -g $RESOURCE_GROUP --query "[?contains(name,'k8s-master')].{Name:name,ip:ipAddress}" --output tsv)
+if [ $? -ne 0 ]; then
+    echo "[$(date +%Y%m%d%H%M%S)][ERR] Kubernetes master node ip not found in the resource group."
     exit 1
 fi
 
