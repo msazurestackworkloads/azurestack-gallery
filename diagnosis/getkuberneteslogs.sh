@@ -61,7 +61,6 @@ printUsage()
     echo "Usage:"
     echo "  $0 -i id_rsa -d 192.168.102.34 -u azureuser -n default -n monitoring --disable-host-key-checking"
     echo "  $0 --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32"
-    echo "  $0 --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32"
     echo "  $0 --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32 --resource-group myresgrp --upload-logs"
     echo ""
     echo "Options:"
@@ -149,13 +148,6 @@ then
     printUsage
 fi
 
-if [ -z "$DVM_HOST" ]
-then
-    echo ""
-    echo "[ERR] --vmd-host should be provided"
-    printUsage
-fi
-
 if [ ! -f $IDENTITYFILE ]
 then
     echo ""
@@ -220,7 +212,8 @@ fi
 
 MASTER_IP=$(az network public-ip list -g $RESOURCE_GROUP --output json | jq -r '.[] | select (.name | contains("'k8s-master'")) .ipAddress')
 if [ $? -ne 0 ]; then
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Kubernetes master node ip not found in the resource group."
+    echo "[$(date +%Y%m%d%H%M%S)][ERR] Kubernetes master node ip not found in the resource group."
+    exit 1
 fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Testing SSH keys"
