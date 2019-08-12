@@ -12,12 +12,27 @@ trap restoreAzureCLIVariables EXIT
 
 checkRequirements()
 {
+    found=0
     azureversion=$(az --version)
     if [ $? -eq 0 ]; then
+        found=$((found + 1))
         echo "Found azure-cli version: $azureversion"
     else
         echo "azure-cli is missing. Please install azure-cli from"
         echo "https://docs.microsoft.com/azure-stack/user/azure-stack-version-profiles-azurecli2"
+    fi
+    
+    jqversion=$(jq --version)
+    if [ $? -eq 0 ]; then
+        found=$((found + 1))
+        echo "Found jq version: $jqversion"
+    else
+        echo "jq is missing. Please install jq from"
+        echo "https://stedolan.github.io/jq/"
+    fi
+    
+    if [ $found -lt 2 ]; then
+        exit 1
     fi
 }
 
@@ -159,16 +174,6 @@ LOGFILEFOLDER="./KubernetesLogs_$CURRENTDATE"
 mkdir -p $LOGFILEFOLDER
 mkdir -p ~/.ssh
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO] Testing SSH keys"
-TEST_HOST="${MASTER_HOST:-$DVM_HOST}"
-ssh -q $USER@$TEST_HOST "exit"
-
-if [ $? -ne 0 ]; then
-    echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to the server"
-    echo "[$(date +%Y%m%d%H%M%S)][ERR] Aborting log collection process"
-    exit 1
-fi
-
 #checks if azure-cli is installed
 checkRequirements
 
@@ -190,27 +195,36 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-MASTER_IP=$(az network public-ip list -g $RESOURCE_GROUP --query "[?contains(name,'k8s-master')].{Name:name,ip:ipAddress}" --output tsv)
+MASTER_IP=$(az network public-ip list -g $RESOURCE_GROUP --output json | jq -r '.[] | select (.name | contains("'k8s-master'")) .ipAddress')
 if [ $? -ne 0 ]; then
-    echo "[$(date +%Y%m%d%H%M%S)][ERR] Kubernetes master node ip not found in the resource group."
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Kubernetes master node ip not found in the resource group."
+fi
+
+echo "[$(date +%Y%m%d%H%M%S)][INFO] Testing SSH keys"
+TEST_HOST="${MASTER_IP:-$DVM_HOST}"
+ssh -q $USER@$TEST_HOST "exit"
+
+if [ $? -ne 0 ]; then
+    echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to the server"
+    echo "[$(date +%Y%m%d%H%M%S)][ERR] Aborting log collection process"
     exit 1
 fi
 
-if [ -n "$MASTER_HOST" ]
+if [ -n "$MASTER_IP" ]
 then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect cluster logs"
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Looking for cluster hosts"
-    scp -q hosts.sh $USER@$MASTER_HOST:/home/$USER/hosts.sh
-    ssh -tq $USER@$MASTER_HOST "sudo chmod 744 hosts.sh; ./hosts.sh $NOW"
-    scp -q $USER@$MASTER_HOST:"/home/$USER/$NOW.tar.gz" $LOGFILEFOLDER/cluster-snapshot.tar.gz
-    ssh -tq $USER@$MASTER_HOST "sudo rm -f $NOW.tar.gz hosts.sh"
+    scp -q hosts.sh $USER@$MASTER_IP:/home/$USER/hosts.sh
+    ssh -tq $USER@$MASTER_IP "sudo chmod 744 hosts.sh; ./hosts.sh $NOW"
+    scp -q $USER@$MASTER_IP:"/home/$USER/$NOW.tar.gz" $LOGFILEFOLDER/cluster-snapshot.tar.gz
+    ssh -tq $USER@$MASTER_IP "sudo rm -f $NOW.tar.gz hosts.sh"
     tar -xzf $LOGFILEFOLDER/cluster-snapshot.tar.gz -C $LOGFILEFOLDER
     rm $LOGFILEFOLDER/cluster-snapshot.tar.gz
     mv $LOGFILEFOLDER/$NOW $LOGFILEFOLDER/cluster-snapshot-$NOW
     
-    SSH_FLAGS="-q -t -J ${USER}@${MASTER_HOST} -i ${IDENTITYFILE}"
-    SCP_FLAGS="-q -o ProxyJump=${USER}@${MASTER_HOST} -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
+    SSH_FLAGS="-q -t -J ${USER}@${MASTER_IP} -i ${IDENTITYFILE}"
+    SCP_FLAGS="-q -o ProxyJump=${USER}@${MASTER_IP} -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
     
     for host in $(cat $LOGFILEFOLDER/host.list)
     do
