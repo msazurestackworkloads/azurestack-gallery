@@ -396,7 +396,7 @@ jq --arg NETWORK_PLUGIN $NETWORK_PLUGIN '.properties.orchestratorProfile.kuberne
 validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
 
 if [ "$AGENT_COUNT" != "0" ]; then
-    log_level -i "Update cluster definition with linux node details."
+    log_level -i "Update cluster definition with Linux agent node details."
 
     cat $AZURESTACK_CONFIGURATION | \
     jq --arg linuxAgentCount $AGENT_COUNT \
@@ -408,11 +408,11 @@ if [ "$AGENT_COUNT" != "0" ]; then
 
     validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
 
-    log_level -i "Updating cluster definition done with Linux node details."
+    log_level -i "Updating cluster definition done with Linux agent node details."
 fi
 
 if [ "$WINDOWS_AGENT_COUNT" != "0" ]; then
-    log_level -i "Update cluster definition with Windows node details."
+    log_level -i "Update cluster definition with Windows agent node details."
 
     WINDOWS_PACKAGE_FULL_URL="$WINDOWS_PACKAGE_URL/$WINDOWS_PACKAGE_NAME"
     log_level -i "WINDOWS_PACKAGE_FULL_URL: $WINDOWS_PACKAGE_FULL_URL"
@@ -431,7 +431,7 @@ if [ "$WINDOWS_AGENT_COUNT" != "0" ]; then
 
     validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
 
-    log_level -i "Updating cluster definition done with Windows node details."
+    log_level -i "Updating cluster definition done with Windows agent node details."
 fi
 
 log_level -i "Done building cluster definition."
