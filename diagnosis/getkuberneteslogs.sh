@@ -47,10 +47,10 @@ createSADirectories()
 
 createStorageAccount()
 {
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Creating storage account"
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Creating storage account: $SA_NAME"
     az storage account create --name $SA_NAME --resource-group $RESOURCE_GROUP --location $LOCATION --kind Storage --sku Standard_LRS
     if [ $? -ne 0 ]; then
-        echo "Error creating storage account: $SA_NAME"
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] Error creating storage account: $SA_NAME"
         return 1
     fi
 }
@@ -330,9 +330,9 @@ if [ -n "$UPLOAD_LOGS" ]; then
     fi
     
     #Check if the storage account "kuberneteslogs" is present
-    CHECK_SA=$(az storage account list -g $SA_RESOURCE_GROUP --output json | jq -r '.[] | select (.name=="'$SA_NAME'")')
+    CHECK_STORAGE_ACCOUNT=$(az storage account list -g $SA_RESOURCE_GROUP --output json | jq -r '.[] | select (.name=="'$SA_NAME'")')
     #create storage account "kuberneteslogs" only if not present
-    if [ -z "$CHECK_SA" ]; then
+    if [ -z "$CHECK_STORAGE_ACCOUNT" ]; then
         createStorageAccount
     fi
 fi
