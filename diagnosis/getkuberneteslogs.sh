@@ -51,7 +51,29 @@ createStorageAccount()
     az storage account create --name $SA_NAME --resource-group $RESOURCE_GROUP --location $LOCATION --kind Storage --sku Standard_LRS
     if [ $? -ne 0 ]; then
         echo "[$(date +%Y%m%d%H%M%S)][ERR] Error creating storage account: $SA_NAME"
-        return 1
+        exit 1
+    fi
+}
+
+ensureResourceGroup()
+{
+    if [ $(az group exists --name $SA_RESOURCE_GROUP) = false ]; then
+        echo "[$(date +%Y%m%d%H%M%S)][INFO] Creating resource group: $SA_RESOURCE_GROUP"
+        az group create -n $SA_RESOURCE_GROUP -l $LOCATION
+        if [ $? -ne 0 ]; then
+            echo "[$(date +%Y%m%d%H%M%S)][ERR]Error creating resource group: $SA_RESOURCE_GROUP"
+            exit 1
+        fi
+    fi
+}
+
+ensureStorageAccount()
+{
+    #Check if the storage account "kuberneteslogs" is present
+    CHECK_STORAGE_ACCOUNT=$(az storage account list -g $SA_RESOURCE_GROUP --output json | jq -r '.[] | select (.name=="'$SA_NAME'")')
+    #create storage account "kuberneteslogs" only if not present
+    if [ -z "$CHECK_STORAGE_ACCOUNT" ]; then
+        createStorageAccount
     fi
 }
 
@@ -320,21 +342,8 @@ if [ -n "$UPLOAD_LOGS" ]; then
     SA_NAME="kubernetesdiagnostics"
     SA_RESOURCE_GROUP="kubernetesdiagnostics"
     
-    #create resource group for kubernetes disgnostics
-    if [ $(az group exists --name $SA_RESOURCE_GROUP) = false ]; then
-        az group create -n $SA_RESOURCE_GROUP -l $LOCATION
-        if [ $? -ne 0 ]; then
-            echo "[$(date +%Y%m%d%H%M%S)][ERR]Error creating resource group: $SA_RESOURCE_GROUP"
-            exit 1
-        fi
-    fi
-    
-    #Check if the storage account "kuberneteslogs" is present
-    CHECK_STORAGE_ACCOUNT=$(az storage account list -g $SA_RESOURCE_GROUP --output json | jq -r '.[] | select (.name=="'$SA_NAME'")')
-    #create storage account "kuberneteslogs" only if not present
-    if [ -z "$CHECK_STORAGE_ACCOUNT" ]; then
-        createStorageAccount
-    fi
+    ensureResourceGroup
+    ensureStorageAccount
 fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Logs can be found in this location: $LOGFILEFOLDER"
