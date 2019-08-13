@@ -77,6 +77,32 @@ ensureStorageAccount()
     fi
 }
 
+uploadLogs() {
+    
+    ACCESS_KEY=$(az storage account keys list -g $SA_RESOURCE_GROUP -n $SA_NAME | jq '.[0].value ')
+    if [ "$ACCESS_KEY" == "" ]; then
+        echo "$(date +%Y%m%d%H%M%S)][ERR] Unable to retrieve access key for stroage account $SA_NAME"
+        exit
+    fi
+    
+    CONTAINER_NAME="AzureStack_KubernetesLogs_$CURRENTDATE"
+    BLOB_NAME="KubernetesLogs_$CURRENTDATE"
+    
+    az storage container create --name  $CONTAINER_NAME --account-name $SA_NAME --account-key $ACCESS_KEY
+    if [ $? -ne 0 ]; then
+        echo "$(date +%Y%m%d%H%M%S)][ERR] Error creating blob container $CONTAINER_NAME"
+        exit 1
+    else
+        echo "$(date +%Y%m%d%H%M%S)][INFO] Container $CONTAINER_NAME created"
+    fi
+    
+    az storage blob upload --container-name  $CONTAINER_NAME --file $LOGFILEFOLDER --name $BLOB_NAME --account-name $SA_NAME --account-key $ACCESS_KEY
+    if [ $? -ne 0 ]; then
+        echo "$(date +%Y%m%d%H%M%S)][ERR] Error uploading file to container $CONTAINER_NAME"
+        exit 1
+    fi
+}
+
 printUsage()
 {
     echo ""
@@ -344,6 +370,7 @@ if [ -n "$UPLOAD_LOGS" ]; then
     
     ensureResourceGroup
     ensureStorageAccount
+    uploadLogs
 fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Logs can be found in this location: $LOGFILEFOLDER"
