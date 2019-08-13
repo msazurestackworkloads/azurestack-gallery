@@ -29,6 +29,21 @@ checkRequirements()
     fi
 }
 
+copyContainerLogsToSADirectory()
+{
+    for log in $(ls ${LOGFILEFOLDER}/*/containers/*.log)
+    do
+        CNAME=$(basename ${log} .log)
+        CMETA=${LOGFILEFOLDER}/cluster-snapshot-$NOW/${CNAME}.meta        
+        CLOG=${SA_DIR}/${CNAME}.log
+        
+        echo "== BEGIN HEADER ==" > ${CLOG}
+        jq -r 'to_entries|map("\(.key): \(.value|tostring)")|.[]' ${CMETA} >> ${CLOG}
+        echo "== END HEADER ==" >> ${CLOG}
+        cat ${log} >> ${CLOG}
+    done
+}
+
 createSADirectories()
 {
     local SA_DIR_DATE=$(echo $NOW | head -c 8)
@@ -99,7 +114,7 @@ fi
 NAMESPACES="kube-system"
 ALLNAMESPACES=1
 STRICT_HOST_KEY_CHECKING="ask"
-UPLOAD_LOGS=""
+UPLOAD_LOGS="false"
 
 # Handle named parameters
 while [[ "$#" -gt 0 ]]
@@ -313,21 +328,11 @@ fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Done collecting Kubernetes logs"
 
-if [ -n "$UPLOAD_LOGS" ]; then
+if [ "$UPLOAD_LOGS" == "true" ]; then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing logs"
     createSADirectories
-    
-    for log in $(ls ${LOGFILEFOLDER}/*/containers/*.log)
-    do
-        CNAME=$(basename ${log} .log)
-        CMETA=${LOGFILEFOLDER}/cluster-snapshot-$NOW/${CNAME}.meta
-        
-        CLOG=${SA_DIR}/${CNAME}.log
-        echo "== BEGIN HEADER ==" > ${CLOG}
-        jq -r 'to_entries|map("\(.key): \(.value|tostring)")|.[]' ${CMETA} >> ${CLOG}
-        echo "== END HEADER ==" >> ${CLOG}
-        cat ${log} >> ${CLOG}
-    done
+    copyContainerLogsToSADirectory
+    cp ${LOGFILEFOLDER}/*/daemons/kubelet-*.log ${SA_DIR}
     
     #storage account variables
     SA_NAME="kubernetesdiagnostics"
