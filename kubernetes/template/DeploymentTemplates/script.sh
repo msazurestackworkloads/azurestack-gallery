@@ -4,6 +4,7 @@ ERR_APT_INSTALL_TIMEOUT=9 # Timeout installing required apt packages
 ERR_AKSE_DOWNLOAD=10 # Failure downloading AKS-Engine binaries
 ERR_AKSE_DEPLOY=12 # Failure calling AKS-Engine's deploy operation
 ERR_TEMPLATE_DOWNLOAD=13 # Failure downloading AKS-Engine template
+ERR_INVALID_AGENT_COUNT_VALUE=14 # Both Windows and Linux agent value is zero 
 ERR_CACERT_INSTALL=20 # Failure moving CA certificate
 ERR_METADATA_ENDPOINT=30 # Failure calling the metadata endpoint
 ERR_API_MODEL=40 # Failure building API model using user input
@@ -257,6 +258,9 @@ log_level -i "WINDOWS_PACKAGE_NAME:                     $WINDOWS_PACKAGE_NAME"
 log_level -i "WINDOWS_PACKAGE_URL:                      $WINDOWS_PACKAGE_URL"
 
 
+if [[ "$WINDOWS_AGENT_COUNT" == "0" ]] && [[ "$AGENT_COUNT" == "0" ]]; then
+    exit $ERR_INVALID_AGENT_COUNT_VALUE
+fi
 
 log_level -i "------------------------------------------------------------------------"
 log_level -i "Constants"
@@ -376,10 +380,6 @@ jq --arg ENDPOINT_PORTAL $ENDPOINT_PORTAL '.properties.customCloudProfile.portal
 jq --arg REGION_NAME $REGION_NAME '.location = $REGION_NAME' | \
 jq --arg MASTER_DNS_PREFIX $MASTER_DNS_PREFIX '.properties.masterProfile.dnsPrefix = $MASTER_DNS_PREFIX' | \
 jq --arg NODE_DISTRO $NODE_DISTRO '.properties.masterProfile.distro = $NODE_DISTRO' | \
-jq '.properties.agentPoolProfiles[0].count'=$AGENT_COUNT | \
-jq --arg AGENT_SIZE $AGENT_SIZE '.properties.agentPoolProfiles[0].vmSize=$AGENT_SIZE' | \
-jq --arg NODE_DISTRO $NODE_DISTRO '.properties.agentPoolProfiles[0].distro=$NODE_DISTRO' | \
-jq --arg AVAILABILITY_PROFILE $AVAILABILITY_PROFILE '.properties.agentPoolProfiles[0].availabilityProfile=$AVAILABILITY_PROFILE' | \
 jq '.properties.masterProfile.count'=$MASTER_COUNT | \
 jq --arg MASTER_SIZE $MASTER_SIZE '.properties.masterProfile.vmSize=$MASTER_SIZE' | \
 jq --arg ADMIN_USERNAME $ADMIN_USERNAME '.properties.linuxProfile.adminUsername = $ADMIN_USERNAME' | \
@@ -395,8 +395,24 @@ jq --arg NETWORK_PLUGIN $NETWORK_PLUGIN '.properties.orchestratorProfile.kuberne
 
 validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
 
+if [ "$AGENT_COUNT" != "0" ]; then
+    log_level -i "Update cluster definition with Linux agent node details."
+
+    cat $AZURESTACK_CONFIGURATION | \
+    jq --arg linuxAgentCount $AGENT_COUNT \
+    --arg linuxAgentSize $AGENT_SIZE \
+    --arg linuxAvailabilityProfile $AVAILABILITY_PROFILE \
+    --arg NODE_DISTRO $NODE_DISTRO \
+    '.properties.agentPoolProfiles += [{"name": "linuxpool", "osDiskSizeGB": 200, "AcceleratedNetworkingEnabled": false, "distro": $NODE_DISTRO, "count": $linuxAgentCount | tonumber, "vmSize": $linuxAgentSize, "availabilityProfile": $linuxAvailabilityProfile}]' \
+    > $AZURESTACK_CONFIGURATION_TEMP
+
+    validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
+
+    log_level -i "Updating cluster definition done with Linux agent node details."
+fi
+
 if [ "$WINDOWS_AGENT_COUNT" != "0" ]; then
-    log_level -i "Update cluster definition with Windows node details."
+    log_level -i "Update cluster definition with Windows agent node details."
 
     WINDOWS_PACKAGE_FULL_URL="$WINDOWS_PACKAGE_URL/$WINDOWS_PACKAGE_NAME"
     log_level -i "WINDOWS_PACKAGE_FULL_URL: $WINDOWS_PACKAGE_FULL_URL"
@@ -415,7 +431,7 @@ if [ "$WINDOWS_AGENT_COUNT" != "0" ]; then
 
     validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
 
-    log_level -i "Updating cluster definition done with Windows node details."
+    log_level -i "Updating cluster definition done with Windows agent node details."
 fi
 
 log_level -i "Done building cluster definition."
