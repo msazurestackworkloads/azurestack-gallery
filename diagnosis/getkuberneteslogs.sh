@@ -328,7 +328,7 @@ fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Done collecting Kubernetes logs"
 
-if [ -n "$UPLOAD_LOGS" ]; then
+if [ "$UPLOAD_LOGS" == "true" ]; then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing logs"
     createSADirectories
     copyContainerLogsToSADirectory
