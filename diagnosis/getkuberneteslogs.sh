@@ -14,12 +14,12 @@ trap restoreAzureCLIVariables EXIT
 checkRequirements()
 {
     found=2
-    if ! command -v az &> /dev/null; then            
+    if ! command -v az &> /dev/null; then
         found=$((found - 1))
         echo "azure-cli is missing. Please install azure-cli from https://docs.microsoft.com/azure-stack/user/azure-stack-version-profiles-azurecli2"
     fi
     
-    if ! command -v jq &> /dev/null; then  
+    if ! command -v jq &> /dev/null; then
         found=$((found - 1))
         echo "jq is missing. Please install jq from https://stedolan.github.io/jq/"
     fi
@@ -200,33 +200,33 @@ LOGFILEFOLDER="./KubernetesLogs_$CURRENTDATE"
 mkdir -p $LOGFILEFOLDER
 mkdir -p ~/.ssh
 
+SSH_FLAGS="-q -t -i ${IDENTITYFILE}"
+SCP_FLAGS="-q -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
+
 if [ -n "$DVM_HOST" ]
 then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Testing SSH keys"
-    ssh -q $USER@$DVM_HOST "exit"
+    ssh ${SSH_FLAGS} ${USER}@${DVM_HOST} "exit"
     if [ $? -ne 0 ]; then
         echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to the server"
         exit 1
     fi
-
-        echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect VMD logs"
-        SSH_FLAGS="-q -t -i ${IDENTITYFILE}"
-        SCP_FLAGS="-q -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
-        
-        echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
-        scp ${SCP_FLAGS} common.sh ${USER}@${DVM_HOST}:/home/${USER}/
-        scp ${SCP_FLAGS} detectors.sh ${USER}@${DVM_HOST}:/home/${USER}/
-        scp ${SCP_FLAGS} collectlogsdvm.sh ${USER}@${DVM_HOST}:/home/${USER}/
-        ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "sudo chmod 744 common.sh detectors.sh collectlogsdvm.sh; ./collectlogsdvm.sh;"
-        
-        echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
-        scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:"/home/${USER}/dvm_logs.tar.gz" ${LOGFILEFOLDER}/dvm_logs.tar.gz
-        tar -xzf $LOGFILEFOLDER/dvm_logs.tar.gz -C $LOGFILEFOLDER
-        rm $LOGFILEFOLDER/dvm_logs.tar.gz
-        
-        echo "[$(date +%Y%m%d%H%M%S)][INFO] Removing temp files from DVM"
-        ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh dvm_logs.tar.gz"
-    fi
+    
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect VMD logs"
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
+    scp ${SCP_FLAGS} common.sh ${USER}@${DVM_HOST}:/home/${USER}/
+    scp ${SCP_FLAGS} detectors.sh ${USER}@${DVM_HOST}:/home/${USER}/
+    scp ${SCP_FLAGS} collectlogsdvm.sh ${USER}@${DVM_HOST}:/home/${USER}/
+    ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "sudo chmod 744 common.sh detectors.sh collectlogsdvm.sh; ./collectlogsdvm.sh;"
+    
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
+    scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:"/home/${USER}/dvm_logs.tar.gz" ${LOGFILEFOLDER}/dvm_logs.tar.gz
+    tar -xzf $LOGFILEFOLDER/dvm_logs.tar.gz -C $LOGFILEFOLDER
+    rm $LOGFILEFOLDER/dvm_logs.tar.gz
+    
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Removing temp files from DVM"
+    ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh dvm_logs.tar.gz"
+fi
 
 #checks if azure-cli is installed
 checkRequirements
@@ -260,7 +260,7 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Testing SSH keys"
-ssh -q $USER@$MASTER_IP "exit"
+ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "exit"
 
 if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to the server"
@@ -273,10 +273,10 @@ then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect cluster logs"
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Looking for cluster hosts"
-    scp -q hosts.sh $USER@$MASTER_IP:/home/$USER/hosts.sh
-    ssh -tq $USER@$MASTER_IP "sudo chmod 744 hosts.sh; ./hosts.sh $NOW"
-    scp -q $USER@$MASTER_IP:"/home/$USER/$NOW.tar.gz" $LOGFILEFOLDER/cluster-snapshot.tar.gz
-    ssh -tq $USER@$MASTER_IP "sudo rm -f $NOW.tar.gz hosts.sh"
+    scp ${SCP_FLAGS} hosts.sh ${USER}@${MASTER_IP}:/home/${USER}/hosts.sh
+    ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo chmod 744 hosts.sh; ./hosts.sh ${NOW}"
+    scp ${SCP_FLAGS} ${USER}@${MASTER_IP}:"/home/${USER}/${NOW}.tar.gz" ${LOGFILEFOLDER}/cluster-snapshot.tar.gz
+    ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo rm -f ${NOW}.tar.gz hosts.sh"
     tar -xzf $LOGFILEFOLDER/cluster-snapshot.tar.gz -C $LOGFILEFOLDER
     rm $LOGFILEFOLDER/cluster-snapshot.tar.gz
     mv $LOGFILEFOLDER/$NOW $LOGFILEFOLDER/cluster-snapshot-$NOW
