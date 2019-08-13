@@ -12,49 +12,25 @@ mkdir -p $LOGDIRECTORY
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Cleaning up old temp logs" | tee -a $TRACEFILENAME
 sudo rm -f $LOGFILENAME
 
-# Loading common functions
-source ./common.sh $ERRFILENAME
-source ./detectors.sh $ERRFILENAME
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting /var/log/azure logs" | tee -a $TRACEFILENAME
+mkdir -p $LOGDIRECTORY/var/log/azure
+sudo cp /var/log/azure/*.log $LOGDIRECTORY/var/log/azure || :
+sudo cp /var/log/waagent.log $LOGDIRECTORY/var/log || :
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Starting log collection" | tee -a $TRACEFILENAME
-
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for syslog file" | tee -a $TRACEFILENAME
-try_copy_file /var/log/syslog $LOGDIRECTORY/
-
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Dumping Microsoft Azure Linux Agent (waagent) directory tree" | tee -a $TRACEFILENAME
-try_print_directory_tree /var/lib/waagent $LOGDIRECTORY/waagent.tree
-
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for Microsoft Azure Linux Agent (waagent) log file" | tee -a $TRACEFILENAME
-try_copy_file /var/log/waagent.log $LOGDIRECTORY/
-
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for cloud-init log files" | tee -a $TRACEFILENAME
-try_copy_file /var/log/cloud-init.log $LOGDIRECTORY/
-try_copy_file /var/log/cloud-init-output.log $LOGDIRECTORY/
-
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for CSE directory" | tee -a $TRACEFILENAME
-mkdir -p $LOGDIRECTORY/cse/
-try_copy_directory_content /var/log/azure/ $LOGDIRECTORY/cse
-try_copy_file /opt/m $LOGDIRECTORY/cse/
-
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for apt logs" | tee -a $TRACEFILENAME
-mkdir -p $LOGDIRECTORY/apt/
-try_copy_directory_content /var/log/apt/ $LOGDIRECTORY/apt
-
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Dumping running container list" | tee -a $TRACEFILENAME
-sudo docker ps &> $LOGDIRECTORY/containers.list
-
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for containers logs" | tee -a $TRACEFILENAME
-mkdir -p $LOGDIRECTORY/containers/manifests
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting static pods manifests" | tee -a $TRACEFILENAME
+mkdir -p $LOGDIRECTORY/etc/kubernetes/manifests
+sudo cp /etc/kubernetes/manifests/* $LOGDIRECTORY/etc/kubernetes/manifests 2>/dev/null
 
 test $# -gt 0 && NAMESPACES=$@
-test -z "${NAMESPACES}" && echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collection logs from all namespaces"
-test -n "${NAMESPACES}" && echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collection logs from containers in these namespaces: $NAMESPACES."
+test -z "${NAMESPACES}" && echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting logs from pods in all namespaces"
+test -n "${NAMESPACES}" && echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting logs from pods in these namespaces: $NAMESPACES"
+mkdir -p $LOGDIRECTORY/containers
+mkdir -p $LOGDIRECTORY/daemons
 
 for cid in $(docker ps -a -q --no-trunc)
 do
     cns=`docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.namespace" }}' $cid`
     
-    # Only collect logs from requested namespaces
     # if NAMESPACES not set, then collect everything
     if [ -z "${NAMESPACES}" ] || (echo $NAMESPACES | grep -qw $cns);
     then
@@ -70,36 +46,20 @@ do
     fi
 done
 
-if is_master_node;
-then
-    echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for static pod manifests" | tee -a $TRACEFILENAME
-    try_copy_directory_content /etc/kubernetes/manifests/ $LOGDIRECTORY/containers/manifests
-fi
-
-if is_master_node; then SERVICES="docker kubelet etcd"; else SERVICES="docker kubelet"; fi
-
-for service in $SERVICES
+for service in docker kubelet etcd
 do
-    echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Dumping $service service status and journal" | tee -a $TRACEFILENAME
+    echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting $service service logs" | tee -a $TRACEFILENAME
     if systemctl list-units | grep -q $service.service; then
-        sudo systemctl show $service &> $LOGDIRECTORY/${service}_status.log
         # TODO use --until --since --lines to limit size
-        sudo journalctl --utc -o short-iso -u $service &> $LOGDIRECTORY/${service}.service.log
+        sudo journalctl --utc -o short-iso -u $service &> $LOGDIRECTORY/daemons/${service}.service.log
         
         if systemctl is-active --quiet $service.service | grep inactive; then
-            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] The $service service is not running" | tee -a $ERRFILENAME
+            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] $service service is not running" | tee -a $ERRFILENAME
         fi
-    else
-        echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] The $service service is not installed" | tee -a $ERRFILENAME
     fi
 done
 
 sync
-
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Looking for known issues and misconfigurations" | tee -a $TRACEFILENAME
-find_cse_errors $LOGDIRECTORY/cse/cluster-provision.log
-find_cse_errors $LOGDIRECTORY/cloud-init-output.log
-find_etcd_bad_cert_errors $LOGDIRECTORY/cse/cluster-provision.log $LOGDIRECTORY/etcd_status.log
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Compressing logs" | tee -a $TRACEFILENAME
 sudo chown -R $CURRENTUSER $LOGDIRECTORY
