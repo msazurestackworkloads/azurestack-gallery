@@ -38,6 +38,38 @@ createSADirectories()
     mkdir -p ${SA_DIR}
 }
 
+createStorageAccount()
+{
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Creating storage account: $SA_NAME"
+    az storage account create --name $SA_NAME --resource-group $RESOURCE_GROUP --location $LOCATION --kind Storage --sku Standard_LRS
+    if [ $? -ne 0 ]; then
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] Error creating storage account: $SA_NAME"
+        exit 1
+    fi
+}
+
+ensureResourceGroup()
+{
+    if [ $(az group exists --name $SA_RESOURCE_GROUP) = false ]; then
+        echo "[$(date +%Y%m%d%H%M%S)][INFO] Creating resource group: $SA_RESOURCE_GROUP"
+        az group create -n $SA_RESOURCE_GROUP -l $LOCATION
+        if [ $? -ne 0 ]; then
+            echo "[$(date +%Y%m%d%H%M%S)][ERR]Error creating resource group: $SA_RESOURCE_GROUP"
+            exit 1
+        fi
+    fi
+}
+
+ensureStorageAccount()
+{
+    #Check if the storage account "kuberneteslogs" is present
+    CHECK_STORAGE_ACCOUNT=$(az storage account list -g $SA_RESOURCE_GROUP --output json | jq -r '.[] | select (.name=="'$SA_NAME'")')
+    #create storage account "kuberneteslogs" only if not present
+    if [ -z "$CHECK_STORAGE_ACCOUNT" ]; then
+        createStorageAccount
+    fi
+}
+
 printUsage()
 {
     echo ""
@@ -281,20 +313,28 @@ fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Done collecting Kubernetes logs"
 
-# TODO Move inside UPLOAD_LOGS
-echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing logs"
-createSADirectories
-
-for log in $(ls ${LOGFILEFOLDER}/*/containers/*.log)
-do
-    CNAME=$(basename ${log} .log)
-    CMETA=${LOGFILEFOLDER}/cluster-snapshot-$NOW/${CNAME}.meta
+if [ -n "$UPLOAD_LOGS" ]; then
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing logs"
+    createSADirectories
     
-    CLOG=${SA_DIR}/${CNAME}.log
-    echo "== BEGIN HEADER ==" > ${CLOG}
-    jq -r 'to_entries|map("\(.key): \(.value|tostring)")|.[]' ${CMETA} >> ${CLOG}
-    echo "== END HEADER ==" >> ${CLOG}
-    cat ${log} >> ${CLOG}
-done
+    for log in $(ls ${LOGFILEFOLDER}/*/containers/*.log)
+    do
+        CNAME=$(basename ${log} .log)
+        CMETA=${LOGFILEFOLDER}/cluster-snapshot-$NOW/${CNAME}.meta
+        
+        CLOG=${SA_DIR}/${CNAME}.log
+        echo "== BEGIN HEADER ==" > ${CLOG}
+        jq -r 'to_entries|map("\(.key): \(.value|tostring)")|.[]' ${CMETA} >> ${CLOG}
+        echo "== END HEADER ==" >> ${CLOG}
+        cat ${log} >> ${CLOG}
+    done
+    
+    #storage account variables
+    SA_NAME="kubernetesdiagnostics"
+    SA_RESOURCE_GROUP="kubernetesdiagnostics"
+    
+    ensureResourceGroup
+    ensureStorageAccount
+fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Logs can be found in this location: $LOGFILEFOLDER"
