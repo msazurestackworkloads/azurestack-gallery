@@ -1,23 +1,36 @@
 #!/bin/bash
 
+collectKubeletMetadata()
+{
+    TENANT_ID=$(sudo jq -r '.tenantId' /etc/kubernetes/azure.json)
+    KUBELET_IMAGE=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep hyperkube)
+    KUBELET_VERBOSITY=$(cat /etc/systemd/system/kubelet.service | grep -e '--v=[0-9]' -oh | grep -e [0-9] -oh | head -n 1)
+    KUBELET_LOG_FILE=$LOGDIRECTORY/daemons/kubelet-${HOSTNAME}.log
+    
+    echo "== BEGIN HEADER =="               > ${KUBELET_LOG_FILE}
+    echo "Type: Daemon"                     >> ${KUBELET_LOG_FILE}
+    echo "TenantId: ${TENANT_ID}"           >> ${KUBELET_LOG_FILE}
+    echo "Name: kubelet"                    >> ${KUBELET_LOG_FILE}
+    echo "Image: ${KUBELET_IMAGE}"          >> ${KUBELET_LOG_FILE}
+    echo "Verbosity: ${KUBELET_VERBOSITY}"  >> ${KUBELET_LOG_FILE}
+    echo "== END HEADER =="                 >> ${KUBELET_LOG_FILE}
+}
+
 NOW=`date +%Y%m%d%H%M%S`
-LOGDIRECTORY="$HOSTNAME-$NOW"
-LOGFILENAME="kube_logs.tar.gz"
-TRACEFILENAME="$LOGDIRECTORY/collector_trace"
-ERRFILENAME="$LOGDIRECTORY/ERRORS.txt"
 CURRENTUSER=`whoami`
 
+LOGDIRECTORY="$HOSTNAME-$NOW"
 mkdir -p $LOGDIRECTORY
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Cleaning up old temp logs" | tee -a $TRACEFILENAME
+LOGFILENAME="kube_logs.tar.gz"
 sudo rm -f $LOGFILENAME
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting /var/log/azure logs" | tee -a $TRACEFILENAME
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting /var/log/azure logs"
 mkdir -p $LOGDIRECTORY/var/log/azure
 sudo cp /var/log/azure/*.log $LOGDIRECTORY/var/log/azure || :
 sudo cp /var/log/waagent.log $LOGDIRECTORY/var/log || :
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting static pods manifests" | tee -a $TRACEFILENAME
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting static pods manifests"
 mkdir -p $LOGDIRECTORY/etc/kubernetes/manifests
 sudo cp /etc/kubernetes/manifests/* $LOGDIRECTORY/etc/kubernetes/manifests 2>/dev/null
 
@@ -25,7 +38,6 @@ test $# -gt 0 && NAMESPACES=$@
 test -z "${NAMESPACES}" && echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting logs from pods in all namespaces"
 test -n "${NAMESPACES}" && echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting logs from pods in these namespaces: $NAMESPACES"
 mkdir -p $LOGDIRECTORY/containers
-mkdir -p $LOGDIRECTORY/daemons
 
 for cid in $(docker ps -a -q --no-trunc)
 do
@@ -46,25 +58,22 @@ do
     fi
 done
 
+test -n "${NAMESPACES}" && echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting daemon logs"
+mkdir -p $LOGDIRECTORY/daemons
+collectKubeletMetadata
+
 for service in docker kubelet etcd
 do
-    echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting $service service logs" | tee -a $TRACEFILENAME
     if systemctl list-units | grep -q $service.service; then
         # TODO use --until --since --lines to limit size
-        sudo journalctl --utc -o short-iso -u $service &> $LOGDIRECTORY/daemons/${service}.service.log
-        
-        if systemctl is-active --quiet $service.service | grep inactive; then
-            echo "[$(date +%Y%m%d%H%M%S)][ERROR][$HOSTNAME] $service service is not running" | tee -a $ERRFILENAME
-        fi
+        sudo journalctl -n 10000 --utc -o short-iso -u $service &>> $LOGDIRECTORY/daemons/${service}-${HOSTNAME}.log
     fi
 done
 
 sync
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Compressing logs" | tee -a $TRACEFILENAME
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Compressing logs and cleaning up temp files"
 sudo chown -R $CURRENTUSER $LOGDIRECTORY
 sudo tar -czf $LOGFILENAME $LOGDIRECTORY
 sudo chown $CURRENTUSER $LOGFILENAME
-
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Cleaning up temp files"
 sudo rm -rf $LOGDIRECTORY
