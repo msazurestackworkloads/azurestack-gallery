@@ -2,8 +2,8 @@
 
 collectKubeletMetadata()
 {
-    TENANT_ID=$(sudo jq -r '.tenantId' /etc/kubernetes/azure.json)
-    KUBELET_IMAGE=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep hyperkube)
+    KUBELET_REPOSITORY=$(docker images --format '{{.Repository}}' | grep hyperkube)
+    KUBELET_TAG=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep hyperkube | cut -d ":" -f 2)
     KUBELET_VERBOSITY=$(cat /etc/systemd/system/kubelet.service | grep -e '--v=[0-9]' -oh | grep -e [0-9] -oh | head -n 1)
     KUBELET_LOG_FILE=$LOGDIRECTORY/daemons/kubelet-${HOSTNAME}.log
     
@@ -11,9 +11,36 @@ collectKubeletMetadata()
     echo "Type: Daemon"                     >> ${KUBELET_LOG_FILE}
     echo "TenantId: ${TENANT_ID}"           >> ${KUBELET_LOG_FILE}
     echo "Name: kubelet"                    >> ${KUBELET_LOG_FILE}
-    echo "Image: ${KUBELET_IMAGE}"          >> ${KUBELET_LOG_FILE}
+    echo "Version: ${KUBELET_TAG}"          >> ${KUBELET_LOG_FILE}
     echo "Verbosity: ${KUBELET_VERBOSITY}"  >> ${KUBELET_LOG_FILE}
+    echo "Image: ${KUBELET_REPOSITORY}"     >> ${KUBELET_LOG_FILE}
     echo "== END HEADER =="                 >> ${KUBELET_LOG_FILE}
+}
+
+collectMobyMetadata()
+{
+    DOCKER_VERSION=$(docker version | grep -A 20 "Server:" | grep "Version:" | head -n 1 | cut -d ":" -f 2 | xargs)
+    DOCKER_LOG_FILE=$LOGDIRECTORY/daemons/docker-${HOSTNAME}.log
+
+    echo "== BEGIN HEADER =="               > ${DOCKER_LOG_FILE}
+    echo "Type: Daemon"                     >> ${DOCKER_LOG_FILE}
+    echo "TenantId: ${TENANT_ID}"           >> ${DOCKER_LOG_FILE}
+    echo "Name: docker"                     >> ${DOCKER_LOG_FILE}
+    echo "Version: ${DOCKER_VERSION}"       >> ${DOCKER_LOG_FILE}
+    echo "== END HEADER =="                 >> ${DOCKER_LOG_FILE}
+}
+
+collectEtcdMetadata()
+{
+    ETCD_VERSION=$(/usr/bin/etcd --version | grep "etcd Version:" | cut -d ":" -f 2 | xargs)
+    ETCD_LOG_FILE=$LOGDIRECTORY/daemons/etcd-${HOSTNAME}.log
+
+    echo "== BEGIN HEADER =="               > ${ETCD_LOG_FILE}
+    echo "Type: Daemon"                     >> ${ETCD_LOG_FILE}
+    echo "TenantId: ${TENANT_ID}"           >> ${ETCD_LOG_FILE}
+    echo "Name: etcd"                       >> ${ETCD_LOG_FILE}
+    echo "Version: ${ETCD_VERSION}"         >> ${ETCD_LOG_FILE}
+    echo "== END HEADER =="                 >> ${ETCD_LOG_FILE}
 }
 
 NOW=`date +%Y%m%d%H%M%S`
@@ -60,15 +87,24 @@ done
 
 test -n "${NAMESPACES}" && echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting daemon logs"
 mkdir -p $LOGDIRECTORY/daemons
-collectKubeletMetadata
 
-for service in docker kubelet etcd
-do
-    if systemctl list-units | grep -q $service.service; then
-        # TODO use --until --since --lines to limit size
-        sudo journalctl -n 10000 --utc -o short-iso -u $service &>> $LOGDIRECTORY/daemons/${service}-${HOSTNAME}.log
-    fi
-done
+TENANT_ID=$(sudo jq -r '.tenantId' /etc/kubernetes/azure.json)    
+
+# TODO use --until --since --lines to limit size
+if systemctl list-units | grep -q kubelet.service; then
+    collectKubeletMetadata
+    sudo journalctl -n 10000 --utc -o short-iso -u kubelet &>> $LOGDIRECTORY/daemons/kubelet-${HOSTNAME}.log
+fi
+
+if systemctl list-units | grep -q docker.service; then
+    collectMobyMetadata
+    sudo journalctl -n 10000 --utc -o short-iso -u docker &>> $LOGDIRECTORY/daemons/docker-${HOSTNAME}.log
+fi
+
+if systemctl list-units | grep -q etcd.service; then
+    collectEtcdMetadata
+    sudo journalctl -n 10000 --utc -o short-iso -u etcd &>> $LOGDIRECTORY/daemons/etcd-${HOSTNAME}.log
+fi
 
 sync
 

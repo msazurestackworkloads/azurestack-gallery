@@ -333,6 +333,8 @@ if [ "$UPLOAD_LOGS" == "true" ]; then
     createSADirectories
     copyContainerLogsToSADirectory
     cp ${LOGFILEFOLDER}/*/daemons/kubelet-*.log ${SA_DIR}
+    cp ${LOGFILEFOLDER}/*/daemons/docker-*.log ${SA_DIR}
+    cp ${LOGFILEFOLDER}/*/daemons/etcd-*.log ${SA_DIR}
     
     #storage account variables
     SA_NAME="kubernetesdiagnostics"
