@@ -299,9 +299,9 @@ then
     SCP_FLAGS="-q -o ProxyJump=${USER}@${MASTER_IP} -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
     
     #get the agent ips
-    AGENT_IPS=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[?starts_with(name,'k8s-linuxpool')].privateIps" --output tsv)
+    HOST_IPS=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[?starts_with(name,'k8s-')].privateIps" --output tsv)
     
-    for host in $AGENT_IPS
+    for host in $HOST_IPS
     do
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host $host"
         
