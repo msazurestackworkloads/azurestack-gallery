@@ -85,10 +85,10 @@ uploadLogs() {
         exit
     fi
     
-    CONTAINER_NAME="AzureStack_KubernetesLogs_$CURRENTDATE"
-    BLOB_NAME="KubernetesLogs_$CURRENTDATE"
+    CONTAINER_NAME="KubernetesLogs_$NOW"
+    BLOB_NAME="KubernetesLogs_$NOW"
     
-    az storage container create --name  $CONTAINER_NAME --account-name $SA_NAME --account-key $ACCESS_KEY
+    az storage container create --name  $CONTAINER_NAME --account-name $SA_NAME
     if [ $? -ne 0 ]; then
         echo "$(date +%Y%m%d%H%M%S)][ERR] Error creating blob container $CONTAINER_NAME"
         exit 1
@@ -96,7 +96,7 @@ uploadLogs() {
         echo "$(date +%Y%m%d%H%M%S)][INFO] Container $CONTAINER_NAME created"
     fi
     
-    az storage blob upload --container-name  $CONTAINER_NAME --file $LOGFILEFOLDER --name $BLOB_NAME --account-name $SA_NAME --account-key $ACCESS_KEY
+    az storage blob upload --container-name $CONTAINER_NAME --file $LOGFILEFOLDER --name $BLOB_NAME --account-name $SA_NAME
     if [ $? -ne 0 ]; then
         echo "$(date +%Y%m%d%H%M%S)][ERR] Error uploading file to container $CONTAINER_NAME"
         exit 1
@@ -317,7 +317,7 @@ then
     SSH_FLAGS="-q -t -J ${USER}@${MASTER_IP} -i ${IDENTITYFILE}"
     SCP_FLAGS="-q -o ProxyJump=${USER}@${MASTER_IP} -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
     
-    for host in $(cat $LOGFILEFOLDER/host.list)
+    for host in $(cat $LOGFILEFOLDER/cluster-snapshot-$NOW/host.list)
     do
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host $host"
         
@@ -366,7 +366,7 @@ if [ -n "$UPLOAD_LOGS" ]; then
     
     #storage account variables
     SA_NAME="kubernetesdiagnostics"
-    SA_RESOURCE_GROUP="kubernetesdiagnostics"
+    SA_RESOURCE_GROUP="k8sdiagnostics"
     
     ensureResourceGroup
     ensureStorageAccount
