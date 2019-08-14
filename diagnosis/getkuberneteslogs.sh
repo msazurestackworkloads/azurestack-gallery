@@ -1,4 +1,5 @@
 #!/bin/bash
+
 restoreAzureCLIVariables()
 {
     EXIT_CODE=$?
@@ -12,28 +13,29 @@ trap restoreAzureCLIVariables EXIT
 
 checkRequirements()
 {
-    found=0
-    azureversion=$(az --version)
-    if [ $? -eq 0 ]; then
-        found=$((found + 1))
-        echo "Found azure-cli version: $azureversion"
-    else
-        echo "azure-cli is missing. Please install azure-cli from"
-        echo "https://docs.microsoft.com/azure-stack/user/azure-stack-version-profiles-azurecli2"
+    found=2
+    if ! command -v az &> /dev/null; then
+        found=$((found - 1))
+        echo "azure-cli is missing. Please install azure-cli from https://docs.microsoft.com/azure-stack/user/azure-stack-version-profiles-azurecli2"
     fi
     
-    jqversion=$(jq --version)
-    if [ $? -eq 0 ]; then
-        found=$((found + 1))
-        echo "Found jq version: $jqversion"
-    else
-        echo "jq is missing. Please install jq from"
-        echo "https://stedolan.github.io/jq/"
+    if ! command -v jq &> /dev/null; then
+        found=$((found - 1))
+        echo "jq is missing. Please install jq from https://stedolan.github.io/jq/"
     fi
     
-    if [ $found -lt 2 ]; then
+    if [ $found -ne 2 ]; then
         exit 1
     fi
+}
+
+copyLogsToSADirectory()
+{
+    for dir in $(find ${LOGFILEFOLDER} -mindepth 1 -maxdepth 1 -type d -name 'k8s-*')
+    do
+        HNAME=$(basename ${dir})
+        tar -czf ${SA_DIR}/${HNAME}.tar.gz -C ${LOGFILEFOLDER} ${HNAME}
+    done
 }
 
 createSADirectories()
@@ -78,7 +80,7 @@ ensureStorageAccount()
 }
 
 uploadLogs() {
-    
+    #TODO - remove the access key if not required during upload logs. Need to verify
     ACCESS_KEY=$(az storage account keys list -g $SA_RESOURCE_GROUP -n $SA_NAME | jq '.[0].value ')
     if [ "$ACCESS_KEY" == "" ]; then
         echo "$(date +%Y%m%d%H%M%S)][ERR] Unable to retrieve access key for stroage account $SA_NAME"
@@ -132,7 +134,7 @@ fi
 NAMESPACES="kube-system"
 ALLNAMESPACES=1
 STRICT_HOST_KEY_CHECKING="ask"
-UPLOAD_LOGS=""
+UPLOAD_LOGS="false"
 
 # Handle named parameters
 while [[ "$#" -gt 0 ]]
@@ -233,32 +235,32 @@ LOGFILEFOLDER="./KubernetesLogs_$CURRENTDATE"
 mkdir -p $LOGFILEFOLDER
 mkdir -p ~/.ssh
 
+SSH_FLAGS="-q -t -i ${IDENTITYFILE}"
+SCP_FLAGS="-q -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
+
 if [ -n "$DVM_HOST" ]
 then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Testing SSH keys"
-    ssh -q $USER@$DVM_HOST "exit"
+    ssh ${SSH_FLAGS} ${USER}@${DVM_HOST} "exit"
     if [ $? -ne 0 ]; then
         echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to the server"
         exit 1
-    else
-        echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect VMD logs"
-        SSH_FLAGS="-q -t -i ${IDENTITYFILE}"
-        SCP_FLAGS="-q -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
-        
-        echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
-        scp ${SCP_FLAGS} common.sh ${USER}@${DVM_HOST}:/home/${USER}/
-        scp ${SCP_FLAGS} detectors.sh ${USER}@${DVM_HOST}:/home/${USER}/
-        scp ${SCP_FLAGS} collectlogsdvm.sh ${USER}@${DVM_HOST}:/home/${USER}/
-        ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "sudo chmod 744 common.sh detectors.sh collectlogsdvm.sh; ./collectlogsdvm.sh;"
-        
-        echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
-        scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:"/home/${USER}/dvm_logs.tar.gz" ${LOGFILEFOLDER}/dvm_logs.tar.gz
-        tar -xzf $LOGFILEFOLDER/dvm_logs.tar.gz -C $LOGFILEFOLDER
-        rm $LOGFILEFOLDER/dvm_logs.tar.gz
-        
-        echo "[$(date +%Y%m%d%H%M%S)][INFO] Removing temp files from DVM"
-        ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh dvm_logs.tar.gz"
     fi
+    
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect VMD logs"
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
+    scp ${SCP_FLAGS} common.sh ${USER}@${DVM_HOST}:/home/${USER}/
+    scp ${SCP_FLAGS} detectors.sh ${USER}@${DVM_HOST}:/home/${USER}/
+    scp ${SCP_FLAGS} collectlogsdvm.sh ${USER}@${DVM_HOST}:/home/${USER}/
+    ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "sudo chmod 744 common.sh detectors.sh collectlogsdvm.sh; ./collectlogsdvm.sh;"
+    
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
+    scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:"/home/${USER}/dvm_logs.tar.gz" ${LOGFILEFOLDER}/dvm_logs.tar.gz
+    tar -xzf $LOGFILEFOLDER/dvm_logs.tar.gz -C $LOGFILEFOLDER
+    rm $LOGFILEFOLDER/dvm_logs.tar.gz
+    
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Removing temp files from DVM"
+    ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh dvm_logs.tar.gz"
 fi
 
 #checks if azure-cli is installed
@@ -273,27 +275,27 @@ export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=1
 export ADAL_PYTHON_SSL_NO_VERIFY=1
 
 #Validate resource-group
-LOCATION=$(az group show -n $RESOURCE_GROUP --query location)
+LOCATION=$(az group show -n $RESOURCE_GROUP --query location 2> /dev/null)
 if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Specified Resource group not found."
     exit 1
 fi
 
 #Get the master nodes from the resource group
-MASTER_NODES=$(az resource list -g $RESOURCE_GROUP --resource-type "Microsoft.Compute/virtualMachines" --query "[?tags.poolName=='master'].{Name:name}" --output tsv)
+master_nodes=$(az vm list -g $RESOURCE_GROUP --query "[?tags.poolName=='master'].{Name:name}" --output tsv 2> /dev/null)
 if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Kubernetes master nodes not found in the resource group."
     exit 1
 fi
 
-MASTER_IP=$(az network public-ip list -g $RESOURCE_GROUP --output json | jq -r '.[] | select (.name | contains("'k8s-master'")) .ipAddress')
+MASTER_IP=$(az network public-ip list -g $RESOURCE_GROUP --output json 2> /dev/null | jq -r '.[] | select (.name | contains("'k8s-master'")) .ipAddress')
 if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Kubernetes master node ip not found in the resource group."
     exit 1
 fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Testing SSH keys"
-ssh -q $USER@$MASTER_IP "exit"
+ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "exit"
 
 if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to the server"
@@ -306,10 +308,10 @@ then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect cluster logs"
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Looking for cluster hosts"
-    scp -q hosts.sh $USER@$MASTER_IP:/home/$USER/hosts.sh
-    ssh -tq $USER@$MASTER_IP "sudo chmod 744 hosts.sh; ./hosts.sh $NOW"
-    scp -q $USER@$MASTER_IP:"/home/$USER/$NOW.tar.gz" $LOGFILEFOLDER/cluster-snapshot.tar.gz
-    ssh -tq $USER@$MASTER_IP "sudo rm -f $NOW.tar.gz hosts.sh"
+    scp ${SCP_FLAGS} hosts.sh ${USER}@${MASTER_IP}:/home/${USER}/hosts.sh
+    ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo chmod 744 hosts.sh; ./hosts.sh ${NOW}"
+    scp ${SCP_FLAGS} ${USER}@${MASTER_IP}:"/home/${USER}/${NOW}.tar.gz" ${LOGFILEFOLDER}/cluster-snapshot.tar.gz
+    ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo rm -f ${NOW}.tar.gz hosts.sh"
     tar -xzf $LOGFILEFOLDER/cluster-snapshot.tar.gz -C $LOGFILEFOLDER
     rm $LOGFILEFOLDER/cluster-snapshot.tar.gz
     mv $LOGFILEFOLDER/$NOW $LOGFILEFOLDER/cluster-snapshot-$NOW
@@ -322,18 +324,16 @@ then
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host $host"
         
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
-        scp ${SCP_FLAGS} common.sh ${USER}@${host}:/home/${USER}/
-        scp ${SCP_FLAGS} detectors.sh ${USER}@${host}:/home/${USER}/
         scp ${SCP_FLAGS} collectlogs.sh ${USER}@${host}:/home/${USER}/
-        ssh ${SSH_FLAGS} ${USER}@${host} "sudo chmod 744 common.sh detectors.sh collectlogs.sh; ./collectlogs.sh ${NAMESPACES};"
+        ssh ${SSH_FLAGS} ${USER}@${host} "sudo chmod 744 collectlogs.sh; ./collectlogs.sh ${NAMESPACES};"
         
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
-        scp ${SCP_FLAGS} ${USER}@${host}:"/home/${USER}/kube_logs.tar.gz" ${LOGFILEFOLDER}/kube_logs.tar.gz
+        scp ${SCP_FLAGS} ${USER}@${host}:/home/${USER}/kube_logs.tar.gz ${LOGFILEFOLDER}/kube_logs.tar.gz
         tar -xzf $LOGFILEFOLDER/kube_logs.tar.gz -C $LOGFILEFOLDER
         rm $LOGFILEFOLDER/kube_logs.tar.gz
         
         # Removing temp files from node
-        ssh ${SSH_FLAGS} ${USER}@${host} "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh kube_logs.tar.gz"
+        ssh ${SSH_FLAGS} ${USER}@${host} "rm -f collectlogs.sh kube_logs.tar.gz"
     done
     
     rm $LOGFILEFOLDER/host.list
@@ -348,25 +348,14 @@ fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Done collecting Kubernetes logs"
 
-if [ -n "$UPLOAD_LOGS" ]; then
+if [ "$UPLOAD_LOGS" == "true" ]; then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing logs"
     createSADirectories
-    
-    for log in $(ls ${LOGFILEFOLDER}/*/containers/*.log)
-    do
-        CNAME=$(basename ${log} .log)
-        CMETA=${LOGFILEFOLDER}/cluster-snapshot-$NOW/${CNAME}.meta
-        
-        CLOG=${SA_DIR}/${CNAME}.log
-        echo "== BEGIN HEADER ==" > ${CLOG}
-        jq -r 'to_entries|map("\(.key): \(.value|tostring)")|.[]' ${CMETA} >> ${CLOG}
-        echo "== END HEADER ==" >> ${CLOG}
-        cat ${log} >> ${CLOG}
-    done
+    copyLogsToSADirectory
     
     #storage account variables
     SA_NAME="kubernetesdiagnostics"
-    SA_RESOURCE_GROUP="k8sdiagnostics"
+    SA_RESOURCE_GROUP="kubernetesdiagnostics"
     
     ensureResourceGroup
     ensureStorageAccount
