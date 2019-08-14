@@ -13,19 +13,8 @@ trap restoreAzureCLIVariables EXIT
 
 checkRequirements()
 {
-    found=2
     if ! command -v az &> /dev/null; then
-        found=$((found - 1))
         echo "azure-cli is missing. Please install azure-cli from https://docs.microsoft.com/azure-stack/user/azure-stack-version-profiles-azurecli2"
-    fi
-    
-    if ! command -v jq &> /dev/null; then
-        found=$((found - 1))
-        echo "jq is missing. Please install jq from https://stedolan.github.io/jq/"
-    fi
-    
-    if [ $found -ne 2 ]; then
-        exit 1
     fi
 }
 
@@ -43,64 +32,54 @@ createSADirectories()
     local SA_DIR_DATE=$(echo $NOW | head -c 8)
     local SA_DIR_HOUR=$(echo $NOW | tail -c 7 | head -c 2)
     local SA_DIR_MIN=$(echo $NOW | tail -c 5 | head -c 2)
-    SA_DIR="${LOGFILEFOLDER}/data/d=${SA_DIR_DATE}/h=${SA_DIR_HOUR}/m=${SA_DIR_MIN}"
+    SA_CONTAINER_DIR="data/d=${SA_DIR_DATE}/h=${SA_DIR_HOUR}/m=${SA_DIR_MIN}"
+    SA_DIR="${LOGFILEFOLDER}/${SA_CONTAINER_DIR}"
     mkdir -p ${SA_DIR}
-}
-
-createStorageAccount()
-{
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Creating storage account: $SA_NAME"
-    az storage account create --name $SA_NAME --resource-group $RESOURCE_GROUP --location $LOCATION --kind Storage --sku Standard_LRS
-    if [ $? -ne 0 ]; then
-        echo "[$(date +%Y%m%d%H%M%S)][ERR] Error creating storage account: $SA_NAME"
-        exit 1
-    fi
 }
 
 ensureResourceGroup()
 {
-    if [ $(az group exists --name $SA_RESOURCE_GROUP) = false ]; then
-        echo "[$(date +%Y%m%d%H%M%S)][INFO] Creating resource group: $SA_RESOURCE_GROUP"
-        az group create -n $SA_RESOURCE_GROUP -l $LOCATION
-        if [ $? -ne 0 ]; then
-            echo "[$(date +%Y%m%d%H%M%S)][ERR]Error creating resource group: $SA_RESOURCE_GROUP"
-            exit 1
-        fi
+    SA_RESOURCE_GROUP="KubernetesLogs"
+
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Ensuring resource group: ${SA_RESOURCE_GROUP}"
+    az group create -n ${SA_RESOURCE_GROUP} -l ${LOCATION} 1> /dev/null
+    if [ $? -ne 0 ]; then
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] Error ensuring resource group: ${SA_RESOURCE_GROUP}"
+        exit 1
     fi
 }
 
 ensureStorageAccount()
 {
-    #Check if the storage account "kuberneteslogs" is present
-    CHECK_STORAGE_ACCOUNT=$(az storage account list -g $SA_RESOURCE_GROUP --output json | jq -r '.[] | select (.name=="'$SA_NAME'")')
-    #create storage account "kuberneteslogs" only if not present
-    if [ -z "$CHECK_STORAGE_ACCOUNT" ]; then
-        createStorageAccount
+    SA_NAME="kuberneteslogs"
+
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Ensuring storage account: ${SA_NAME}"
+    az storage account create --name ${SA_NAME} --resource-group ${SA_RESOURCE_GROUP} --location ${LOCATION} --sku Premium_LRS 1> /dev/null
+        if [ $? -ne 0 ]; then
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] Error ensuring storage account: ${SA_NAME}"
+            exit 1
+        fi
+}
+
+ensureStorageAccountContainer()
+{
+    SA_CONTAINER="container"
+    
+    echo "$(date +%Y%m%d%H%M%S)][INFO] Ensuring storage account container: ${SA_CONTAINER}"
+    az storage container create --name ${SA_CONTAINER} --account-name ${SA_NAME}
+    if [ $? -ne 0 ]; then
+        echo "$(date +%Y%m%d%H%M%S)][ERR] Error ensuring storage account container ${SA_CONTAINER}"
+        exit 1
     fi
 }
 
 uploadLogs() {
-    #TODO - remove the access key if not required during upload logs. Need to verify
-    ACCESS_KEY=$(az storage account keys list -g $SA_RESOURCE_GROUP -n $SA_NAME | jq '.[0].value ')
-    if [ "$ACCESS_KEY" == "" ]; then
-        echo "$(date +%Y%m%d%H%M%S)][ERR] Unable to retrieve access key for stroage account $SA_NAME"
-        exit
-    fi
+    SA_BLOB="blob"
     
-    CONTAINER_NAME="KubernetesLogs_$NOW"
-    BLOB_NAME="KubernetesLogs_$NOW"
-    
-    az storage container create --name  $CONTAINER_NAME --account-name $SA_NAME
+    echo "$(date +%Y%m%d%H%M%S)][INFO] Uploading logs to blob: ${SA_BLOB}"
+    az storage blob upload-batch -d ${SA_CONTAINER} -s ${SA_DIR} --destination-path ${SA_CONTAINER_DIR} --pattern *.tar.gz --account-name ${SA_NAME}
     if [ $? -ne 0 ]; then
-        echo "$(date +%Y%m%d%H%M%S)][ERR] Error creating blob container $CONTAINER_NAME"
-        exit 1
-    else
-        echo "$(date +%Y%m%d%H%M%S)][INFO] Container $CONTAINER_NAME created"
-    fi
-    
-    az storage blob upload --container-name $CONTAINER_NAME --file $LOGFILEFOLDER --name $BLOB_NAME --account-name $SA_NAME
-    if [ $? -ne 0 ]; then
-        echo "$(date +%Y%m%d%H%M%S)][ERR] Error uploading file to container $CONTAINER_NAME"
+        echo "$(date +%Y%m%d%H%M%S)][ERR] Error uploading files to blob container ${SA_CONTAINER}"
         exit 1
     fi
 }
@@ -114,7 +93,7 @@ printUsage()
     echo "  $0 --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32 --resource-group myresgrp --upload-logs"
     echo ""
     echo "Options:"
-    echo "  -u, --user                      User name associated to the identifity-file"
+    echo "  -u, --user                      The administrator username for the cluster VMs"
     echo "  -i, --identity-file             RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')"
     echo "  -d, --vmd-host                  The DVM's public IP or FQDN (host name starts with 'vmd-')"
     echo "  -g, --resource-group            Kubernetes cluster resource group"
@@ -212,7 +191,7 @@ fi
 if [ -z "$RESOURCE_GROUP" ]
 then
     echo ""
-    echo "[ERR] --resource-group should be provided"
+    echo "[ERR] --resource-group is required"
     printUsage
     exit 1
 fi
@@ -275,20 +254,20 @@ export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=1
 export ADAL_PYTHON_SSL_NO_VERIFY=1
 
 #Validate resource-group
-LOCATION=$(az group show -n $RESOURCE_GROUP --query location 2> /dev/null)
+LOCATION=$(az group show -n ${RESOURCE_GROUP} --query location --output tsv)
 if [ $? -ne 0 ]; then
-    echo "[$(date +%Y%m%d%H%M%S)][ERR] Specified Resource group not found."
+    echo "[$(date +%Y%m%d%H%M%S)][ERR] Specified resource group not found."
     exit 1
 fi
 
 #Get the master nodes from the resource group
-master_nodes=$(az vm list -g $RESOURCE_GROUP --query "[?tags.poolName=='master'].{Name:name}" --output tsv 2> /dev/null)
+MASTER_NODES=$(az vm list -g ${RESOURCE_GROUP} --query "[?tags.poolName=='master'].{Name:name}" --output tsv)
 if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Kubernetes master nodes not found in the resource group."
     exit 1
 fi
 
-MASTER_IP=$(az network public-ip list -g $RESOURCE_GROUP --output json 2> /dev/null | jq -r '.[] | select (.name | contains("'k8s-master'")) .ipAddress')
+MASTER_IP=$(az network public-ip list -g ${RESOURCE_GROUP} --query "[?starts_with(name,'k8s-master-ip')].ipAddress | [0]" --output tsv)
 if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Kubernetes master node ip not found in the resource group."
     exit 1
@@ -352,13 +331,9 @@ if [ "$UPLOAD_LOGS" == "true" ]; then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing logs"
     createSADirectories
     copyLogsToSADirectory
-    
-    #storage account variables
-    SA_NAME="kubernetesdiagnostics"
-    SA_RESOURCE_GROUP="kubernetesdiagnostics"
-    
     ensureResourceGroup
     ensureStorageAccount
+    ensureStorageAccountContainer
     uploadLogs
 fi
 
