@@ -5,7 +5,7 @@ collectKubeletMetadata()
     KUBELET_REPOSITORY=$(docker images --format '{{.Repository}}' | grep hyperkube)
     KUBELET_TAG=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep hyperkube | cut -d ":" -f 2)
     KUBELET_VERBOSITY=$(cat /etc/systemd/system/kubelet.service | grep -e '--v=[0-9]' -oh | grep -e [0-9] -oh | head -n 1)
-    KUBELET_LOG_FILE=$LOGDIRECTORY/daemons/kubelet-${HOSTNAME}.log
+    KUBELET_LOG_FILE=${LOGDIRECTORY}/daemons/kubelet.log
     
     echo "== BEGIN HEADER =="               > ${KUBELET_LOG_FILE}
     echo "Type: Daemon"                     >> ${KUBELET_LOG_FILE}
@@ -20,7 +20,7 @@ collectKubeletMetadata()
 collectMobyMetadata()
 {
     DOCKER_VERSION=$(docker version | grep -A 20 "Server:" | grep "Version:" | head -n 1 | cut -d ":" -f 2 | xargs)
-    DOCKER_LOG_FILE=$LOGDIRECTORY/daemons/docker-${HOSTNAME}.log
+    DOCKER_LOG_FILE=${LOGDIRECTORY}/daemons/docker.log
 
     echo "== BEGIN HEADER =="               > ${DOCKER_LOG_FILE}
     echo "Type: Daemon"                     >> ${DOCKER_LOG_FILE}
@@ -33,7 +33,7 @@ collectMobyMetadata()
 collectEtcdMetadata()
 {
     ETCD_VERSION=$(/usr/bin/etcd --version | grep "etcd Version:" | cut -d ":" -f 2 | xargs)
-    ETCD_LOG_FILE=$LOGDIRECTORY/daemons/etcd-${HOSTNAME}.log
+    ETCD_LOG_FILE=${LOGDIRECTORY}/daemons/etcd.log
 
     echo "== BEGIN HEADER =="               > ${ETCD_LOG_FILE}
     echo "Type: Daemon"                     >> ${ETCD_LOG_FILE}
@@ -48,7 +48,7 @@ collectContainerMetadata()
     local cid=$1
     local pname=$2
     local cname=$3
-    
+
     CVERBOSITY=$(docker inspect ${cid} | grep -e "--v=[0-9]" -oh | grep -e [0-9] -oh | head -n 1)
     IMAGE_SHA=$(docker inspect ${cid} | grep Image | grep -e "sha256:[[:alnum:]]*" -oh | head -n 1 | cut -d ':' -f 2)
     IMAGE=$(docker image inspect ${IMAGE_SHA} | jq -r '.[] | .RepoTags | @tsv' | xargs)
@@ -65,32 +65,30 @@ collectContainerMetadata()
     echo "== END HEADER =="         >> ${CLOG_FILE}
 }
 
-NOW=`date +%Y%m%d%H%M%S`
-CURRENTUSER=`whoami`
-
-LOGDIRECTORY="$HOSTNAME-$NOW"
-mkdir -p $LOGDIRECTORY
+TMP=$(mktemp -d)
+LOGDIRECTORY=${TMP}/${HOSTNAME}
+mkdir -p ${LOGDIRECTORY}
 
 LOGFILENAME="kube_logs.tar.gz"
 sudo rm -f $LOGFILENAME
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting /var/log/azure logs"
-mkdir -p $LOGDIRECTORY/var/log/azure
-sudo cp /var/log/azure/*.log $LOGDIRECTORY/var/log/azure || :
-sudo cp /var/log/waagent.log $LOGDIRECTORY/var/log || :
+mkdir -p ${LOGDIRECTORY}/var/log/azure
+sudo cp /var/log/azure/*.log ${LOGDIRECTORY}/var/log/azure || :
+sudo cp /var/log/waagent.log ${LOGDIRECTORY}/var/log || :
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting static pods manifests"
-mkdir -p $LOGDIRECTORY/etc/kubernetes/manifests
-sudo cp /etc/kubernetes/manifests/* $LOGDIRECTORY/etc/kubernetes/manifests 2>/dev/null
+mkdir -p ${LOGDIRECTORY}/etc/kubernetes/manifests
+sudo cp /etc/kubernetes/manifests/* ${LOGDIRECTORY}/etc/kubernetes/manifests 2>/dev/null
 
 test $# -gt 0 && NAMESPACES=$@
 test -z "${NAMESPACES}" && echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting logs from pods in all namespaces"
 test -n "${NAMESPACES}" && echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting logs from pods in these namespaces: $NAMESPACES"
-mkdir -p $LOGDIRECTORY/containers
+mkdir -p ${LOGDIRECTORY}/containers
 
 for cid in $(docker ps -a -q --no-trunc)
 do
-    cns=`docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.namespace" }}' ${cid}`
+    cns=$(docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.namespace" }}' ${cid})
     
     # if NAMESPACES not set, then collect everything
     if [ -z "${NAMESPACES}" ] || (echo $NAMESPACES | grep -qw $cns);
@@ -104,13 +102,13 @@ do
 
             collectContainerMetadata ${cid} ${pname} ${cname}
             sudo docker inspect ${cid} &> ${LOGDIRECTORY}/containers/${pname}-${cname}.json
-            sudo cat ${LOGDIRECTORY}/containers/$cname.meta $clog &>> ${LOGDIRECTORY}/containers/${pname}-${cname}.log
+            sudo cat $clog >> ${LOGDIRECTORY}/containers/${pname}-${cname}.log
         fi
     fi
 done
 
 test -n "${NAMESPACES}" && echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting daemon logs"
-mkdir -p $LOGDIRECTORY/daemons
+mkdir -p ${LOGDIRECTORY}/daemons
 
 TENANT_ID=$(sudo jq -r '.tenantId' /etc/kubernetes/azure.json)    
 
@@ -133,7 +131,7 @@ fi
 sync
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Compressing logs and cleaning up temp files"
-sudo chown -R $CURRENTUSER $LOGDIRECTORY
-sudo tar -czf $LOGFILENAME $LOGDIRECTORY
-sudo chown $CURRENTUSER $LOGFILENAME
-sudo rm -rf $LOGDIRECTORY
+CURRETUSER=$(whoami)
+sudo chown -R ${CURRETUSER} ${LOGDIRECTORY}
+sudo tar -czf ${LOGFILENAME} -C ${TMP} ${HOSTNAME}
+sudo chown ${CURRETUSER} ${LOGFILENAME}
