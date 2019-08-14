@@ -317,8 +317,6 @@ then
         # Removing temp files from node
         ssh ${SSH_FLAGS} ${USER}@${host} "rm -f collectlogs.sh kube_logs.tar.gz"
     done
-    
-    rm $LOGFILEFOLDER/host.list
 fi
 
 # Aggregate ERRORS.txt
