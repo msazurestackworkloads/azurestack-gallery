@@ -43,6 +43,28 @@ collectEtcdMetadata()
     echo "== END HEADER =="                 >> ${ETCD_LOG_FILE}
 }
 
+collectContainerMetadata()
+{
+    local cid=$1
+    local pname=$2
+    local cname=$3
+    
+    CVERBOSITY=$(docker inspect ${cid} | grep -e "--v=[0-9]" -oh | grep -e [0-9] -oh | head -n 1)
+    IMAGE_SHA=$(docker inspect ${cid} | grep Image | grep -e "sha256:[[:alnum:]]*" -oh | head -n 1 | cut -d ':' -f 2)
+    IMAGE=$(docker image inspect ${IMAGE_SHA} | jq -r '.[] | .RepoTags | @tsv' | xargs)
+    CLOG_FILE=${LOGDIRECTORY}/containers/${pname}-${cname}.log
+
+    echo "== BEGIN HEADER =="       > ${CLOG_FILE}
+    echo "Type: Container"          >> ${CLOG_FILE}
+    echo "TenantId: ${TENANT_ID}"   >> ${CLOG_FILE}
+    echo "Name: ${cname}"           >> ${CLOG_FILE}
+    echo "Hostname: ${HOSTNAME}"    >> ${CLOG_FILE}
+    echo "ContainerID: ${cid}"      >> ${CLOG_FILE}
+    echo "Image: ${IMAGE}"          >> ${CLOG_FILE}
+    echo "Verbosity: ${CVERBOSITY}" >> ${CLOG_FILE}
+    echo "== END HEADER =="         >> ${CLOG_FILE}
+}
+
 NOW=`date +%Y%m%d%H%M%S`
 CURRENTUSER=`whoami`
 
@@ -68,19 +90,21 @@ mkdir -p $LOGDIRECTORY/containers
 
 for cid in $(docker ps -a -q --no-trunc)
 do
-    cns=`docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.namespace" }}' $cid`
+    cns=`docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.namespace" }}' ${cid}`
     
     # if NAMESPACES not set, then collect everything
     if [ -z "${NAMESPACES}" ] || (echo $NAMESPACES | grep -qw $cns);
     then
-        # Ignore the pod's Pause container
-        if docker inspect --format='{{ .Config.Image }}' $cid | grep -q -v pause-amd64;
+        # Ignore the Pause container
+        if docker inspect --format='{{ .Config.Image }}' ${cid} | grep -q -v pause-amd64;
         then
-            # TODO Check size
-            cname=`docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.name" }}' $cid`
-            clog=`docker inspect --format='{{ .LogPath }}' $cid`
-            sudo docker inspect $cid &> $LOGDIRECTORY/containers/$cname.json
-            sudo cp $clog $LOGDIRECTORY/containers/$cname.log
+            pname=$(docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.name" }}' ${cid})
+            cname=$(docker inspect --format='{{ index .Config.Labels "io.kubernetes.container.name" }}' ${cid})
+            clog=$(docker inspect --format='{{ .LogPath }}' ${cid})
+
+            collectContainerMetadata ${cid} ${pname} ${cname}
+            sudo docker inspect ${cid} &> ${LOGDIRECTORY}/containers/${pname}-${cname}.json
+            sudo cat ${LOGDIRECTORY}/containers/$cname.meta $clog &>> ${LOGDIRECTORY}/containers/${pname}-${cname}.log
         fi
     fi
 done
@@ -93,17 +117,17 @@ TENANT_ID=$(sudo jq -r '.tenantId' /etc/kubernetes/azure.json)
 # TODO use --until --since --lines to limit size
 if systemctl list-units | grep -q kubelet.service; then
     collectKubeletMetadata
-    sudo journalctl -n 10000 --utc -o short-iso -u kubelet &>> $LOGDIRECTORY/daemons/kubelet-${HOSTNAME}.log
-fi
-
-if systemctl list-units | grep -q docker.service; then
-    collectMobyMetadata
-    sudo journalctl -n 10000 --utc -o short-iso -u docker &>> $LOGDIRECTORY/daemons/docker-${HOSTNAME}.log
+    sudo journalctl -n 10000 --utc -o short-iso -u kubelet &>> ${LOGDIRECTORY}/daemons/kubelet.log
 fi
 
 if systemctl list-units | grep -q etcd.service; then
     collectEtcdMetadata
-    sudo journalctl -n 10000 --utc -o short-iso -u etcd &>> $LOGDIRECTORY/daemons/etcd-${HOSTNAME}.log
+    sudo journalctl -n 10000 --utc -o short-iso -u etcd &>> ${LOGDIRECTORY}/daemons/etcd.log
+fi
+
+if systemctl list-units | grep -q docker.service; then
+    collectMobyMetadata
+    sudo journalctl -n 10000 --utc -o short-iso -u docker &>> ${LOGDIRECTORY}/daemons/docker.log
 fi
 
 sync
