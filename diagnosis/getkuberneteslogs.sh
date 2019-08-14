@@ -331,10 +331,9 @@ echo "[$(date +%Y%m%d%H%M%S)][INFO] Done collecting Kubernetes logs"
 if [ "$UPLOAD_LOGS" == "true" ]; then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing logs"
     createSADirectories
-    copyContainerLogsToSADirectory
-    cp ${LOGFILEFOLDER}/*/daemons/kubelet-*.log ${SA_DIR}
-    cp ${LOGFILEFOLDER}/*/daemons/docker-*.log ${SA_DIR}
-    cp ${LOGFILEFOLDER}/*/daemons/etcd-*.log ${SA_DIR}
+    # TODO Zip files by host
+    cp ${LOGFILEFOLDER}/*/containers/*.log ${SA_DIR}
+    cp ${LOGFILEFOLDER}/*/daemons/*.log ${SA_DIR}
     
     #storage account variables
     SA_NAME="kubernetesdiagnostics"
