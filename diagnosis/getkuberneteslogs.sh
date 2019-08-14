@@ -40,7 +40,7 @@ createSADirectories()
 ensureResourceGroup()
 {
     SA_RESOURCE_GROUP="KubernetesLogs"
-
+    
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Ensuring resource group: ${SA_RESOURCE_GROUP}"
     az group create -n ${SA_RESOURCE_GROUP} -l ${LOCATION} 1> /dev/null
     if [ $? -ne 0 ]; then
@@ -52,13 +52,13 @@ ensureResourceGroup()
 ensureStorageAccount()
 {
     SA_NAME="kuberneteslogs"
-
+    
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Ensuring storage account: ${SA_NAME}"
     az storage account create --name ${SA_NAME} --resource-group ${SA_RESOURCE_GROUP} --location ${LOCATION} --sku Premium_LRS 1> /dev/null
-        if [ $? -ne 0 ]; then
+    if [ $? -ne 0 ]; then
         echo "[$(date +%Y%m%d%H%M%S)][ERR] Error ensuring storage account: ${SA_NAME}"
-            exit 1
-        fi
+        exit 1
+    fi
 }
 
 ensureStorageAccountContainer()
@@ -298,7 +298,10 @@ then
     SSH_FLAGS="-q -t -J ${USER}@${MASTER_IP} -i ${IDENTITYFILE}"
     SCP_FLAGS="-q -o ProxyJump=${USER}@${MASTER_IP} -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
     
-    for host in $(cat $LOGFILEFOLDER/cluster-snapshot-$NOW/host.list)
+    #get the agent ips
+    AGENT_IPS=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[?starts_with(name,'k8s-linuxpool')].privateIps" --output tsv)
+    
+    for host in $AGENT_IPS
     do
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host $host"
         
