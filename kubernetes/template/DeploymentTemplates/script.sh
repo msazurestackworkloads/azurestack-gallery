@@ -352,6 +352,24 @@ fi
 log_level -i "ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT: $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT"
 
 #####################################################################################
+#Linux agent 
+if [ "$AGENT_COUNT" != "0" ]; then
+    log_level -i "Update cluster definition with Linux agent node details."
+
+    cat $AZURESTACK_CONFIGURATION | \
+    jq --arg linuxAgentCount $AGENT_COUNT \
+    --arg linuxAgentSize $AGENT_SIZE \
+    --arg linuxAvailabilityProfile $AVAILABILITY_PROFILE \
+    --arg NODE_DISTRO $NODE_DISTRO \
+    '.properties.agentPoolProfiles += [{"name": "linuxpool", "osDiskSizeGB": 200, "AcceleratedNetworkingEnabled": false, "distro": $NODE_DISTRO, "count": $linuxAgentCount | tonumber, "vmSize": $linuxAgentSize, "availabilityProfile": $linuxAvailabilityProfile}]' \
+    > $AZURESTACK_CONFIGURATION_TEMP
+
+    validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
+
+    log_level -i "Updating cluster definition done with Linux agent node details."
+fi
+
+#####################################################################################
 #custom vnet config 
 
 if [ "$CUSTOM_VNET_NAME" != "" ]; then
@@ -395,21 +413,7 @@ jq --arg NETWORK_PLUGIN $NETWORK_PLUGIN '.properties.orchestratorProfile.kuberne
 
 validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
 
-if [ "$AGENT_COUNT" != "0" ]; then
-    log_level -i "Update cluster definition with Linux agent node details."
 
-    cat $AZURESTACK_CONFIGURATION | \
-    jq --arg linuxAgentCount $AGENT_COUNT \
-    --arg linuxAgentSize $AGENT_SIZE \
-    --arg linuxAvailabilityProfile $AVAILABILITY_PROFILE \
-    --arg NODE_DISTRO $NODE_DISTRO \
-    '.properties.agentPoolProfiles += [{"name": "linuxpool", "osDiskSizeGB": 200, "AcceleratedNetworkingEnabled": false, "distro": $NODE_DISTRO, "count": $linuxAgentCount | tonumber, "vmSize": $linuxAgentSize, "availabilityProfile": $linuxAvailabilityProfile}]' \
-    > $AZURESTACK_CONFIGURATION_TEMP
-
-    validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
-
-    log_level -i "Updating cluster definition done with Linux agent node details."
-fi
 
 if [ "$WINDOWS_AGENT_COUNT" != "0" ]; then
     log_level -i "Update cluster definition with Windows agent node details."
