@@ -29,18 +29,12 @@ checkRequirements()
     fi
 }
 
-copyContainerLogsToSADirectory()
+copyLogsToSADirectory()
 {
-    for log in $(ls ${LOGFILEFOLDER}/*/containers/*.log)
+    for dir in $(find ${LOGFILEFOLDER} -mindepth 1 -maxdepth 1 -type d -name 'k8s-*')
     do
-        CNAME=$(basename ${log} .log)
-        CMETA=${LOGFILEFOLDER}/cluster-snapshot-$NOW/${CNAME}.meta        
-        CLOG=${SA_DIR}/${CNAME}.log
-        
-        echo "== BEGIN HEADER ==" > ${CLOG}
-        jq -r 'to_entries|map("\(.key): \(.value|tostring)")|.[]' ${CMETA} >> ${CLOG}
-        echo "== END HEADER ==" >> ${CLOG}
-        cat ${log} >> ${CLOG}
+        HNAME=$(basename ${dir})
+        tar -czf ${SA_DIR}/${HNAME}.tar.gz -C ${LOGFILEFOLDER} ${HNAME}
     done
 }
 
@@ -331,9 +325,7 @@ echo "[$(date +%Y%m%d%H%M%S)][INFO] Done collecting Kubernetes logs"
 if [ "$UPLOAD_LOGS" == "true" ]; then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing logs"
     createSADirectories
-    # TODO Zip files by host
-    cp ${LOGFILEFOLDER}/*/containers/*.log ${SA_DIR}
-    cp ${LOGFILEFOLDER}/*/daemons/*.log ${SA_DIR}
+    copyLogsToSADirectory
     
     #storage account variables
     SA_NAME="kubernetesdiagnostics"
