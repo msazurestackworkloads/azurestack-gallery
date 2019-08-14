@@ -79,6 +79,32 @@ ensureStorageAccount()
     fi
 }
 
+uploadLogs() {
+    #TODO - remove the access key if not required during upload logs. Need to verify
+    ACCESS_KEY=$(az storage account keys list -g $SA_RESOURCE_GROUP -n $SA_NAME | jq '.[0].value ')
+    if [ "$ACCESS_KEY" == "" ]; then
+        echo "$(date +%Y%m%d%H%M%S)][ERR] Unable to retrieve access key for stroage account $SA_NAME"
+        exit
+    fi
+    
+    CONTAINER_NAME="KubernetesLogs_$NOW"
+    BLOB_NAME="KubernetesLogs_$NOW"
+    
+    az storage container create --name  $CONTAINER_NAME --account-name $SA_NAME
+    if [ $? -ne 0 ]; then
+        echo "$(date +%Y%m%d%H%M%S)][ERR] Error creating blob container $CONTAINER_NAME"
+        exit 1
+    else
+        echo "$(date +%Y%m%d%H%M%S)][INFO] Container $CONTAINER_NAME created"
+    fi
+    
+    az storage blob upload --container-name $CONTAINER_NAME --file $LOGFILEFOLDER --name $BLOB_NAME --account-name $SA_NAME
+    if [ $? -ne 0 ]; then
+        echo "$(date +%Y%m%d%H%M%S)][ERR] Error uploading file to container $CONTAINER_NAME"
+        exit 1
+    fi
+}
+
 printUsage()
 {
     echo ""
@@ -293,7 +319,7 @@ then
     SSH_FLAGS="-q -t -J ${USER}@${MASTER_IP} -i ${IDENTITYFILE}"
     SCP_FLAGS="-q -o ProxyJump=${USER}@${MASTER_IP} -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
     
-    for host in $(cat $LOGFILEFOLDER/host.list)
+    for host in $(cat $LOGFILEFOLDER/cluster-snapshot-$NOW/host.list)
     do
         echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host $host"
         
@@ -333,6 +359,7 @@ if [ "$UPLOAD_LOGS" == "true" ]; then
     
     ensureResourceGroup
     ensureStorageAccount
+    uploadLogs
 fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Logs can be found in this location: $LOGFILEFOLDER"
