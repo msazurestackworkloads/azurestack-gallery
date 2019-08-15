@@ -28,7 +28,7 @@ validateResourceGroup()
 {
     LOCATION=$(az group show -n ${RESOURCE_GROUP} --query location --output tsv)
     if [ $? -ne 0 ]; then
-        echo "[$(date +%Y%m%d%H%M%S)][ERR] Specified resource group not found."
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] Specified resource group ${RESOURCE_GROUP} not found in current subscription."
         exit 1
     fi
 }
@@ -36,7 +36,7 @@ validateResourceGroup()
 checkRequirements()
 {
     if ! command -v az &> /dev/null; then
-        echo "azure-cli not available, install and configure following this indications: https://docs.microsoft.com/azure-stack/user/azure-stack-version-profiles-azurecli2"
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] azure-cli not available, please install and configure following this indications: https://docs.microsoft.com/azure-stack/user/azure-stack-version-profiles-azurecli2"
         exit 1
     fi
 }
@@ -66,10 +66,10 @@ ensureResourceGroup()
 {
     SA_RESOURCE_GROUP="KubernetesLogs"
     
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Ensuring resource group: ${SA_RESOURCE_GROUP}"
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Ensuring resource group ${SA_RESOURCE_GROUP}"
     az group create -n ${SA_RESOURCE_GROUP} -l ${LOCATION} 1> /dev/null
     if [ $? -ne 0 ]; then
-        echo "[$(date +%Y%m%d%H%M%S)][ERR] Error ensuring resource group: ${SA_RESOURCE_GROUP}"
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] Error ensuring resource group ${SA_RESOURCE_GROUP}"
         exit 1
     fi
 }
@@ -78,10 +78,10 @@ ensureStorageAccount()
 {
     SA_NAME="diagnostics"
     
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Ensuring storage account: ${SA_NAME}"
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Ensuring storage account ${SA_NAME}"
     az storage account create --name ${SA_NAME} --resource-group ${SA_RESOURCE_GROUP} --location ${LOCATION} --sku Premium_LRS 1> /dev/null
     if [ $? -ne 0 ]; then
-        echo "[$(date +%Y%m%d%H%M%S)][ERR] Error ensuring storage account: ${SA_NAME}"
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] Error ensuring storage account ${SA_NAME}"
         exit 1
     fi
 }
@@ -90,7 +90,7 @@ ensureStorageAccountContainer()
 {
     SA_CONTAINER="kuberneteslogs"
     
-    echo "$(date +%Y%m%d%H%M%S)][INFO] Ensuring storage account container: ${SA_CONTAINER}"
+    echo "$(date +%Y%m%d%H%M%S)][INFO] Ensuring storage account container ${SA_CONTAINER}"
     az storage container create --name ${SA_CONTAINER} --account-name ${SA_NAME}
     if [ $? -ne 0 ]; then
         echo "$(date +%Y%m%d%H%M%S)][ERR] Error ensuring storage account container ${SA_CONTAINER}"
@@ -100,32 +100,37 @@ ensureStorageAccountContainer()
 
 uploadLogs() 
 {
-    echo "$(date +%Y%m%d%H%M%S)][INFO] Uploading logs"
+    echo "$(date +%Y%m%d%H%M%S)][INFO] Uploading log files to container ${SA_CONTAINER}"
     az storage blob upload-batch -d ${SA_CONTAINER} -s ${SA_DIR} --destination-path ${SA_CONTAINER_DIR} --pattern *.zip --account-name ${SA_NAME}
     if [ $? -ne 0 ]; then
-        echo "$(date +%Y%m%d%H%M%S)][ERR] Error uploading files to blob container ${SA_CONTAINER}"
+        echo "$(date +%Y%m%d%H%M%S)][ERR] Error uploading log files to container ${SA_CONTAINER}"
         exit 1
     fi
 }
 
 printUsage()
 {
+    echo "$0 collects diagnostics from Kubernetes clusters provisioned by AKS Engine"
     echo ""
     echo "Usage:"
-    echo "  $0 -i id_rsa -d 192.168.102.34 -g myresgrp -u azureuser -n default -n monitoring --disable-host-key-checking"
-    echo "  $0 --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32 --resource-group myresgrp"
-    echo "  $0 --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32 --resource-group myresgrp --upload-logs"
+    echo "  $0 [flags]"
     echo ""
-    echo "Options:"
-    echo "  -u, --user                      The administrator username for the cluster VMs"
-    echo "  -i, --identity-file             RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')"
-    echo "  -d, --vmd-host                  The DVM's public IP or FQDN (host name starts with 'vmd-')"
-    echo "  -g, --resource-group            Kubernetes cluster resource group"
-    echo "  -n, --user-namespace            Collect logs for containers in the passed namespace (kube-system logs are always collected)"
-    echo "  --all-namespaces                Collect logs for all containers. Overrides the user-namespace flag"
-    echo "  --upload-logs                   Stores the retrieved logs in an Azure Stack storage account"
-    echo "  --disable-host-key-checking     Sets SSH StrictHostKeyChecking option to \"no\" while the script executes. Use only when building automation in a save environment."
-    echo "  -h, --help                      Print the command usage"
+    echo "Flags:"
+    echo "  -u, --user                        The administrator username for the cluster VMs"
+    echo "  -i, --identity-file               RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')"
+    echo "  -d, --vmd-host                    The DVM's public IP or FQDN (host name starts with 'vmd-')"
+    echo "  -g, --resource-group              Kubernetes cluster resource group"
+    echo "  -n, --user-namespace              Collect logs from containers in the specified namespaces (kube-system logs are always collected)"
+    echo "      --all-namespaces              Collect logs from containers in all namespaces. It overrides --user-namespace"
+    echo "      --upload-logs                 Persists retrieved logs in an Azure Stack storage account"
+    echo "      --disable-host-key-checking   Sets SSH's StrictHostKeyChecking option to \"no\" while the script executes. Only use in a safe environment."
+    echo "  -h, --help                        Print script usage"
+    echo ""
+    echo "Examples:"
+    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -d 192.168.102.34 -g k8s-rg --disable-host-key-checking"
+    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -d 192.168.102.32 -g k8s-rg -n default -n monitoring"
+    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -d 192.168.102.32 -g k8s-rg --upload-logs"
+
     exit 1
 }
 
@@ -180,7 +185,7 @@ do
         ;;
         *)
             echo ""
-            echo "[ERR] Incorrect option $1"
+            echo "[ERR] Unexpected flag $1"
             printUsage
         ;;
     esac
@@ -204,12 +209,12 @@ fi
 if [ ! -f $IDENTITYFILE ]
 then
     echo ""
-    echo "[ERR] identity-file not found at $IDENTITYFILE"
+    echo "[ERR] identity-file $IDENTITYFILE not found"
     printUsage
     exit 1
 else
     cat $IDENTITYFILE | grep -q "BEGIN \(RSA\|OPENSSH\) PRIVATE KEY" \
-    || { echo "The identity file $IDENTITYFILE is not a RSA Private Key file."; echo "A RSA private key file starts with '-----BEGIN [RSA|OPENSSH] PRIVATE KEY-----''"; exit 1; }
+    || { echo "Provided identity file $IDENTITYFILE is not a RSA Private Key file."; echo "A RSA private key starts with '-----BEGIN [RSA|OPENSSH] PRIVATE KEY-----''"; exit 1; }
 fi
 
 if [ -z "$RESOURCE_GROUP" ]
@@ -244,7 +249,6 @@ then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Checking connectivity with DVM hosts"
     validateKeys ${DVM_HOST} "${SSH_FLAGS}"
     
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect VMD logs"
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
     scp ${SCP_FLAGS} common.sh ${USER}@${DVM_HOST}:/home/${USER}/
     scp ${SCP_FLAGS} detectors.sh ${USER}@${DVM_HOST}:/home/${USER}/
@@ -272,9 +276,9 @@ export ADAL_PYTHON_SSL_NO_VERIFY=1
 
 validateResourceGroup
 
-MASTER_IP=$(az network public-ip list -g ${RESOURCE_GROUP} --query "[?starts_with(name,'k8s-master-ip')].ipAddress" --output tsv | head -n 1)
+MASTER_IP=$(az network public-ip list -g ${RESOURCE_GROUP} --query "[*].{Name:name,ip:ipAddress}" --output tsv | grep 'k8s-master' | cut -f 2)
 if [ $? -ne 0 ]; then
-    echo "[$(date +%Y%m%d%H%M%S)][ERR] Kubernetes master node ip not found in the resource group."
+    echo "[$(date +%Y%m%d%H%M%S)][ERR] Error fetching the master nodes' load balancer IP"
     exit 1
 fi
 
@@ -291,7 +295,7 @@ then
     SSH_FLAGS="-q -t -J ${USER}@${MASTER_IP} -i ${IDENTITYFILE}"
     SCP_FLAGS="-q -o ProxyJump=${USER}@${MASTER_IP} -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -o IdentityFile=${IDENTITYFILE} -i ${IDENTITYFILE}"
     
-    CLUSTER_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[?starts_with(name,'k8s-')].name" --output tsv)
+    CLUSTER_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name}" --output tsv | grep 'k8s-')
     
     for host in ${CLUSTER_NODES}
     do
@@ -302,8 +306,6 @@ then
         ssh ${SSH_FLAGS} ${USER}@${host} "rm -f collectlogs.sh ${host}.zip"
     done
 fi
-
-echo "[$(date +%Y%m%d%H%M%S)][INFO] Done collecting Kubernetes logs"
 
 if [ "$UPLOAD_LOGS" == "true" ]; then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing logs"
@@ -316,4 +318,4 @@ if [ "$UPLOAD_LOGS" == "true" ]; then
     deleteSADirectory
 fi
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO] Logs can be found in this location: $LOGFILEFOLDER"
+echo "[$(date +%Y%m%d%H%M%S)][INFO] Logs can be found here: $LOGFILEFOLDER"
