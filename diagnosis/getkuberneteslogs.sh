@@ -11,10 +11,33 @@ restoreAzureCLIVariables()
 
 trap restoreAzureCLIVariables EXIT
 
+validateKeys()
+{
+    host=$1
+    flags=$2
+
+    ssh ${flags} ${USER}@${host} "exit"
+
+    if [ $? -ne 0 ]; then
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to host ${host}"
+        exit 1
+    fi
+}
+
+validateResourceGroup()
+{
+    LOCATION=$(az group show -n ${RESOURCE_GROUP} --query location --output tsv)
+    if [ $? -ne 0 ]; then
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] Specified resource group not found."
+        exit 1
+    fi
+}
+
 checkRequirements()
 {
     if ! command -v az &> /dev/null; then
-        echo "azure-cli is missing. Please install azure-cli from https://docs.microsoft.com/azure-stack/user/azure-stack-version-profiles-azurecli2"
+        echo "azure-cli not available, install and configure following this indications: https://docs.microsoft.com/azure-stack/user/azure-stack-version-profiles-azurecli2"
+        exit 1
     fi
 }
 
@@ -53,7 +76,7 @@ ensureResourceGroup()
 
 ensureStorageAccount()
 {
-    SA_NAME="kuberneteslogs"
+    SA_NAME="diagnostics"
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Ensuring storage account: ${SA_NAME}"
     az storage account create --name ${SA_NAME} --resource-group ${SA_RESOURCE_GROUP} --location ${LOCATION} --sku Premium_LRS 1> /dev/null
@@ -65,7 +88,7 @@ ensureStorageAccount()
 
 ensureStorageAccountContainer()
 {
-    SA_CONTAINER="container"
+    SA_CONTAINER="kuberneteslogs"
     
     echo "$(date +%Y%m%d%H%M%S)][INFO] Ensuring storage account container: ${SA_CONTAINER}"
     az storage container create --name ${SA_CONTAINER} --account-name ${SA_NAME}
@@ -75,10 +98,9 @@ ensureStorageAccountContainer()
     fi
 }
 
-uploadLogs() {
-    SA_BLOB="blob"
-    
-    echo "$(date +%Y%m%d%H%M%S)][INFO] Uploading logs to blob: ${SA_BLOB}"
+uploadLogs() 
+{
+    echo "$(date +%Y%m%d%H%M%S)][INFO] Uploading logs"
     az storage blob upload-batch -d ${SA_CONTAINER} -s ${SA_DIR} --destination-path ${SA_CONTAINER_DIR} --pattern *.zip --account-name ${SA_NAME}
     if [ $? -ne 0 ]; then
         echo "$(date +%Y%m%d%H%M%S)][ERR] Error uploading files to blob container ${SA_CONTAINER}"
@@ -211,22 +233,16 @@ echo "namespaces:              ${NAMESPACES:-all}"
 echo ""
 
 NOW=`date +%Y%m%d%H%M%S`
-CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
-LOGFILEFOLDER="./KubernetesLogs_$CURRENTDATE"
+LOGFILEFOLDER="_output/${RESOURCE_GROUP}-${NOW}"
 mkdir -p $LOGFILEFOLDER
-mkdir -p ~/.ssh
 
 SSH_FLAGS="-q -t -i ${IDENTITYFILE}"
-SCP_FLAGS="-q -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
+SCP_FLAGS="-q -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -o IdentityFile=${IDENTITYFILE} -i ${IDENTITYFILE}"
 
 if [ -n "$DVM_HOST" ]
 then
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Testing SSH keys"
-    ssh ${SSH_FLAGS} ${USER}@${DVM_HOST} "exit"
-    if [ $? -ne 0 ]; then
-        echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to the server"
-        exit 1
-    fi
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Checking connectivity with DVM hosts"
+    validateKeys ${DVM_HOST} "${SSH_FLAGS}"
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect VMD logs"
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
@@ -254,47 +270,26 @@ USER_ADAL_PYTHON_SSL_NO_VERIFY=$ADAL_PYTHON_SSL_NO_VERIFY
 export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=1
 export ADAL_PYTHON_SSL_NO_VERIFY=1
 
-#Validate resource-group
-LOCATION=$(az group show -n ${RESOURCE_GROUP} --query location --output tsv)
-if [ $? -ne 0 ]; then
-    echo "[$(date +%Y%m%d%H%M%S)][ERR] Specified resource group not found."
-    exit 1
-fi
+validateResourceGroup
 
-#Get the master nodes from the resource group
-MASTER_NODES=$(az vm list -g ${RESOURCE_GROUP} --query "[?tags.poolName=='master'].{Name:name}" --output tsv)
-if [ $? -ne 0 ]; then
-    echo "[$(date +%Y%m%d%H%M%S)][ERR] Kubernetes master nodes not found in the resource group."
-    exit 1
-fi
-
-MASTER_IP=$(az network public-ip list -g ${RESOURCE_GROUP} --query "[?starts_with(name,'k8s-master-ip')].ipAddress | [0]" --output tsv)
+MASTER_IP=$(az network public-ip list -g ${RESOURCE_GROUP} --query "[?starts_with(name,'k8s-master-ip')].ipAddress" --output tsv | head -n 1)
 if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Kubernetes master node ip not found in the resource group."
     exit 1
 fi
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO] Testing SSH keys"
-ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "exit"
-
-if [ $? -ne 0 ]; then
-    echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to the server"
-    echo "[$(date +%Y%m%d%H%M%S)][ERR] Aborting log collection process"
-    exit 1
-fi
+echo "[$(date +%Y%m%d%H%M%S)][INFO] Checking connectivity with clusters nodes"
+validateKeys ${MASTER_IP} "${SSH_FLAGS}"
 
 if [ -n "$MASTER_IP" ]
 then
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect cluster logs"
-    
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Looking for cluster hosts"
     scp ${SCP_FLAGS} hosts.sh ${USER}@${MASTER_IP}:/home/${USER}/hosts.sh
     ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo chmod 744 hosts.sh; ./hosts.sh"
     scp ${SCP_FLAGS} ${USER}@${MASTER_IP}:/home/${USER}/cluster-snapshot.zip ${LOGFILEFOLDER}/cluster-snapshot.zip
     ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo rm -f cluster-snapshot.zip hosts.sh"
     
     SSH_FLAGS="-q -t -J ${USER}@${MASTER_IP} -i ${IDENTITYFILE}"
-    SCP_FLAGS="-q -o ProxyJump=${USER}@${MASTER_IP} -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
+    SCP_FLAGS="-q -o ProxyJump=${USER}@${MASTER_IP} -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -o IdentityFile=${IDENTITYFILE} -i ${IDENTITYFILE}"
     
     CLUSTER_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[?starts_with(name,'k8s-')].name" --output tsv)
     
