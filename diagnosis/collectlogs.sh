@@ -69,9 +69,6 @@ TMP=$(mktemp -d)
 LOGDIRECTORY=${TMP}/${HOSTNAME}
 mkdir -p ${LOGDIRECTORY}
 
-LOGFILENAME="kube_logs.tar.gz"
-sudo rm -f $LOGFILENAME
-
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting /var/log/azure logs"
 mkdir -p ${LOGDIRECTORY}/var/log/azure
 sudo cp /var/log/azure/*.log ${LOGDIRECTORY}/var/log/azure || :
@@ -132,6 +129,9 @@ sync
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Compressing logs and cleaning up temp files"
 CURRETUSER=$(whoami)
+LOGFILENAME="${HOSTNAME}.zip"
+sudo rm -f ${LOGFILENAME} 
+
 sudo chown -R ${CURRETUSER} ${LOGDIRECTORY}
-sudo tar -czf ${LOGFILENAME} -C ${TMP} ${HOSTNAME}
+(cd $TMP && zip -q -r ~/${LOGFILENAME} ${HOSTNAME})
 sudo chown ${CURRETUSER} ${LOGFILENAME}

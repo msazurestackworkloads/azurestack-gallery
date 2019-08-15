@@ -20,11 +20,13 @@ checkRequirements()
 
 copyLogsToSADirectory()
 {
-    for dir in $(find ${LOGFILEFOLDER} -mindepth 1 -maxdepth 1 -type d -name 'k8s-*')
-    do
-        HNAME=$(basename ${dir})
-        tar -czf ${SA_DIR}/${HNAME}.tar.gz -C ${LOGFILEFOLDER} ${HNAME}
-    done
+    cp ${LOGFILEFOLDER}/k8s-*.zip ${SA_DIR}
+    cp ${LOGFILEFOLDER}/cluster-snapshot.zip ${SA_DIR}
+}
+
+deleteSADirectory()
+{
+    rm -rf ${LOGFILEFOLDER}/data
 }
 
 createSADirectories()
@@ -77,7 +79,7 @@ uploadLogs() {
     SA_BLOB="blob"
     
     echo "$(date +%Y%m%d%H%M%S)][INFO] Uploading logs to blob: ${SA_BLOB}"
-    az storage blob upload-batch -d ${SA_CONTAINER} -s ${SA_DIR} --destination-path ${SA_CONTAINER_DIR} --pattern *.tar.gz --account-name ${SA_NAME}
+    az storage blob upload-batch -d ${SA_CONTAINER} -s ${SA_DIR} --destination-path ${SA_CONTAINER_DIR} --pattern *.zip --account-name ${SA_NAME}
     if [ $? -ne 0 ]; then
         echo "$(date +%Y%m%d%H%M%S)][ERR] Error uploading files to blob container ${SA_CONTAINER}"
         exit 1
@@ -242,7 +244,6 @@ then
     ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh dvm_logs.tar.gz"
 fi
 
-#checks if azure-cli is installed
 checkRequirements
 
 #get user values of azure-cli variables
@@ -288,42 +289,23 @@ then
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Looking for cluster hosts"
     scp ${SCP_FLAGS} hosts.sh ${USER}@${MASTER_IP}:/home/${USER}/hosts.sh
-    ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo chmod 744 hosts.sh; ./hosts.sh ${NOW}"
-    scp ${SCP_FLAGS} ${USER}@${MASTER_IP}:"/home/${USER}/${NOW}.tar.gz" ${LOGFILEFOLDER}/cluster-snapshot.tar.gz
-    ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo rm -f ${NOW}.tar.gz hosts.sh"
-    tar -xzf $LOGFILEFOLDER/cluster-snapshot.tar.gz -C $LOGFILEFOLDER
-    rm $LOGFILEFOLDER/cluster-snapshot.tar.gz
-    mv $LOGFILEFOLDER/$NOW $LOGFILEFOLDER/cluster-snapshot-$NOW
+    ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo chmod 744 hosts.sh; ./hosts.sh"
+    scp ${SCP_FLAGS} ${USER}@${MASTER_IP}:/home/${USER}/cluster-snapshot.zip ${LOGFILEFOLDER}/cluster-snapshot.zip
+    ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo rm -f cluster-snapshot.zip hosts.sh"
     
     SSH_FLAGS="-q -t -J ${USER}@${MASTER_IP} -i ${IDENTITYFILE}"
     SCP_FLAGS="-q -o ProxyJump=${USER}@${MASTER_IP} -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -i ${IDENTITYFILE}"
     
-    #get the agent ips
-    HOST_IPS=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[?starts_with(name,'k8s-')].privateIps" --output tsv)
+    CLUSTER_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[?starts_with(name,'k8s-')].name" --output tsv)
     
-    for host in $HOST_IPS
+    for host in ${CLUSTER_NODES}
     do
-        echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host $host"
-        
-        echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
-        scp ${SCP_FLAGS} collectlogs.sh ${USER}@${host}:/home/${USER}/
+        echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host ${host}"
+        scp ${SCP_FLAGS} collectlogs.sh ${USER}@${host}:/home/${USER}/collectlogs.sh
         ssh ${SSH_FLAGS} ${USER}@${host} "sudo chmod 744 collectlogs.sh; ./collectlogs.sh ${NAMESPACES};"
-        
-        echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
-        scp ${SCP_FLAGS} ${USER}@${host}:/home/${USER}/kube_logs.tar.gz ${LOGFILEFOLDER}/kube_logs.tar.gz
-        tar -xzf $LOGFILEFOLDER/kube_logs.tar.gz -C $LOGFILEFOLDER
-        rm $LOGFILEFOLDER/kube_logs.tar.gz
-        
-        # Removing temp files from node
-        ssh ${SSH_FLAGS} ${USER}@${host} "rm -f collectlogs.sh kube_logs.tar.gz"
+        scp ${SCP_FLAGS} ${USER}@${host}:/home/${USER}/${host}.zip ${LOGFILEFOLDER}/${host}.zip
+        ssh ${SSH_FLAGS} ${USER}@${host} "rm -f collectlogs.sh ${host}.zip"
     done
-fi
-
-# Aggregate ERRORS.txt
-if [ `find $LOGFILEFOLDER -name ERRORS.txt | wc -w` -ne "0" ];
-then
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Known issues found. Details: $LOGFILEFOLDER/ALL_ERRORS.txt"
-    cat $LOGFILEFOLDER/*/ERRORS.txt &> $LOGFILEFOLDER/ALL_ERRORS.txt
 fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Done collecting Kubernetes logs"
@@ -336,6 +318,7 @@ if [ "$UPLOAD_LOGS" == "true" ]; then
     ensureStorageAccount
     ensureStorageAccountContainer
     uploadLogs
+    deleteSADirectory
 fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Logs can be found in this location: $LOGFILEFOLDER"
