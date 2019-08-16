@@ -65,14 +65,36 @@ collectContainerMetadata()
     echo "== END HEADER =="         >> ${CLOG_FILE}
 }
 
+compressLogsDirectory()
+{
+    sync
+
+    echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Compressing logs and cleaning up temp files"
+    CURRETUSER=$(whoami)
+    LOGFILENAME="${HOSTNAME}.zip"
+    sudo rm -f ${LOGFILENAME} 
+
+    sudo chown -R ${CURRETUSER} ${LOGDIRECTORY}
+    # TODO This wont work on a disconnected scenario
+    (cd $TMP && zip -q -r ~/${LOGFILENAME} ${HOSTNAME})
+    sudo chown ${CURRETUSER} ${LOGFILENAME}
+}
+
 TMP=$(mktemp -d)
 LOGDIRECTORY=${TMP}/${HOSTNAME}
 mkdir -p ${LOGDIRECTORY}
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting /var/log/azure logs"
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting azure logs"
 mkdir -p ${LOGDIRECTORY}/var/log/azure
 sudo cp /var/log/azure/*.log ${LOGDIRECTORY}/var/log/azure || :
 sudo cp /var/log/waagent.log ${LOGDIRECTORY}/var/log || :
+
+if [ -f /var/log/azure/deploy-script-dvm.log ]
+then
+    sudo apt install zip -y
+    compressLogsDirectory
+    exit
+fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting static pods manifests"
 mkdir -p ${LOGDIRECTORY}/etc/kubernetes/manifests
@@ -125,13 +147,4 @@ if systemctl list-units | grep -q docker.service; then
     sudo journalctl -n 10000 --utc -o short-iso -u docker &>> ${LOGDIRECTORY}/daemons/docker.log
 fi
 
-sync
-
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Compressing logs and cleaning up temp files"
-CURRETUSER=$(whoami)
-LOGFILENAME="${HOSTNAME}.zip"
-sudo rm -f ${LOGFILENAME} 
-
-sudo chown -R ${CURRETUSER} ${LOGDIRECTORY}
-(cd $TMP && zip -q -r ~/${LOGFILENAME} ${HOSTNAME})
-sudo chown ${CURRETUSER} ${LOGFILENAME}
+compressLogsDirectory
