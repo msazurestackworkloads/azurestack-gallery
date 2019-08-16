@@ -108,6 +108,17 @@ uploadLogs()
     fi
 }
 
+processHost()
+{
+    host=$1
+
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host ${host}"
+    scp ${SCP_FLAGS} collectlogs.sh ${USER}@${host}:/home/${USER}/collectlogs.sh
+    ssh ${SSH_FLAGS} ${USER}@${host} "sudo chmod 744 collectlogs.sh; ./collectlogs.sh ${NAMESPACES};"
+    scp ${SCP_FLAGS} ${USER}@${host}:/home/${USER}/${host}.zip ${LOGFILEFOLDER}/${host}.zip
+    ssh ${SSH_FLAGS} ${USER}@${host} "rm -f collectlogs.sh ${host}.zip"
+}
+
 printUsage()
 {
     echo "$0 collects diagnostics from Kubernetes clusters provisioned by AKS Engine"
@@ -118,7 +129,6 @@ printUsage()
     echo "Flags:"
     echo "  -u, --user                        The administrator username for the cluster VMs"
     echo "  -i, --identity-file               RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')"
-    echo "  -d, --vmd-host                    The DVM's public IP or FQDN (host name starts with 'vmd-')"
     echo "  -g, --resource-group              Kubernetes cluster resource group"
     echo "  -n, --user-namespace              Collect logs from containers in the specified namespaces (kube-system logs are always collected)"
     echo "      --all-namespaces              Collect logs from containers in all namespaces. It overrides --user-namespace"
@@ -150,10 +160,6 @@ do
     case $1 in
         -i|--identity-file)
             IDENTITYFILE="$2"
-            shift 2
-        ;;
-        -d|--vmd-host)
-            DVM_HOST="$2"
             shift 2
         ;;
         -u|--user)
@@ -231,7 +237,6 @@ test $ALLNAMESPACES -eq 0 && unset NAMESPACES
 echo ""
 echo "user:                    $USER"
 echo "identity-file:           $IDENTITYFILE"
-echo "vmd-host:                $DVM_HOST"
 echo "resource-group:          $RESOURCE_GROUP"
 echo "upload-logs:             $UPLOAD_LOGS"
 echo "namespaces:              ${NAMESPACES:-all}"
@@ -240,29 +245,6 @@ echo ""
 NOW=`date +%Y%m%d%H%M%S`
 LOGFILEFOLDER="_output/${RESOURCE_GROUP}-${NOW}"
 mkdir -p $LOGFILEFOLDER
-
-SSH_FLAGS="-q -t -i ${IDENTITYFILE}"
-SCP_FLAGS="-q -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -o IdentityFile=${IDENTITYFILE} -i ${IDENTITYFILE}"
-
-if [ -n "$DVM_HOST" ]
-then
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Checking connectivity with DVM hosts"
-    validateKeys ${DVM_HOST} "${SSH_FLAGS}"
-    
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
-    scp ${SCP_FLAGS} common.sh ${USER}@${DVM_HOST}:/home/${USER}/
-    scp ${SCP_FLAGS} detectors.sh ${USER}@${DVM_HOST}:/home/${USER}/
-    scp ${SCP_FLAGS} collectlogsdvm.sh ${USER}@${DVM_HOST}:/home/${USER}/
-    ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "sudo chmod 744 common.sh detectors.sh collectlogsdvm.sh; ./collectlogsdvm.sh;"
-    
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
-    scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:"/home/${USER}/dvm_logs.tar.gz" ${LOGFILEFOLDER}/dvm_logs.tar.gz
-    tar -xzf $LOGFILEFOLDER/dvm_logs.tar.gz -C $LOGFILEFOLDER
-    rm $LOGFILEFOLDER/dvm_logs.tar.gz
-    
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Removing temp files from DVM"
-    ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}: "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh dvm_logs.tar.gz"
-fi
 
 checkRequirements
 
@@ -276,6 +258,19 @@ export ADAL_PYTHON_SSL_NO_VERIFY=1
 
 validateResourceGroup
 
+# DVM
+DVM_HOST=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name}" --output tsv | grep -e 'vmd-' | head -n 1)
+
+if [ -n "$DVM_HOST" ]
+then
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Checking connectivity with DVM host"
+    SSH_FLAGS="-q -t -i ${IDENTITYFILE}"
+    validateKeys ${DVM_HOST} "${SSH_FLAGS}"
+    SCP_FLAGS="-q -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -o IdentityFile=${IDENTITYFILE} -i ${IDENTITYFILE}"
+    processHost ${DVM_HOST}
+fi
+
+# CLUSTER NODES
 MASTER_IP=$(az network public-ip list -g ${RESOURCE_GROUP} --query "[*].{Name:name,ip:ipAddress}" --output tsv | grep 'k8s-master' | cut -f 2)
 if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Error fetching the master nodes' load balancer IP"
@@ -283,7 +278,10 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Checking connectivity with clusters nodes"
+SSH_FLAGS="-q -t -i ${IDENTITYFILE}"
 validateKeys ${MASTER_IP} "${SSH_FLAGS}"
+SSH_FLAGS="-q -t -J ${USER}@${MASTER_IP} -i ${IDENTITYFILE}"
+SCP_FLAGS="-q -o ProxyJump=${USER}@${MASTER_IP} -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -o IdentityFile=${IDENTITYFILE} -i ${IDENTITYFILE}"
 
 if [ -n "$MASTER_IP" ]
 then
@@ -291,22 +289,16 @@ then
     ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo chmod 744 hosts.sh; ./hosts.sh"
     scp ${SCP_FLAGS} ${USER}@${MASTER_IP}:/home/${USER}/cluster-snapshot.zip ${LOGFILEFOLDER}/cluster-snapshot.zip
     ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo rm -f cluster-snapshot.zip hosts.sh"
-    
-    SSH_FLAGS="-q -t -J ${USER}@${MASTER_IP} -i ${IDENTITYFILE}"
-    SCP_FLAGS="-q -o ProxyJump=${USER}@${MASTER_IP} -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -o IdentityFile=${IDENTITYFILE} -i ${IDENTITYFILE}"
-    
+  
     CLUSTER_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name}" --output tsv | grep 'k8s-')
     
     for host in ${CLUSTER_NODES}
     do
-        echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host ${host}"
-        scp ${SCP_FLAGS} collectlogs.sh ${USER}@${host}:/home/${USER}/collectlogs.sh
-        ssh ${SSH_FLAGS} ${USER}@${host} "sudo chmod 744 collectlogs.sh; ./collectlogs.sh ${NAMESPACES};"
-        scp ${SCP_FLAGS} ${USER}@${host}:/home/${USER}/${host}.zip ${LOGFILEFOLDER}/${host}.zip
-        ssh ${SSH_FLAGS} ${USER}@${host} "rm -f collectlogs.sh ${host}.zip"
+        processHost ${host}
     done
 fi
 
+# UPLOAD
 if [ "$UPLOAD_LOGS" == "true" ]; then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing logs"
     createSADirectories
