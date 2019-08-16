@@ -15,9 +15,9 @@ validateKeys()
 {
     host=$1
     flags=$2
-
+    
     ssh ${flags} ${USER}@${host} "exit"
-
+    
     if [ $? -ne 0 ]; then
         echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to host ${host}"
         exit 1
@@ -98,7 +98,7 @@ ensureStorageAccountContainer()
     fi
 }
 
-uploadLogs() 
+uploadLogs()
 {
     echo "$(date +%Y%m%d%H%M%S)][INFO] Uploading log files to container ${SA_CONTAINER}"
     az storage blob upload-batch -d ${SA_CONTAINER} -s ${SA_DIR} --destination-path ${SA_CONTAINER_DIR} --pattern *.zip --account-name ${SA_NAME}
@@ -111,7 +111,7 @@ uploadLogs()
 processHost()
 {
     host=$1
-
+    
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host ${host}"
     scp ${SCP_FLAGS} collectlogs.sh ${USER}@${host}:/home/${USER}/collectlogs.sh
     ssh ${SSH_FLAGS} ${USER}@${host} "sudo chmod 744 collectlogs.sh; ./collectlogs.sh ${NAMESPACES};"
@@ -130,6 +130,7 @@ printUsage()
     echo "  -u, --user                        The administrator username for the cluster VMs"
     echo "  -i, --identity-file               RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')"
     echo "  -g, --resource-group              Kubernetes cluster resource group"
+    echo "  -a, --api-model                   AKS Engine Kubernetes cluster definition json file"
     echo "  -n, --user-namespace              Collect logs from containers in the specified namespaces (kube-system logs are always collected)"
     echo "      --all-namespaces              Collect logs from containers in all namespaces. It overrides --user-namespace"
     echo "      --upload-logs                 Persists retrieved logs in an Azure Stack storage account"
@@ -137,10 +138,10 @@ printUsage()
     echo "  -h, --help                        Print script usage"
     echo ""
     echo "Examples:"
-    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -d 192.168.102.34 -g k8s-rg --disable-host-key-checking"
-    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -d 192.168.102.32 -g k8s-rg -n default -n monitoring"
-    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -d 192.168.102.32 -g k8s-rg --upload-logs"
-
+    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg --disable-host-key-checking"
+    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg -n default -n monitoring"
+    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg --upload-logs"
+    
     exit 1
 }
 
@@ -172,6 +173,10 @@ do
         ;;
         -n|--user-namespace)
             NAMESPACES="$NAMESPACES $2"
+            shift 2
+        ;;
+        -a|--api-model)
+            API_MODEL="$API_MODEL $2"
             shift 2
         ;;
         --all-namespaces)
@@ -229,6 +234,15 @@ then
     echo "[ERR] --resource-group is required"
     printUsage
     exit 1
+fi
+
+if [ -n "$API_MODEL" ]
+then
+    if [ -n  "$(grep -e secret -e "BEGIN CERTIFICATE" -e "BEGIN RSA PRIVATE KEY" $API_MODEL)" ] || [ -n "$(grep -Po '"secret": *\K"[^"]*"' $API_MODEL | sed -e 's/^"//' -e 's/"$//')" ]
+    then
+        echo "[ERR] --api-model contains sensitive information (secrets/certificates). Please remove them before running the tool"
+        exit 1
+    fi
 fi
 
 test $ALLNAMESPACES -eq 0 && unset NAMESPACES
@@ -289,7 +303,7 @@ then
     ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo chmod 744 hosts.sh; ./hosts.sh"
     scp ${SCP_FLAGS} ${USER}@${MASTER_IP}:/home/${USER}/cluster-snapshot.zip ${LOGFILEFOLDER}/cluster-snapshot.zip
     ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo rm -f cluster-snapshot.zip hosts.sh"
-  
+    
     CLUSTER_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name}" --output tsv | grep 'k8s-')
     
     for host in ${CLUSTER_NODES}
