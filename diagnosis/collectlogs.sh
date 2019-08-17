@@ -14,6 +14,8 @@ collectKubeletMetadata()
     echo "Version: ${KUBELET_TAG}"          >> ${KUBELET_LOG_FILE}
     echo "Verbosity: ${KUBELET_VERBOSITY}"  >> ${KUBELET_LOG_FILE}
     echo "Image: ${KUBELET_REPOSITORY}"     >> ${KUBELET_LOG_FILE}
+    echo "SubscriptionID: ${SUB_ID}"        >> ${KUBELET_LOG_FILE}
+    echo "ResourceGroup: ${RESOURCE_GROUP}" >> ${KUBELET_LOG_FILE}
     echo "== END HEADER =="                 >> ${KUBELET_LOG_FILE}
 }
 
@@ -27,6 +29,8 @@ collectMobyMetadata()
     echo "TenantId: ${TENANT_ID}"           >> ${DOCKER_LOG_FILE}
     echo "Name: docker"                     >> ${DOCKER_LOG_FILE}
     echo "Version: ${DOCKER_VERSION}"       >> ${DOCKER_LOG_FILE}
+    echo "SubscriptionID: ${SUB_ID}"        >> ${DOCKER_LOG_FILE}
+    echo "ResourceGroup: ${RESOURCE_GROUP}" >> ${DOCKER_LOG_FILE}
     echo "== END HEADER =="                 >> ${DOCKER_LOG_FILE}
 }
 
@@ -40,6 +44,8 @@ collectEtcdMetadata()
     echo "TenantId: ${TENANT_ID}"           >> ${ETCD_LOG_FILE}
     echo "Name: etcd"                       >> ${ETCD_LOG_FILE}
     echo "Version: ${ETCD_VERSION}"         >> ${ETCD_LOG_FILE}
+    echo "SubscriptionID: ${SUB_ID}"        >> ${ETCD_LOG_FILE}
+    echo "ResourceGroup: ${RESOURCE_GROUP}" >> ${ETCD_LOG_FILE}
     echo "== END HEADER =="                 >> ${ETCD_LOG_FILE}
 }
 
@@ -54,15 +60,17 @@ collectContainerMetadata()
     IMAGE=$(docker image inspect ${IMAGE_SHA} | jq -r '.[] | .RepoTags | @tsv' | xargs)
     CLOG_FILE=${LOGDIRECTORY}/containers/${pname}-${cname}.log
 
-    echo "== BEGIN HEADER =="       > ${CLOG_FILE}
-    echo "Type: Container"          >> ${CLOG_FILE}
-    echo "TenantId: ${TENANT_ID}"   >> ${CLOG_FILE}
-    echo "Name: ${cname}"           >> ${CLOG_FILE}
-    echo "Hostname: ${HOSTNAME}"    >> ${CLOG_FILE}
-    echo "ContainerID: ${cid}"      >> ${CLOG_FILE}
-    echo "Image: ${IMAGE}"          >> ${CLOG_FILE}
-    echo "Verbosity: ${CVERBOSITY}" >> ${CLOG_FILE}
-    echo "== END HEADER =="         >> ${CLOG_FILE}
+    echo "== BEGIN HEADER =="               > ${CLOG_FILE}
+    echo "Type: Container"                  >> ${CLOG_FILE}
+    echo "TenantId: ${TENANT_ID}"           >> ${CLOG_FILE}
+    echo "Name: ${cname}"                   >> ${CLOG_FILE}
+    echo "Hostname: ${HOSTNAME}"            >> ${CLOG_FILE}
+    echo "ContainerID: ${cid}"              >> ${CLOG_FILE}
+    echo "Image: ${IMAGE}"                  >> ${CLOG_FILE}
+    echo "Verbosity: ${CVERBOSITY}"         >> ${CLOG_FILE}
+    echo "SubscriptionID: ${SUB_ID}"        >> ${CLOG_FILE}
+    echo "ResourceGroup: ${RESOURCE_GROUP}" >> ${CLOG_FILE}
+    echo "== END HEADER =="                 >> ${CLOG_FILE}
 }
 
 compressLogsDirectory()
@@ -99,11 +107,17 @@ fi
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting static pods manifests"
 mkdir -p ${LOGDIRECTORY}/etc/kubernetes/manifests
 sudo cp /etc/kubernetes/manifests/* ${LOGDIRECTORY}/etc/kubernetes/manifests 2>/dev/null
+mkdir -p ${LOGDIRECTORY}/etc/kubernetes/addons
+sudo cp /etc/kubernetes/addons/* ${LOGDIRECTORY}/etc/kubernetes/addons 2>/dev/null
 
 test $# -gt 0 && NAMESPACES=$@
 test -z "${NAMESPACES}" && echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting logs from pods in all namespaces"
 test -n "${NAMESPACES}" && echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting logs from pods in these namespaces: $NAMESPACES"
 mkdir -p ${LOGDIRECTORY}/containers
+
+TENANT_ID=$(sudo jq -r '.tenantId' /etc/kubernetes/azure.json)
+SUB_ID=$(sudo jq -r '.subscriptionId' /etc/kubernetes/azure.json)
+RESOURCE_GROUP=$(sudo jq -r '.resourceGroup' /etc/kubernetes/azure.json)
 
 for cid in $(docker ps -a -q --no-trunc)
 do
@@ -128,8 +142,6 @@ done
 
 test -n "${NAMESPACES}" && echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting daemon logs"
 mkdir -p ${LOGDIRECTORY}/daemons
-
-TENANT_ID=$(sudo jq -r '.tenantId' /etc/kubernetes/azure.json)    
 
 # TODO use --until --since --lines to limit size
 if systemctl list-units | grep -q kubelet.service; then
