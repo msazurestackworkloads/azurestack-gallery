@@ -106,6 +106,8 @@ uploadLogs()
         echo "$(date +%Y%m%d%H%M%S)][ERR] Error uploading log files to container ${SA_CONTAINER}"
         exit 1
     fi
+    
+    az storage blob upload-batch -d ${SA_CONTAINER} -s ${SA_DIR} --destination-path ${SA_CONTAINER_DIR} --pattern *.json --account-name ${SA_NAME}
 }
 
 processHost()
@@ -130,8 +132,8 @@ printUsage()
     echo "  -u, --user                        The administrator username for the cluster VMs"
     echo "  -i, --identity-file               RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')"
     echo "  -g, --resource-group              Kubernetes cluster resource group"
-    echo "  -a, --api-model                   AKS Engine Kubernetes cluster definition json file"
     echo "  -n, --user-namespace              Collect logs from containers in the specified namespaces (kube-system logs are always collected)"
+    echo "      --api-model                   AKS Engine Kubernetes cluster definition json file"
     echo "      --all-namespaces              Collect logs from containers in all namespaces. It overrides --user-namespace"
     echo "      --upload-logs                 Persists retrieved logs in an Azure Stack storage account"
     echo "      --disable-host-key-checking   Sets SSH's StrictHostKeyChecking option to \"no\" while the script executes. Only use in a safe environment."
@@ -140,6 +142,7 @@ printUsage()
     echo "Examples:"
     echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg --disable-host-key-checking"
     echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg -n default -n monitoring"
+    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg --upload-logs --api-model clusterDefinition.json"
     echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg --upload-logs"
     
     exit 1
@@ -175,9 +178,9 @@ do
             NAMESPACES="$NAMESPACES $2"
             shift 2
         ;;
-        -a|--api-model)
+        --api-model)
             API_MODEL="$API_MODEL $2"
-            shift 2
+            shift
         ;;
         --all-namespaces)
             ALLNAMESPACES=0
@@ -310,6 +313,11 @@ then
     do
         processHost ${host}
     done
+fi
+
+if [ -n "$API_MODEL" ]
+then
+    cp $API_MODEL $LOGFILEFOLDER
 fi
 
 # UPLOAD
