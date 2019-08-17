@@ -43,6 +43,12 @@ checkRequirements()
 
 copyLogsToSADirectory()
 {
+    
+    if [ -n "$API_MODEL" ]
+    then
+        cp ${API_MODEL} ${SA_DIR}
+    fi
+    
     cp ${LOGFILEFOLDER}/k8s-*.zip ${SA_DIR}
     cp ${LOGFILEFOLDER}/cluster-snapshot.zip ${SA_DIR}
 }
@@ -179,7 +185,7 @@ do
             shift 2
         ;;
         --api-model)
-            API_MODEL="$API_MODEL $2"
+            API_MODEL="$2"
             shift
         ;;
         --all-namespaces)
@@ -313,11 +319,6 @@ then
     do
         processHost ${host}
     done
-fi
-
-if [ -n "$API_MODEL" ]
-then
-    cp $API_MODEL $LOGFILEFOLDER
 fi
 
 # UPLOAD
