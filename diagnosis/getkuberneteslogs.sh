@@ -285,7 +285,6 @@ then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Checking connectivity with DVM host"
     validateKeys ${DVM_HOST} "${SSH_FLAGS}"
     
-    PROXY_CMD=""
     processHost ${DVM_HOST}
 fi
 
