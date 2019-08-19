@@ -4,9 +4,9 @@ validateKeys()
 {
     host=$1
     flags=$2
-
+    
     ssh ${flags} ${USER}@${host} "exit"
-
+    
     if [ $? -ne 0 ]; then
         echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to host ${host}"
         exit 1
@@ -31,11 +31,16 @@ checkRequirements()
 }
 
 copyLogsToSADirectory()
-{    
+{
     az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{host:name,akse:tags.aksEngineVersion}" --output table | grep 'k8s-' > ${SA_DIR}/akse-version.txt
     
     cp ${LOGFILEFOLDER}/k8s-*.zip ${SA_DIR}
     cp ${LOGFILEFOLDER}/cluster-snapshot.zip ${SA_DIR}
+    
+    if [ -n "$API_MODEL" ]
+    then
+        cp ${API_MODEL} ${SA_DIR}
+    fi
 }
 
 deleteSADirectory()
@@ -89,7 +94,7 @@ ensureStorageAccountContainer()
     fi
 }
 
-uploadLogs() 
+uploadLogs()
 {
     echo "$(date +%Y%m%d%H%M%S)][INFO] Uploading log files to container: ${SA_CONTAINER}"
     az storage blob upload-batch -d ${SA_CONTAINER} -s ${SA_DIR} --destination-path ${SA_CONTAINER_DIR} --pattern *.zip --account-name ${SA_NAME}
@@ -97,6 +102,8 @@ uploadLogs()
         echo "$(date +%Y%m%d%H%M%S)][ERR] Error uploading log files to container ${SA_CONTAINER}"
         exit 1
     fi
+    
+    az storage blob upload-batch -d ${SA_CONTAINER} -s ${SA_DIR} --destination-path ${SA_CONTAINER_DIR} --pattern *.json --account-name ${SA_NAME}
     az storage blob upload-batch -d ${SA_CONTAINER} -s ${SA_DIR} --destination-path ${SA_CONTAINER_DIR} --pattern akse-version.txt --account-name ${SA_NAME}
 }
 
@@ -126,16 +133,18 @@ printUsage()
     echo "  -i, --identity-file               RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')"
     echo "  -g, --resource-group              Kubernetes cluster resource group"
     echo "  -n, --user-namespace              Collect logs from containers in the specified namespaces (kube-system logs are always collected)"
+    echo "      --api-model                   AKS Engine Kubernetes cluster definition json file"
     echo "      --all-namespaces              Collect logs from containers in all namespaces. It overrides --user-namespace"
     echo "      --upload-logs                 Persists retrieved logs in an Azure Stack storage account"
     echo "      --disable-host-key-checking   Sets SSH's StrictHostKeyChecking option to \"no\" while the script executes. Only use in a safe environment."
     echo "  -h, --help                        Print script usage"
     echo ""
     echo "Examples:"
-    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -d 192.168.102.34 -g k8s-rg --disable-host-key-checking"
-    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -d 192.168.102.32 -g k8s-rg -n default -n monitoring"
-    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -d 192.168.102.32 -g k8s-rg --upload-logs"
-
+    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg --disable-host-key-checking"
+    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg -n default -n monitoring"
+    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg --upload-logs --api-model clusterDefinition.json"
+    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg --upload-logs"
+    
     exit 1
 }
 
@@ -167,6 +176,10 @@ do
         -n|--user-namespace)
             NAMESPACES="$NAMESPACES $2"
             shift 2
+        ;;
+        --api-model)
+            API_MODEL="$2"
+            shift
         ;;
         --all-namespaces)
             ALLNAMESPACES=0
@@ -225,6 +238,15 @@ then
     exit 1
 fi
 
+if [ -n "$API_MODEL" ]
+then
+    if [ -n  "$(grep -e secret -e "BEGIN CERTIFICATE" -e "BEGIN RSA PRIVATE KEY" $API_MODEL)" ] || [ -n "$(grep -Po '"secret": *\K"[^"]*"' $API_MODEL | sed -e 's/^"//' -e 's/"$//')" ]
+    then
+        echo "[ERR] --api-model contains sensitive information (secrets/certificates). Please remove them before running the tool"
+        exit 1
+    fi
+fi
+
 test $ALLNAMESPACES -eq 0 && unset NAMESPACES
 
 # Print user input
@@ -270,14 +292,14 @@ if [ -n "$MASTER_IP" ]
 then
     SSH_FLAGS="-q -t -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS}"
     SCP_FLAGS="-q -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS}"
-
+    
     scp ${SCP_FLAGS} hosts.sh ${USER}@${MASTER_IP}:/home/${USER}/hosts.sh
     ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo chmod 744 hosts.sh; ./hosts.sh"
     scp ${SCP_FLAGS} ${USER}@${MASTER_IP}:/home/${USER}/cluster-snapshot.zip ${LOGFILEFOLDER}/cluster-snapshot.zip
     ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo rm -f cluster-snapshot.zip hosts.sh"
     
     CLUSTER_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name}" --output tsv | grep 'k8s-')
-
+    
     for host in ${CLUSTER_NODES}
     do
         processHost ${host}
