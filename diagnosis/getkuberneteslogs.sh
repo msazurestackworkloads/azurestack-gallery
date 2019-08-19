@@ -111,9 +111,6 @@ processHost()
 {
     host=$1
     
-    SSH_FLAGS="-q -t -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS}"
-    PROXY_CMD="ssh ${KNOWN_HOSTS_OPTIONS} ${USER}@${MASTER_IP} -W %h:%p"
-    
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host ${host}"
     scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" collectlogs.sh ${USER}@${host}:/home/${USER}/collectlogs.sh
     ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "sudo chmod 744 collectlogs.sh; ./collectlogs.sh ${NAMESPACES};"
@@ -242,7 +239,7 @@ if [ -n "$API_MODEL" ]
 then
     if [ -n  "$(grep -e secret -e "BEGIN CERTIFICATE" -e "BEGIN RSA PRIVATE KEY" $API_MODEL)" ] || [ -n "$(grep -Po '"secret": *\K"[^"]*"' $API_MODEL | sed -e 's/^"//' -e 's/"$//')" ]
     then
-        echo "[ERR] --api-model contains sensitive information (secrets/certificates). Please remove them before running the tool"
+        echo "[ERR] --api-model contains sensitive information (secrets or certificates); please remove it before running the tool"
         exit 1
     fi
 fi
@@ -262,18 +259,21 @@ NOW=`date +%Y%m%d%H%M%S`
 LOGFILEFOLDER="_output/${RESOURCE_GROUP}-${NOW}"
 mkdir -p $LOGFILEFOLDER
 
+SSH_FLAGS="-q -t -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS}"
+SCP_FLAGS="-q -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS}"
+
 checkRequirements
 validateResourceGroup
 
 # DVM
-DVM_HOST=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name}" --output tsv | grep -e 'vmd-' | head -n 1)
+DVM_HOST=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep -e 'vmd-' | head -n 1 | cut -f 2)
 
 if [ -n "$DVM_HOST" ]
 then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Checking connectivity with DVM host"
-    SSH_FLAGS="-q -t ${KNOWN_HOSTS_OPTIONS} -i ${IDENTITYFILE}"
     validateKeys ${DVM_HOST} "${SSH_FLAGS}"
-    SCP_FLAGS="-q -o IdentityFile=${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS} -i ${IDENTITYFILE}"
+    
+    PROXY_CMD=""
     processHost ${DVM_HOST}
 fi
 
@@ -284,22 +284,19 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO] Checking connectivity with clusters nodes"
-SSH_FLAGS="-q -t -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS}"
+echo "[$(date +%Y%m%d%H%M%S)][INFO] Checking connectivity with cluster nodes"
 validateKeys ${MASTER_IP} "${SSH_FLAGS}"
 
 if [ -n "$MASTER_IP" ]
 then
-    SSH_FLAGS="-q -t -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS}"
-    SCP_FLAGS="-q -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS}"
-    
     scp ${SCP_FLAGS} hosts.sh ${USER}@${MASTER_IP}:/home/${USER}/hosts.sh
     ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo chmod 744 hosts.sh; ./hosts.sh"
     scp ${SCP_FLAGS} ${USER}@${MASTER_IP}:/home/${USER}/cluster-snapshot.zip ${LOGFILEFOLDER}/cluster-snapshot.zip
     ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo rm -f cluster-snapshot.zip hosts.sh"
     
-    CLUSTER_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name}" --output tsv | grep 'k8s-')
-    
+    CLUSTER_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep 'k8s-' | cut -f 1)
+    PROXY_CMD="ssh -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS} ${USER}@${MASTER_IP} -W %h:%p"
+
     for host in ${CLUSTER_NODES}
     do
         processHost ${host}
