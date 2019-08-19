@@ -104,7 +104,7 @@ then
     exit
 fi
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting static pods manifests"
+echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting static pod manifests"
 mkdir -p ${LOGDIRECTORY}/etc/kubernetes/manifests
 sudo cp /etc/kubernetes/manifests/* ${LOGDIRECTORY}/etc/kubernetes/manifests 2>/dev/null
 mkdir -p ${LOGDIRECTORY}/etc/kubernetes/addons
