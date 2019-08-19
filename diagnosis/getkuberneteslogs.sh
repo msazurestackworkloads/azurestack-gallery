@@ -1,16 +1,5 @@
 #!/bin/bash
 
-restoreAzureCLIVariables()
-{
-    EXIT_CODE=$?
-    #restoring Azure CLI values
-    export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=$USER_AZURE_CLI_DISABLE_CONNECTION_VERIFICATION
-    export ADAL_PYTHON_SSL_NO_VERIFY=$USER_ADAL_PYTHON_SSL_NO_VERIFY
-    exit $EXIT_CODE
-}
-
-trap restoreAzureCLIVariables EXIT
-
 validateKeys()
 {
     host=$1
@@ -43,14 +32,15 @@ checkRequirements()
 
 copyLogsToSADirectory()
 {
+    az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{host:name,akse:tags.aksEngineVersion}" --output table | grep 'k8s-' > ${SA_DIR}/akse-version.txt
+    
+    cp ${LOGFILEFOLDER}/k8s-*.zip ${SA_DIR}
+    cp ${LOGFILEFOLDER}/cluster-snapshot.zip ${SA_DIR}
     
     if [ -n "$API_MODEL" ]
     then
         cp ${API_MODEL} ${SA_DIR}
     fi
-    
-    cp ${LOGFILEFOLDER}/k8s-*.zip ${SA_DIR}
-    cp ${LOGFILEFOLDER}/cluster-snapshot.zip ${SA_DIR}
 }
 
 deleteSADirectory()
@@ -72,7 +62,7 @@ ensureResourceGroup()
 {
     SA_RESOURCE_GROUP="KubernetesLogs"
     
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Ensuring resource group ${SA_RESOURCE_GROUP}"
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Ensuring resource group: ${SA_RESOURCE_GROUP}"
     az group create -n ${SA_RESOURCE_GROUP} -l ${LOCATION} 1> /dev/null
     if [ $? -ne 0 ]; then
         echo "[$(date +%Y%m%d%H%M%S)][ERR] Error ensuring resource group ${SA_RESOURCE_GROUP}"
@@ -84,8 +74,8 @@ ensureStorageAccount()
 {
     SA_NAME="diagnostics"
     
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Ensuring storage account ${SA_NAME}"
-    az storage account create --name ${SA_NAME} --resource-group ${SA_RESOURCE_GROUP} --location ${LOCATION} --sku Premium_LRS 1> /dev/null
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Ensuring storage account: ${SA_NAME}"
+    az storage account create --name ${SA_NAME} --resource-group ${SA_RESOURCE_GROUP} --location ${LOCATION} --sku Premium_LRS --https-only true 1> /dev/null
     if [ $? -ne 0 ]; then
         echo "[$(date +%Y%m%d%H%M%S)][ERR] Error ensuring storage account ${SA_NAME}"
         exit 1
@@ -96,7 +86,7 @@ ensureStorageAccountContainer()
 {
     SA_CONTAINER="kuberneteslogs"
     
-    echo "$(date +%Y%m%d%H%M%S)][INFO] Ensuring storage account container ${SA_CONTAINER}"
+    echo "$(date +%Y%m%d%H%M%S)][INFO] Ensuring storage account container: ${SA_CONTAINER}"
     az storage container create --name ${SA_CONTAINER} --account-name ${SA_NAME}
     if [ $? -ne 0 ]; then
         echo "$(date +%Y%m%d%H%M%S)][ERR] Error ensuring storage account container ${SA_CONTAINER}"
@@ -106,7 +96,7 @@ ensureStorageAccountContainer()
 
 uploadLogs()
 {
-    echo "$(date +%Y%m%d%H%M%S)][INFO] Uploading log files to container ${SA_CONTAINER}"
+    echo "$(date +%Y%m%d%H%M%S)][INFO] Uploading log files to container: ${SA_CONTAINER}"
     az storage blob upload-batch -d ${SA_CONTAINER} -s ${SA_DIR} --destination-path ${SA_CONTAINER_DIR} --pattern *.zip --account-name ${SA_NAME}
     if [ $? -ne 0 ]; then
         echo "$(date +%Y%m%d%H%M%S)][ERR] Error uploading log files to container ${SA_CONTAINER}"
@@ -114,17 +104,21 @@ uploadLogs()
     fi
     
     az storage blob upload-batch -d ${SA_CONTAINER} -s ${SA_DIR} --destination-path ${SA_CONTAINER_DIR} --pattern *.json --account-name ${SA_NAME}
+    az storage blob upload-batch -d ${SA_CONTAINER} -s ${SA_DIR} --destination-path ${SA_CONTAINER_DIR} --pattern akse-version.txt --account-name ${SA_NAME}
 }
 
 processHost()
 {
     host=$1
     
+    SSH_FLAGS="-q -t -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS}"
+    PROXY_CMD="ssh ${KNOWN_HOSTS_OPTIONS} ${USER}@${MASTER_IP} -W %h:%p"
+    
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host ${host}"
-    scp ${SCP_FLAGS} collectlogs.sh ${USER}@${host}:/home/${USER}/collectlogs.sh
-    ssh ${SSH_FLAGS} ${USER}@${host} "sudo chmod 744 collectlogs.sh; ./collectlogs.sh ${NAMESPACES};"
-    scp ${SCP_FLAGS} ${USER}@${host}:/home/${USER}/${host}.zip ${LOGFILEFOLDER}/${host}.zip
-    ssh ${SSH_FLAGS} ${USER}@${host} "rm -f collectlogs.sh ${host}.zip"
+    scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" collectlogs.sh ${USER}@${host}:/home/${USER}/collectlogs.sh
+    ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "sudo chmod 744 collectlogs.sh; ./collectlogs.sh ${NAMESPACES};"
+    scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host}:/home/${USER}/${host}.zip ${LOGFILEFOLDER}/${host}.zip
+    ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "rm -f collectlogs.sh ${host}.zip"
 }
 
 printUsage()
@@ -161,7 +155,6 @@ fi
 
 NAMESPACES="kube-system"
 ALLNAMESPACES=1
-STRICT_HOST_KEY_CHECKING="ask"
 UPLOAD_LOGS="false"
 
 # Handle named parameters
@@ -197,7 +190,7 @@ do
             shift
         ;;
         --disable-host-key-checking)
-            STRICT_HOST_KEY_CHECKING="no"
+            KNOWN_HOSTS_OPTIONS='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR'
             shift
         ;;
         -h|--help)
@@ -270,15 +263,6 @@ LOGFILEFOLDER="_output/${RESOURCE_GROUP}-${NOW}"
 mkdir -p $LOGFILEFOLDER
 
 checkRequirements
-
-#get user values of azure-cli variables
-USER_AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=$AZURE_CLI_DISABLE_CONNECTION_VERIFICATION
-USER_ADAL_PYTHON_SSL_NO_VERIFY=$ADAL_PYTHON_SSL_NO_VERIFY
-
-#workaround for SSL interception
-export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=1
-export ADAL_PYTHON_SSL_NO_VERIFY=1
-
 validateResourceGroup
 
 # DVM
@@ -287,9 +271,9 @@ DVM_HOST=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:nam
 if [ -n "$DVM_HOST" ]
 then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Checking connectivity with DVM host"
-    SSH_FLAGS="-q -t -i ${IDENTITYFILE}"
+    SSH_FLAGS="-q -t ${KNOWN_HOSTS_OPTIONS} -i ${IDENTITYFILE}"
     validateKeys ${DVM_HOST} "${SSH_FLAGS}"
-    SCP_FLAGS="-q -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -o IdentityFile=${IDENTITYFILE} -i ${IDENTITYFILE}"
+    SCP_FLAGS="-q -o IdentityFile=${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS} -i ${IDENTITYFILE}"
     processHost ${DVM_HOST}
 fi
 
@@ -301,13 +285,14 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Checking connectivity with clusters nodes"
-SSH_FLAGS="-q -t -i ${IDENTITYFILE}"
+SSH_FLAGS="-q -t -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS}"
 validateKeys ${MASTER_IP} "${SSH_FLAGS}"
-SSH_FLAGS="-q -t -J ${USER}@${MASTER_IP} -i ${IDENTITYFILE}"
-SCP_FLAGS="-q -o ProxyJump=${USER}@${MASTER_IP} -o StrictHostKeyChecking=${STRICT_HOST_KEY_CHECKING} -o UserKnownHostsFile=/dev/null -o IdentityFile=${IDENTITYFILE} -i ${IDENTITYFILE}"
 
 if [ -n "$MASTER_IP" ]
 then
+    SSH_FLAGS="-q -t -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS}"
+    SCP_FLAGS="-q -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS}"
+    
     scp ${SCP_FLAGS} hosts.sh ${USER}@${MASTER_IP}:/home/${USER}/hosts.sh
     ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo chmod 744 hosts.sh; ./hosts.sh"
     scp ${SCP_FLAGS} ${USER}@${MASTER_IP}:/home/${USER}/cluster-snapshot.zip ${LOGFILEFOLDER}/cluster-snapshot.zip
