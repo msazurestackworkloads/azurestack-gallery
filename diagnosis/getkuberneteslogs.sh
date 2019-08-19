@@ -122,6 +122,8 @@ processDvmHost()
 {
     host=$1
     
+    DVM_NAME=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep 'vmd-' | cut -f 1 )
+    
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing dvm-host ${host}"
     scp ${SCP_FLAGS} collectlogs.sh ${USER}@${host}:/home/${USER}/collectlogs.sh
     ssh ${SSH_FLAGS} ${USER}@${host} "sudo chmod 744 collectlogs.sh; ./collectlogs.sh ${NAMESPACES};"
@@ -277,7 +279,6 @@ checkRequirements
 validateResourceGroup
 
 # DVM
-DVM_NAME=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep 'vmd-' | cut -f 1 )
 DVM_HOST=$(az network public-ip list -g ${RESOURCE_GROUP} --query "[*].{Name:name,ip:ipAddress}" --output tsv | grep 'vmd-' | head -n 1 | cut -f 2)
 
 if [ -n "$DVM_HOST" ]
