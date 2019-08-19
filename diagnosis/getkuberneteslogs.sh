@@ -118,6 +118,17 @@ processHost()
     ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "rm -f collectlogs.sh ${host}.zip"
 }
 
+processDvmHost()
+{
+    host=$1
+    
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing dvm-host ${host}"
+    scp ${SCP_FLAGS} collectlogs.sh ${USER}@${host}:/home/${USER}/collectlogs.sh
+    ssh ${SSH_FLAGS} ${USER}@${host} "sudo chmod 744 collectlogs.sh; ./collectlogs.sh ${NAMESPACES};"
+    scp ${SCP_FLAGS} ${USER}@${host}:/home/${USER}/${DVM_NAME}.zip ${LOGFILEFOLDER}/${DVM_NAME}.zip
+    ssh ${SSH_FLAGS} ${USER}@${host} "rm -f collectlogs.sh ${DVM_NAME}.zip"
+}
+
 printUsage()
 {
     echo "$0 collects diagnostics from Kubernetes clusters provisioned by AKS Engine"
@@ -266,7 +277,8 @@ checkRequirements
 validateResourceGroup
 
 # DVM
-DVM_HOST=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep -e 'vmd-' | head -n 1 | cut -f 2)
+DVM_NAME=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep 'vmd-' | cut -f 1 )
+DVM_HOST=$(az network public-ip list -g ${RESOURCE_GROUP} --query "[*].{Name:name,ip:ipAddress}" --output tsv | grep 'vmd-' | head -n 1 | cut -f 2)
 
 if [ -n "$DVM_HOST" ]
 then
@@ -296,7 +308,7 @@ then
     
     CLUSTER_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep 'k8s-' | cut -f 1)
     PROXY_CMD="ssh -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS} ${USER}@${MASTER_IP} -W %h:%p"
-
+    
     for host in ${CLUSTER_NODES}
     do
         processHost ${host}
