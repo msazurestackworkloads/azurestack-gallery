@@ -275,7 +275,6 @@
   "resources": [
     {
       "apiVersion": "[variables('apiVersionDeployments')]",
-      "location": "[variables('location')]",
       "name": "pid-b8a190d4-9ecc-4bd5-a9ba-3cc60c6e0c1f",
       "properties": {
         "mode": "Incremental",
