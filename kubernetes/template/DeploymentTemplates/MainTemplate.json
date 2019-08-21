@@ -242,7 +242,7 @@
     }
   },
   "variables": {
-    "apiVersionDeployments": "2018-06-01",
+    "apiVersionDeployments": "2015-11-01",
     "resourceGroupName": "[resourceGroup().name]",
     "dnsNameForPublicIP": "[toLower(concat('vmd-dns', parameters('masterProfileDnsPrefix')))]",
     "location": "[resourceGroup().location]",
