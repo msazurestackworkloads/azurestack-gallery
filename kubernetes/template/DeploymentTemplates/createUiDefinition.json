@@ -462,7 +462,7 @@
         "name": "galleryBranch",
         "type": "Microsoft.Common.TextBox",
         "label": "Gallery branch",
-        "defaultValue": "master",
+        "defaultValue": "patch-release-v0.39.2-azs-1908-22",
         "toolTip": "The name of the branch of the Gallery repository",
         "constraints": {
           "required": true
