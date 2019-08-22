@@ -405,17 +405,21 @@
         "name": "kubernetesAzureCloudProviderVersion",
         "type": "Microsoft.Common.DropDown",
         "label": "Kubernetes version",
-        "defaultValue": "1.12",
+        "defaultValue": "1.13",
         "toolTip": "This is the version for the Kubernetes Azure cloud provider.",
         "constraints": {
           "allowedValues": [
             {
-              "label": "1.12",
-              "value": "1.12"
-            },
-            {
               "label": "1.13",
               "value": "1.13"
+            },
+            {
+              "label": "1.14",
+              "value": "1.14"
+            },
+            {
+              "label": "1.15",
+              "value": "1.15"
             }
           ]
         },
