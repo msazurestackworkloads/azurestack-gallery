@@ -54,7 +54,13 @@ Sample parameters
 DeploymentTemplate\azuredeploy.parameters-example.json
 ```
 
-TODO
+## Logs
+
+Container logs located in directory `/var/lib/docker/containers/`
+
+Query all logs: `cat /var/lib/docker/containers/*/*-json.log | grep "authentication failure"`
+
+## TODO
 
 - Review strings in `Strings\resources.resjson`
 - Review strings in `manifest.json`
