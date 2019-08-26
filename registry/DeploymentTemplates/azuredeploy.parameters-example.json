@@ -1,0 +1,63 @@
+{
+    "schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "adminUsername": {
+            "value": "azureuser"
+        },
+        "adminPublicKey": {
+            "value": "ssh-rsa ...."
+        },
+        "virtualMachineSize": {
+            "value": "Standard_F8s_v2"
+        },
+        "virtualMachinePublisher": {
+            "value": "Canonical"
+        },
+        "virtualMachineOffer": {
+            "value": "UbuntuServer"
+        },
+        "virtualMachineSku": {
+            "value": "16.04-LTS"
+        },
+        "virtualMachineVersion": {
+            "value": "latest"
+        },
+        "pipName": {
+            "value": "registry"
+        },
+        "pipDomainNameLabel": {
+            "value": "registry"
+        },
+        "pipAllocationMethod": {
+            "value": "dynamic"
+        },
+        "storageAccountResourceId": {
+            "value": "/subscriptions/{SUBSCRIPTION}/resourceGroups/{RESOURCE-GROUP}/providers/Microsoft.Storage/storageaccounts/{SA-NAME}"
+        },
+        "storageAccountContainer": {
+            "value": "images"
+        },
+        "pfxKeyVaultResourceId": {
+            "value": "/subscriptions/{SUBSCRIPTION}/resourceGroups/{RESOURCE-GROUP}/providers/Microsoft.KeyVault/vaults/{KV-NAME}"
+        },
+        "pfxKeyVaultSecretUrl": {
+            "value": "https://{KV-NAME}.vault.{FQDN}/secrets/{RESOURCE-GROUP}/{SECRET-VERSION}"
+        },
+        "pfxThumbprint": {
+            "value": ""
+        },
+        "registryTag": {
+            "value": "2.7.1"
+        },
+        "registryReplicas": {
+            "value": "20"
+        },
+        "servicePrincipalClientId": {
+            "value": ""
+        },
+        "servicePrincipalClientSecret": {
+            "value": ""
+        }
+    }
+}

@@ -1,0 +1,7 @@
+{
+    "displayName":  "Docker Container Registry",
+    "publisherDisplayName": "Microsoft",
+    "summary": "An IaaS based template for deploying a standalone open source Docker container registry",
+    "longSummary": "This solution deploys a Docker container registry.",
+    "description": "This solution deploys a Docker container registry."
+}
