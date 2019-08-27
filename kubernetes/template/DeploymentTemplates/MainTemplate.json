@@ -392,6 +392,22 @@
           }
         }
       }
+    },
+    {
+      "apiVersion": "[variables('apiVersionDeployments')]",
+      "name": "pid-f2b6a718-435c-4aba-9e40-294f805f84ed",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', dvmdeployment)]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "resources": []
+        }
+      },
+      "type": "Microsoft.Resources/deployments"
     }
   ],
   "outputs": {
