@@ -397,7 +397,7 @@
       "apiVersion": "[variables('apiVersionDeployments')]",
       "name": "pid-f2b6a718-435c-4aba-9e40-294f805f84ed",
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', dvmdeployment)]"
+        "dvmdeployment"
       ],
       "properties": {
         "mode": "Incremental",
