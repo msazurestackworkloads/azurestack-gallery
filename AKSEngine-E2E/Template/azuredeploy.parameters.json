@@ -45,12 +45,36 @@
       "value": ""
     },
     "aksEngineApiModel": {
-      "value": "https://raw.githubusercontent.com/honcao/aks-engine/e2e/examples/kubernetes-azure-stack.json"
+      "value": "https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/aks-e2e-release/AKSEngine-E2E/Template/azurestack_template.json"
     },
     "aksEngineRepository": {
       "value": ""
     },
     "aksEngineBranch": {
+      "value": ""
+    },
+    "networkPlugin": {
+      "value": "flannel"
+    },
+    "availabilityProfile": {
+      "value": "AvailabilitySet"
+    },
+    "windowsAgentPoolProfileCount": {
+      "value": "0"
+    },
+    "windowsAgentPoolProfileVMSize": {
+      "value": "Standard_D2_v2"
+    },
+    "windowsAdminUsername": {
+      "value": "azureuser"
+    },
+    "windowsAdminPassword": {
+      "value": ""
+    },
+    "windowsPackageBaseURL": {
+      "value": ""
+    },
+    "windowsPackageName": {
       "value": ""
     }
   }

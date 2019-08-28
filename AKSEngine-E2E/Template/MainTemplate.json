@@ -6,7 +6,7 @@
       "type": "string",
       "defaultValue": "azureuser",
       "metadata": {
-        "description": "User name for the Linux Virtual Machines that are part of the Kubernetes cluster and DVM."
+        "description": "User name for the Linux virtual machines that are part of the Kubernetes cluster and DVM."
       }
     },
     "sshPublicKey": {
@@ -24,14 +24,14 @@
     "agentPoolProfileCount": {
       "defaultValue": 3,
       "metadata": {
-        "description": "Kubernetes Node Pool Profile Count"
+        "description": "Kubernetes linux node pool profile count"
       },
       "type": "int"
     },
     "agentPoolProfileVMSize": {
       "defaultValue": "Standard_D2_v2",
       "metadata": {
-        "description": "The VMSize of Kubernetes node VMs"
+        "description": "The virtual machine size of the Kubernetes linux agent nodes"
       },
       "type": "string"
     },
@@ -45,7 +45,7 @@
     "masterPoolProfileVMSize": {
       "defaultValue": "Standard_D2_v2",
       "metadata": {
-        "description": "The VMSize of Kubernetes master VMs"
+        "description": "The virtual machine size of the Kubernetes master nodes"
       },
       "type": "string"
     },
@@ -58,7 +58,7 @@
     },
     "servicePrincipalClientId": {
       "metadata": {
-        "description": "The Service Principal application ID (used by the Kubernetes Azure cloud provider). More help here: https://github.com/Azure/acs-engine/blob/master/docs/serviceprincipal.md"
+        "description": "The Service Principal application ID (used by the Kubernetes Azure cloud provider). More help here: https://github.com/Azure/aks-engine/blob/master/docs/topics/service-principals.md"
       },
       "type": "securestring"
     },
@@ -101,17 +101,80 @@
       },
       "type": "string"
     },
-
     "aksEngineRepository": {
       "metadata": {
         "description": "The Aks Engine Repository to be used for building aks engine binary"
       },
       "type": "string"
     },
-
     "aksEngineBranch": {
       "metadata": {
         "description": "The Aks Engine branch to be used for building the aks engine binary"
+      },
+      "type": "string"
+    },
+    "networkPlugin": {
+      "defaultValue": "flannel",
+      "allowedValues": [
+        "flannel",
+        "azure",
+        "kubenet"
+      ],
+      "metadata": {
+        "description": "Network plugin which will deployed in Kubernetes cluster"
+      },
+      "type": "string"
+    },    
+    "windowsAdminUsername": {
+      "defaultValue": "azureuser",
+      "metadata": {
+        "description": "User name for the Windows virtual machines that are part of the Kubernetes cluster."
+      },
+      "type": "string"
+    },
+    "windowsAdminPassword": {
+      "defaultValue": "",
+      "metadata": {
+        "description": "User password for the Windows virtual machines that are part of the Kubernetes cluster."
+      },
+      "type": "securestring"
+    },
+    "windowsPackageBaseURL": {
+      "defaultValue": "",
+      "metadata": {
+        "description": "URL path from where Windows binaries will be downloaded."
+      },
+      "type": "string"
+    },
+    "windowsPackageName": {
+      "defaultValue": "",
+      "metadata": {
+        "description": "Name of the Windows package which will be installed."
+      },
+      "type": "string"
+    },
+    "windowsAgentPoolProfileCount": {
+      "defaultValue": "0",      
+      "metadata": {
+        "description": "Kubernetes Windows node pool profile count"
+      },
+      "type": "string"
+    },
+    "windowsAgentPoolProfileVMSize": {
+      "defaultValue": "Standard_D2_v2",
+      "metadata": {
+        "description": "The virtual machine size of the Kubernetes Windows nodes"
+      },
+      "type": "string"
+    },
+    "availabilityProfile": {      
+      "defaultValue": "AvailabilitySet",
+      "allowedValues": [
+        "AvailabilitySet",
+        "VirtualMachineScaleSets"
+      ],
+      "metadata": {
+        "description": "Availability profile that nodes in the Kubernetes cluster will be deployed with"
       },
       "type": "string"
     },
@@ -158,7 +221,7 @@
     "tenantSubscriptionId": "[subscription().subscriptionId]",
     "scriptName": "script",
     "singleQuote": "'",
-    "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"',' AKSENGINE_NODE_COUNT=','\"',parameters('aksEngineNodeCount'),'\"',' AKSENGINE_UPGRADE_VERSION=','\"',parameters('aksEngineUpgradeVersion'),'\"',' AKSENGINE_API_MODEL=','\"',parameters('aksEngineApiModel'),'\"',' AKSENGINE_REPO=','\"',parameters('aksEngineRepository'),'\"',' AKSENGINE_BRANCH=','\"',parameters('aksEngineBranch'),'\"')]"
+    "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' WINDOWS_PACKAGE_NAME=','\"',parameters('windowsPackageName'),'\"' ,' WINDOWS_PACKAGE_URL=','\"',parameters('windowsPackageBaseURL'),'\"' ,' WINDOWS_AGENT_COUNT=','\"',parameters('windowsAgentPoolProfileCount'),'\"' ,' WINDOWS_AGENT_SIZE=','\"',parameters('windowsAgentPoolProfileVMSize'),'\"',' WINDOWS_ADMIN_USERNAME=','\"',parameters('windowsAdminUsername'),'\"',' WINDOWS_ADMIN_PASSWORD=','\"',parameters('windowsAdminPassword'),'\"',' NETWORK_PLUGIN=','\"',parameters('networkPlugin'),'\"',' AVAILABILITY_PROFILE=','\"',parameters('availabilityProfile'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"',' AKSENGINE_NODE_COUNT=','\"',parameters('aksEngineNodeCount'),'\"',' AKSENGINE_UPGRADE_VERSION=','\"',parameters('aksEngineUpgradeVersion'),'\"',' AKSENGINE_API_MODEL=','\"',parameters('aksEngineApiModel'),'\"',' AKSENGINE_REPO=','\"',parameters('aksEngineRepository'),'\"',' AKSENGINE_BRANCH=','\"',parameters('aksEngineBranch'),'\"')]"
   },
   "resources": [
     {
@@ -222,6 +285,30 @@
           },
           "aksEngineBranch": {
             "value": "[parameters('aksEngineBranch')]"
+          },
+          "networkPlugin": {
+            "value": "[parameters('networkPlugin')]"
+          },
+          "availabilityProfile": {
+            "value": "[parameters('availabilityProfile')]"
+          },
+          "windowsAgentPoolProfileCount": {
+            "value": "[parameters('windowsAgentPoolProfileCount')]"
+          },
+          "windowsAgentPoolProfileVMSize": {
+            "value": "[parameters('windowsAgentPoolProfileVMSize')]"
+          },
+          "windowsAdminUsername": {
+            "value": "[parameters('windowsAdminUsername')]"
+          },          
+          "windowsAdminPassword": {
+            "value": "[parameters('windowsAdminPassword')]"
+          },
+          "windowsPackageBaseURL": {
+            "value": "[parameters('windowsPackageBaseURL')]"
+          },
+          "windowsPackageName": {
+            "value": "[parameters('windowsPackageName')]"
           }
         }
       }
