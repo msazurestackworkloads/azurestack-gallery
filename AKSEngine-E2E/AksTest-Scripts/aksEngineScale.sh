@@ -187,7 +187,26 @@ fi
         --client-id $CLIENT_ID \
         --client-secret $CLIENT_SECRET \
         --identity-system $IDENTITY_SYSTEM || exit 1    
-    
+
+# Scale up and down windows node if present.
+WINDOWS_AGENT_POOL=$(cat $ROOT_PATH/_output/$RESOURCE_GROUP/apimodel.json | jq '.properties.agentPoolProfiles | .[] | select (.osType == "Windows" ) | .name' | tr -d '"')
+if [[ -z "$WINDOWS_AGENT_POOL" ]] ; then
+    echo "No windows pool found."
+else
+    ./bin/aks-engine scale \
+            --azure-env $AZURE_ENV \
+            --subscription-id $SUBSCRIPTION_ID \
+            --api-model $OUTPUT \
+            --location $REGION \
+            --resource-group $RESOURCE_GROUP  \
+            --master-FQDN $MASTER_FQDN \
+            --node-pool $WINDOWS_AGENT_POOL \
+            --new-node-count $NODE_COUNT \
+            --auth-method $AUTH_METHOD \
+            --client-id $CLIENT_ID \
+            --client-secret $CLIENT_SECRET \
+            --identity-system $IDENTITY_SYSTEM || exit 1
+fi
 
 log_level -i "Scaling of kubernetes cluster completed.Running E2E test..."
 

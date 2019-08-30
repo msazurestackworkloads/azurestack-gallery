@@ -1,6 +1,16 @@
 #! /bin/bash
 set -e
 
+validate_and_restore_cluster_definition()
+{
+    if [ ! -s $1 ]; then
+        log_level -e "Cluster definition file '$1' does not exist or it is empty. An error happened while manipulating its json content."
+        exit 1
+    fi
+    mv $1 $2
+}
+
+
 log_level() 
 { 
     case "$1" in
@@ -143,6 +153,22 @@ if [ $CLIENT_ID == "" ] ; then
     log_level -i "Client ID not found.Scale can not be performed"
     exit 1
 fi
+
+# Assuming currently if windows node is present then update the URL. 
+# This will go away once we have changes in AKS Engine.
+WINDOWS_AGENT_POOL=$(cat $ROOT_PATH/_output/$RESOURCE_GROUP/apimodel.json | jq '.properties.agentPoolProfiles | .[] | select (.osType == "Windows" ) | .name' | tr -d '"')
+if [[ -z "$WINDOWS_AGENT_POOL" ]] ; then
+    echo "No windows pool found"
+else
+    WINDOWS_PACKAGE_FULL_URL=$(cat $ROOT_PATH/_output/$RESOURCE_GROUP/apimodel.json | jq '.properties.orchestratorProfile.kubernetesConfig | select (.customWindowsPackageURL != null )' | tr -d '"')
+    WINDOWS_PACKAGE_FULL_URL="\"${WINDOWS_PACKAGE_FULL_URL%/*}/v${UPGRADE_VERSION}-v1int.zip\"",
+    echo "New full windows url is : $WINDOWS_PACKAGE_FULL_URL"
+    cat $ROOT_PATH/_output/$RESOURCE_GROUP/apimodel.json | \
+    jq --arg WINDOWS_PACKAGE_FULL_URL $WINDOWS_PACKAGE_FULL_URL '.properties.orchestratorProfile.kubernetesConfig.customWindowsPackageURL=$WINDOWS_PACKAGE_FULL_URL' \
+    > $ROOT_PATH/_output/$RESOURCE_GROUP/apimodel_new.json
+    validate_and_restore_cluster_definition $ROOT_PATH/_output/$RESOURCE_GROUP/apimodel_new.json $ROOT_PATH/_output/$RESOURCE_GROUP/apimodel.json
+fi
+
 
 export CLIENT_ID=$CLIENT_ID
 export CLIENT_SECRET=""

@@ -70,12 +70,6 @@
     },
     "windowsAdminPassword": {
       "value": ""
-    },
-    "windowsPackageBaseURL": {
-      "value": ""
-    },
-    "windowsPackageName": {
-      "value": ""
     }
   }
 }
