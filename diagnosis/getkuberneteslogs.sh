@@ -189,7 +189,7 @@ do
         ;;
         --api-model)
             API_MODEL="$2"
-            shift
+            shift 2
         ;;
         --all-namespaces)
             ALLNAMESPACES=0
