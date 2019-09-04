@@ -86,12 +86,6 @@
     "windowsAdminPassword": {
       "value": ""
     },
-    "windowsPackageBaseURL": {
-      "value": ""
-    },
-    "windowsPackageName": {
-      "value": ""
-    },
     "kubernetesImageBase": {
       "value": ""
     }

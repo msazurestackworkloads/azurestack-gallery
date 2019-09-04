@@ -679,22 +679,6 @@
         "visible": false
       },
       {
-        "name": "windowsPackageBaseURL",
-        "type": "Microsoft.Common.TextBox",
-        "label": "Windows package URL",
-        "defaultValue": "",
-        "toolTip": "URL path from where Windows binaries will be downloaded.",
-        "visible": false
-      },
-      {
-        "name": "windowsPackageName",
-        "type": "Microsoft.Common.TextBox",
-        "label": "Windows package name",
-        "defaultValue": "",
-        "toolTip": "Name of Windows package that will be installed.",
-        "visible": false
-      },
-      {
         "name": "kubernetesImageBase",
         "type": "Microsoft.Common.TextBox",
         "label": "Kubernetes Image Base",
@@ -731,8 +715,6 @@
       "windowsAgentPoolProfileVMSize": "[steps('KubernetesClusterSettings').windowsAgentPoolProfileVMSize]",
       "windowsAdminUsername": "[steps('KubernetesClusterSettings').windowsAdminUsername]",
       "windowsAdminPassword": "[steps('KubernetesClusterSettings').windowsAdminPassword]",
-      "windowsPackageBaseURL": "[steps('KubernetesClusterSettings').windowsPackageBaseURL]",
-      "windowsPackageName": "[steps('KubernetesClusterSettings').windowsPackageName]",      
       "kubernetesImageBase": "[steps('KubernetesClusterSettings').kubernetesImageBase]"
     }
   }
