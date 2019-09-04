@@ -254,8 +254,6 @@ log_level -i "WINDOWS_ADMIN_USERNAME:                   $WINDOWS_ADMIN_USERNAME"
 log_level -i "WINDOWS_ADMIN_PASSWORD:                   ----"
 log_level -i "WINDOWS_AGENT_COUNT:                      $WINDOWS_AGENT_COUNT"
 log_level -i "WINDOWS_AGENT_SIZE:                       $WINDOWS_AGENT_SIZE"
-log_level -i "WINDOWS_PACKAGE_NAME:                     $WINDOWS_PACKAGE_NAME"
-log_level -i "WINDOWS_PACKAGE_URL:                      $WINDOWS_PACKAGE_URL"
 
 
 if [[ "$WINDOWS_AGENT_COUNT" == "0" ]] && [[ "$AGENT_COUNT" == "0" ]]; then
@@ -418,12 +416,9 @@ validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTA
 if [ "$WINDOWS_AGENT_COUNT" != "0" ]; then
     log_level -i "Update cluster definition with Windows agent node details."
 
-    WINDOWS_PACKAGE_FULL_URL="$WINDOWS_PACKAGE_URL/$WINDOWS_PACKAGE_NAME"
-    log_level -i "WINDOWS_PACKAGE_FULL_URL: $WINDOWS_PACKAGE_FULL_URL"
     cat $AZURESTACK_CONFIGURATION | \
     jq --arg WINDOWS_ADMIN_USERNAME $WINDOWS_ADMIN_USERNAME '.properties.windowsProfile.adminUsername=$WINDOWS_ADMIN_USERNAME' | \
     jq --arg WINDOWS_ADMIN_PASSWORD $WINDOWS_ADMIN_PASSWORD '.properties.windowsProfile.adminPassword=$WINDOWS_ADMIN_PASSWORD' | \
-    jq --arg WINDOWS_PACKAGE_FULL_URL $WINDOWS_PACKAGE_FULL_URL '.properties.orchestratorProfile.kubernetesConfig.customWindowsPackageURL=$WINDOWS_PACKAGE_FULL_URL' \
     > $AZURESTACK_CONFIGURATION_TEMP
 
     validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
