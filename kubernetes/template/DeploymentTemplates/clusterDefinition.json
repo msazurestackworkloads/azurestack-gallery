@@ -9,7 +9,9 @@
                 "kubernetesImageBase": "",
                 "useInstanceMetadata": false,
                 "networkPlugin": "flannel",
-                "customWindowsPackageURL": ""
+                "customWindowsPackageURL": "",
+                "cloudProviderRateLimitBucket": 0,
+                "cloudProviderRateLimitBucketWrite": 0
             }
         },
         "customCloudProfile": {
