@@ -1,6 +1,15 @@
 #! /bin/bash
 set -e
-
+ERR_APT_INSTALL_TIMEOUT=9 # Timeout installing required apt packages
+ERR_AKSE_DOWNLOAD=10 # Failure downloading AKS-Engine binaries
+ERR_AKSE_DEPLOY=12 # Failure calling AKS-Engine's deploy operation
+ERR_TEMPLATE_DOWNLOAD=13 # Failure downloading AKS-Engine template
+ERR_INVALID_AGENT_COUNT_VALUE=14 # Both Windows and Linux agent value is zero 
+ERR_CACERT_INSTALL=20 # Failure moving CA certificate
+ERR_METADATA_ENDPOINT=30 # Failure calling the metadata endpoint
+ERR_API_MODEL=40 # Failure building API model using user input
+ERR_AZS_CLOUD_REGISTER=50 # Failure calling az cloud register
+ERR_APT_UPDATE_TIMEOUT=99 # Timeout waiting for apt-get update to complete
 
 ### 
 #   <summary>
@@ -143,11 +152,13 @@ log_level -i "AKSENGINE_BRANCH:                         $AKSENGINE_BRANCH"
 log_level -i "AKSENGINE_NODE_COUNT:                     $AKSENGINE_NODE_COUNT"
 log_level -i "AKSENGINE_REPO:                           $AKSENGINE_REPO"
 log_level -i "AKSENGINE_UPGRADE_VERSION:                $AKSENGINE_UPGRADE_VERSION"
+log_level -i "AVAILABILITY_PROFILE:                     $AVAILABILITY_PROFILE"
 log_level -i "IDENTITY_SYSTEM:                          $IDENTITY_SYSTEM"
 log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:          $K8S_AZURE_CLOUDPROVIDER_VERSION" 
 log_level -i "MASTER_COUNT:                             $MASTER_COUNT"
 log_level -i "MASTER_DNS_PREFIX:                        $MASTER_DNS_PREFIX"
 log_level -i "MASTER_SIZE:                              $MASTER_SIZE"
+log_level -i "NETWORK_PLUGIN:                           $NETWORK_PLUGIN"
 log_level -i "PUBLICIP_DNS:                             $PUBLICIP_DNS"
 log_level -i "PUBLICIP_FQDN:                            $PUBLICIP_FQDN"
 log_level -i "REGION_NAME:                              $REGION_NAME"
@@ -156,6 +167,12 @@ log_level -i "SSH_PUBLICKEY:                            ----"
 log_level -i "STORAGE_PROFILE:                          $STORAGE_PROFILE"
 log_level -i "TENANT_ID:                                $TENANT_ID"
 log_level -i "TENANT_SUBSCRIPTION_ID:                   $TENANT_SUBSCRIPTION_ID"
+log_level -i "WINDOWS_ADMIN_PASSWORD:                   ----"
+log_level -i "WINDOWS_ADMIN_USERNAME:                   $WINDOWS_ADMIN_USERNAME"
+log_level -i "WINDOWS_AGENT_COUNT:                      $WINDOWS_AGENT_COUNT"
+log_level -i "WINDOWS_AGENT_SIZE:                       $WINDOWS_AGENT_SIZE"
+
+
 #####################################################################################
 # Install all prequisite. 
 log_level -i "Update the system to latest."
@@ -235,24 +252,25 @@ sudo mv $ROOT_PATH/aks-engine $ROOT_PATH/src/github.com/Azure
 #Section to get the apimodel file
 log_level -i "Getting api model file"
 
-DEFINITION_TEMPLATE=$ROOT_PATH/src/github.com/Azure/aks-engine/examples/azure-stack/$AKSENGINE_API_MODEL.json
-
- if [ ! -f $DEFINITION_TEMPLATE ]; then
-    log_level -e "API model template not found in expected location"
-    log_level -e "Expected location: $DEFINITION_TEMPLATE"
-    exit 1
-fi
-    
-if [ ! -s $DEFINITION_TEMPLATE ]; then
-    log_level -e "Downloaded API model template is an empty file."
-    log_level -e "Template location: $DEFINITION_TEMPLATE"
-    exit 1
-fi
+sudo curl --retry 5 --retry-delay 10 --max-time 60 -s -f -O "$AKSENGINE_API_MODEL"
+CONFIG_FILE_NAME="${AKSENGINE_API_MODEL##*/}"
 
 AZURESTACK_CONFIGURATION=$ROOT_PATH/src/github.com/Azure/aks-engine/azurestack.json
 AZURESTACK_CONFIGURATION_TEMP=$ROOT_PATH/src/github.com/Azure/aks-engine/azurestack.tmp
 
-cp $DEFINITION_TEMPLATE $AZURESTACK_CONFIGURATION
+sudo cp $CONFIG_FILE_NAME $AZURESTACK_CONFIGURATION
+
+if [ ! -f $AZURESTACK_CONFIGURATION ]; then
+    log_level -e "API model template not found in expected location"
+    log_level -e "Expected location: $AZURESTACK_CONFIGURATION"
+    exit 1
+fi
+    
+if [ ! -s $AZURESTACK_CONFIGURATION ]; then
+    log_level -e "Downloaded API model template is an empty file."
+    log_level -e "Template location: $AZURESTACK_CONFIGURATION"
+    exit 1
+fi
 
 #####################################################################################
 #Section to install make
@@ -350,18 +368,61 @@ cat $AZURESTACK_CONFIGURATION | \
 jq --arg ENDPOINT_PORTAL $ENDPOINT_PORTAL '.properties.customCloudProfile.portalURL = $ENDPOINT_PORTAL'| \
 jq --arg REGION_NAME $REGION_NAME '.location = $REGION_NAME' | \
 jq --arg MASTER_DNS_PREFIX $MASTER_DNS_PREFIX '.properties.masterProfile.dnsPrefix = $MASTER_DNS_PREFIX' | \
-jq '.properties.agentPoolProfiles[0].count'=$AGENT_COUNT | \
-jq --arg AGENT_SIZE $AGENT_SIZE '.properties.agentPoolProfiles[0].vmSize=$AGENT_SIZE' | \
 jq '.properties.masterProfile.count'=$MASTER_COUNT | \
 jq --arg MASTER_SIZE $MASTER_SIZE '.properties.masterProfile.vmSize=$MASTER_SIZE' | \
 jq --arg ADMIN_USERNAME $ADMIN_USERNAME '.properties.linuxProfile.adminUsername = $ADMIN_USERNAME' | \
 jq --arg SSH_PUBLICKEY "${SSH_PUBLICKEY}" '.properties.linuxProfile.ssh.publicKeys[0].keyData = $SSH_PUBLICKEY' | \
 jq --arg AUTHENTICATION_METHOD $AUTHENTICATION_METHOD '.properties.customCloudProfile.authenticationMethod = $AUTHENTICATION_METHOD' | \
 jq --arg SPN_CLIENT_ID $SPN_CLIENT_ID '.properties.servicePrincipalProfile.clientId = $SPN_CLIENT_ID' | \
-jq --arg SPN_CLIENT_SECRET $SPN_CLIENT_SECRET '.properties.servicePrincipalProfile.secret = $SPN_CLIENT_SECRET' \
+jq --arg SPN_CLIENT_SECRET $SPN_CLIENT_SECRET '.properties.servicePrincipalProfile.secret = $SPN_CLIENT_SECRET' | \
+jq --arg K8S_VERSION $K8S_AZURE_CLOUDPROVIDER_VERSION '.properties.orchestratorProfile.orchestratorRelease=$K8S_VERSION' | \
+jq --arg NETWORK_PLUGIN $NETWORK_PLUGIN '.properties.orchestratorProfile.kubernetesConfig.networkPlugin=$NETWORK_PLUGIN' \
 > $AZURESTACK_CONFIGURATION_TEMP
 
 validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
+
+#####################################################################################
+#Linux agent 
+if [ "$AGENT_COUNT" != "0" ]; then
+    log_level -i "Update cluster definition with Linux agent node details."
+
+    cat $AZURESTACK_CONFIGURATION | \
+    jq --arg linuxAgentCount $AGENT_COUNT \
+    --arg linuxAgentSize $AGENT_SIZE \
+    --arg linuxAvailabilityProfile $AVAILABILITY_PROFILE \
+    --arg NODE_DISTRO "ubuntu" \
+    '.properties.agentPoolProfiles += [{"name": "linuxpool", "osDiskSizeGB": 200, "AcceleratedNetworkingEnabled": false, "distro": $NODE_DISTRO, "count": $linuxAgentCount | tonumber, "vmSize": $linuxAgentSize, "availabilityProfile": $linuxAvailabilityProfile}]' \
+    > $AZURESTACK_CONFIGURATION_TEMP
+
+    validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
+
+    log_level -i "Updating cluster definition done with Linux agent node details."
+fi
+
+#####################################################################################
+#Windows agent 
+if [ "$WINDOWS_AGENT_COUNT" != "0" ]; then
+    log_level -i "Update cluster definition with Windows agent node details."
+
+    cat $AZURESTACK_CONFIGURATION | \
+    jq --arg WINDOWS_ADMIN_USERNAME $WINDOWS_ADMIN_USERNAME '.properties.windowsProfile.adminUsername=$WINDOWS_ADMIN_USERNAME' | \
+    jq --arg WINDOWS_ADMIN_PASSWORD $WINDOWS_ADMIN_PASSWORD '.properties.windowsProfile.adminPassword=$WINDOWS_ADMIN_PASSWORD' | \
+    > $AZURESTACK_CONFIGURATION_TEMP
+
+    validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
+
+    cat $AZURESTACK_CONFIGURATION | \
+    jq --arg winAgentCount $WINDOWS_AGENT_COUNT --arg winAgentSize $WINDOWS_AGENT_SIZE --arg winAvailabilityProfile $AVAILABILITY_PROFILE\
+    '.properties.agentPoolProfiles += [{"name": "windowspool", "osDiskSizeGB": 128, "AcceleratedNetworkingEnabled": false, "osType": "Windows", "count": $winAgentCount | tonumber, "vmSize": $winAgentSize, "availabilityProfile": $winAvailabilityProfile}]' \
+    > $AZURESTACK_CONFIGURATION_TEMP
+
+    validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
+
+    log_level -i "Updating cluster definition done with Windows agent node details."
+fi
+
+log_level -i "Done building cluster definition for windows."
+#####################################################################################
 
 if [ $IDENTITY_SYSTEM == "ADFS" ]; then
     log_level -i "Setting ADFS specific cluster definition properties."
