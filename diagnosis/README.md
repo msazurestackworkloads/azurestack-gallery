@@ -23,15 +23,15 @@ These are the logs retrieved by the script:
 
 ## Required Parameters 
 
--u, --user           - The administrator username for the cluster VMs
--i, --identity-file  - RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')
--g, --resource-group - Kubernetes cluster resource group
+- -u, --user           - The administrator username for the cluster VMs
+- -i, --identity-file  - RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')
+- -g, --resource-group - Kubernetes cluster resource group
 
 ## Optional Parameters
 
- -n, --user-namespace        - Collect logs from containers in the specified namespaces (kube-system logs are always collected)
- --disable-host-key-checking - Sets SSH's StrictHostKeyChecking option to "no" while the script executes. Only use in a safe environment.
---upload-logs                - Persists retrieved logs in an Azure Stack storage account. Logs can be found in "KubernetesLogs" resource group.
---api-model                  - Persists apimodel.json file in an Azure Stack Storage account. 
+- -n, --user-namespace        - Collect logs from containers in the specified namespaces (kube-system logs are always collected)
+- --disable-host-key-checking - Sets SSH's StrictHostKeyChecking option to "no" while the script executes. Only use in a safe environment.
+- --upload-logs                - Persists retrieved logs in an Azure Stack storage account. Logs can be found in "KubernetesLogs" resource group.
+- --api-model                  - Persists apimodel.json file in an Azure Stack Storage account. 
                                Note: All sensitive infomration(like secrets and certificates)should be removed. Upload apimodel.json file to storage account happens when --upload-logs parameter is also provided.
 
