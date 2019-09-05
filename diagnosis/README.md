@@ -8,7 +8,7 @@ Follow this [article](https://docs.microsoft.com/azure-stack/user/azure-stack-ve
 
 ## Gathering logs
 
-The Bash scripts on this directory are aim to simplify the collection of relevant logs from your Kubernetes cluster. Instead of SSH-ing into the cluster nodes, you can simply download and extract the latest [release] and execute script `getkuberneteslogs.sh`  
+The Bash scripts on this directory are aim to simplify the collection of relevant logs from your Kubernetes cluster. Instead of SSH-ing into the cluster nodes, you can simply download and extract the latest [release](https://github.com/msazurestackworkloads/azurestack-gallery/raw/master/diagnosis/Diagnosis.zip) and execute script `getkuberneteslogs.sh`  
 
 These are the logs retrieved by the script:
 
@@ -29,7 +29,9 @@ These are the logs retrieved by the script:
 
 ## Optional Parameters
 
- -n, --user-namespace       - Collect logs from containers in the specified namespaces (kube-system logs are always collected)
---api-model                 - User can upload the apimodel.json file to Storage account
---upload-logs               - Persists retrieved logs in an Azure Stack storage account. Logs can be found in "KubernetesLogs" resource group.
---disable-host-key-checking - Sets SSH's StrictHostKeyChecking option to "no" while the script executes. Only use in a safe environment.
+ -n, --user-namespace        - Collect logs from containers in the specified namespaces (kube-system logs are always collected)
+ --disable-host-key-checking - Sets SSH's StrictHostKeyChecking option to "no" while the script executes. Only use in a safe environment.
+--upload-logs                - Persists retrieved logs in an Azure Stack storage account. Logs can be found in "KubernetesLogs" resource group.
+--api-model                  - Persists apimodel.json file in an Azure Stack Storage account. 
+                               Note: All sensitive infomration(like secrets and certificates)should be removed. Upload apimodel.json file to storage account happens when --upload-logs parameter is also provided.
+
