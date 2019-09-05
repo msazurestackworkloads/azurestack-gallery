@@ -24,6 +24,10 @@ These are the logs retrieved by the script:
 - Gallery item's DVM logs
 - Cluster Snapshot
 
-Log collection process can upload logs to storage account when --upload-logs parameter is used, the logs can be found in "KubernetesLogs" resource group.
+## Parametes 
+1. --api-model - User can upload the apimodel.json file to Storage account
+2. --upload-logs -  Persists retrieved logs in an Azure Stack storage account. Logs can be found in "KubernetesLogs" resource group.
+3. --disable-host-key-checking - Sets SSH's StrictHostKeyChecking option to "no" while the script executes. Only use in a safe environment.
+4.  -g, --resource-group - Kubernetes cluster resource group
 
 After the log collection process is complete, the script will also try to look for common issues or misconfigurations. If any of those are found, they will be saved in file `ALL_ERRORS.txt`.
