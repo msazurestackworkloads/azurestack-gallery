@@ -4,9 +4,13 @@ This short [guide](https://github.com/Azure/aks-engine/blob/master/docs/howto/tr
 
 Please refer to this [article](https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-solution-template-kubernetes-trouble) for specifics about how the `Kubernetes Cluster` marketplace item works on Azure Stack.
 
+##Prerequisites:
+1.	Enable Azure CLI on AzureStack (https://docs.microsoft.com/en-us/azure-stack/user/azure-stack-version-profiles-azurecli2?view=azs-1908) 
+2.	Use az login –service-principal -u <spn-client-id> -p <spn-client-password> --tenant <tenant-id>
+
 ## Gathering logs
 
-The Bash scripts on this directory are aim to simplify the collection of relevant logs from your Kubernetes cluster. Instead of SSH-ing into the cluster nodes, you can simply download and execute script `getkuberneteslogs.sh` and wait for the logs to be saved back into your workstation.  
+The Bash scripts on this directory are aim to simplify the collection of relevant logs from your Kubernetes cluster. Instead of SSH-ing into the cluster nodes, you can simply download zip file and execute script `getkuberneteslogs.sh` and wait for the logs to be saved back into your workstation.  
 
 These are the logs retrieved by the script:
 
@@ -18,7 +22,8 @@ These are the logs retrieved by the script:
 - Kubelet service status and journal
 - Etcd service status and journal
 - Gallery item's DVM logs
+- Cluster Snapshot
 
-Please be aware that the log collector script needs to update file `~/.ssh/config` in order to connect to the cluster's worker nodes. While the script will try to back it up and then restore it once the process is complete, it may be a good a idea to create your own copy.
+Log collection process can upload-logs to storage account when --upload-logs parameter is set, the logs can be found in "KubernetesLogs" resource group.
 
 After the log collection process is complete, the script will also try to look for common issues or misconfigurations. If any of those are found, they will be saved in file `ALL_ERRORS.txt`.
