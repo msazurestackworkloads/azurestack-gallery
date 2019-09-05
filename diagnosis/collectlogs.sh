@@ -5,7 +5,7 @@ collectKubeletMetadata()
     KUBELET_REPOSITORY=$(docker images --format '{{.Repository}}' | grep hyperkube)
     KUBELET_TAG=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep hyperkube | cut -d ":" -f 2)
     KUBELET_VERBOSITY=$(cat /etc/systemd/system/kubelet.service | grep -e '--v=[0-9]' -oh | grep -e [0-9] -oh | head -n 1)
-    KUBELET_LOG_FILE=${LOGDIRECTORY}/daemons/kubelet.log
+    KUBELET_LOG_FILE=${LOGDIRECTORY}/daemons/k8s-kubelet.log
     
     echo "== BEGIN HEADER =="               > ${KUBELET_LOG_FILE}
     echo "Type: Daemon"                     >> ${KUBELET_LOG_FILE}
@@ -22,8 +22,8 @@ collectKubeletMetadata()
 collectMobyMetadata()
 {
     DOCKER_VERSION=$(docker version | grep -A 20 "Server:" | grep "Version:" | head -n 1 | cut -d ":" -f 2 | xargs)
-    DOCKER_LOG_FILE=${LOGDIRECTORY}/daemons/docker.log
-
+    DOCKER_LOG_FILE=${LOGDIRECTORY}/daemons/k8s-docker.log
+    
     echo "== BEGIN HEADER =="               > ${DOCKER_LOG_FILE}
     echo "Type: Daemon"                     >> ${DOCKER_LOG_FILE}
     echo "TenantId: ${TENANT_ID}"           >> ${DOCKER_LOG_FILE}
@@ -37,8 +37,8 @@ collectMobyMetadata()
 collectEtcdMetadata()
 {
     ETCD_VERSION=$(/usr/bin/etcd --version | grep "etcd Version:" | cut -d ":" -f 2 | xargs)
-    ETCD_LOG_FILE=${LOGDIRECTORY}/daemons/etcd.log
-
+    ETCD_LOG_FILE=${LOGDIRECTORY}/daemons/k8s-etcd.log
+    
     echo "== BEGIN HEADER =="               > ${ETCD_LOG_FILE}
     echo "Type: Daemon"                     >> ${ETCD_LOG_FILE}
     echo "TenantId: ${TENANT_ID}"           >> ${ETCD_LOG_FILE}
@@ -54,12 +54,12 @@ collectContainerMetadata()
     local cid=$1
     local pname=$2
     local cname=$3
-
+    
     CVERBOSITY=$(docker inspect ${cid} | grep -e "--v=[0-9]" -oh | grep -e [0-9] -oh | head -n 1)
     IMAGE_SHA=$(docker inspect ${cid} | grep Image | grep -e "sha256:[[:alnum:]]*" -oh | head -n 1 | cut -d ':' -f 2)
     IMAGE=$(docker image inspect ${IMAGE_SHA} | jq -r '.[] | .RepoTags | @tsv' | xargs)
-    CLOG_FILE=${LOGDIRECTORY}/containers/${pname}-${cname}.log
-
+    CLOG_FILE=${LOGDIRECTORY}/containers/k8s-${pname}-${cname}.log
+    
     echo "== BEGIN HEADER =="               > ${CLOG_FILE}
     echo "Type: Container"                  >> ${CLOG_FILE}
     echo "TenantId: ${TENANT_ID}"           >> ${CLOG_FILE}
@@ -76,12 +76,12 @@ collectContainerMetadata()
 compressLogsDirectory()
 {
     sync
-
+    
     echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Compressing logs and cleaning up temp files"
     CURRETUSER=$(whoami)
     LOGFILENAME="${HOSTNAME}.zip"
-    sudo rm -f ${LOGFILENAME} 
-
+    sudo rm -f ${LOGFILENAME}
+    
     sudo chown -R ${CURRETUSER} ${LOGDIRECTORY}
     # TODO This wont work on a disconnected scenario
     (cd $TMP && zip -q -r ~/${LOGFILENAME} ${HOSTNAME})
@@ -94,8 +94,13 @@ mkdir -p ${LOGDIRECTORY}
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting azure logs"
 mkdir -p ${LOGDIRECTORY}/var/log/azure
-sudo cp /var/log/azure/*.log ${LOGDIRECTORY}/var/log/azure || :
-sudo cp /var/log/waagent.log ${LOGDIRECTORY}/var/log || :
+cd /var/log/azure
+for f in *.log
+do
+    sudo cp "$f" ${LOGDIRECTORY}/var/log/azure/k8s-"${f%}" || :
+done
+
+sudo cp /var/log/waagent.log ${LOGDIRECTORY}/var/log/k8s-waagent.log || :
 
 if [ -f /var/log/azure/deploy-script-dvm.log ]
 then
@@ -132,10 +137,10 @@ do
             pname=$(docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.name" }}' ${cid})
             cname=$(docker inspect --format='{{ index .Config.Labels "io.kubernetes.container.name" }}' ${cid})
             clog=$(docker inspect --format='{{ .LogPath }}' ${cid})
-
+            
             collectContainerMetadata ${cid} ${pname} ${cname}
-            sudo docker inspect ${cid} &> ${LOGDIRECTORY}/containers/${pname}-${cname}.json
-            sudo cat $clog >> ${LOGDIRECTORY}/containers/${pname}-${cname}.log
+            sudo docker inspect ${cid} &> ${LOGDIRECTORY}/containers/k8s-${pname}-${cname}.json
+            sudo cat $clog >> ${LOGDIRECTORY}/containers/k8s-${pname}-${cname}.log
         fi
     fi
 done
@@ -146,17 +151,17 @@ mkdir -p ${LOGDIRECTORY}/daemons
 # TODO use --until --since --lines to limit size
 if systemctl list-units | grep -q kubelet.service; then
     collectKubeletMetadata
-    sudo journalctl -n 10000 --utc -o short-iso -u kubelet &>> ${LOGDIRECTORY}/daemons/kubelet.log
+    sudo journalctl -n 10000 --utc -o short-iso -u kubelet &>> ${LOGDIRECTORY}/daemons/k8s-kubelet.log
 fi
 
 if systemctl list-units | grep -q etcd.service; then
     collectEtcdMetadata
-    sudo journalctl -n 10000 --utc -o short-iso -u etcd &>> ${LOGDIRECTORY}/daemons/etcd.log
+    sudo journalctl -n 10000 --utc -o short-iso -u etcd &>> ${LOGDIRECTORY}/daemons/k8s-etcd.log
 fi
 
 if systemctl list-units | grep -q docker.service; then
     collectMobyMetadata
-    sudo journalctl -n 10000 --utc -o short-iso -u docker &>> ${LOGDIRECTORY}/daemons/docker.log
+    sudo journalctl -n 10000 --utc -o short-iso -u docker &>> ${LOGDIRECTORY}/daemons/k8s-docker.log
 fi
 
 compressLogsDirectory
