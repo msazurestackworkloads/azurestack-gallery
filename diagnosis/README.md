@@ -5,7 +5,7 @@ This short [guide](https://github.com/Azure/aks-engine/blob/master/docs/howto/tr
 Please refer to this [article](https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-solution-template-kubernetes-trouble) for specifics about how the `Kubernetes Cluster` marketplace item works on Azure Stack.
 
 ##Prerequisites:
-1.	Enable Azure CLI on AzureStack (https://docs.microsoft.com/en-us/azure-stack/user/azure-stack-version-profiles-azurecli2?view=azs-1908) 
+1.	Enable Azure CLI on AzureStack.  Please refer to this [article](https://docs.microsoft.com/en-us/azure-stack/user/azure-stack-version-profiles-azurecli2?view=azs-1908) 
 2.	Use az login –service-principal -u <spn-client-id> -p <spn-client-password> --tenant <tenant-id>
 
 ## Gathering logs
