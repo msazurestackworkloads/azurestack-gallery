@@ -4,7 +4,7 @@ This short [guide](https://github.com/Azure/aks-engine/blob/master/docs/howto/tr
 
 Please refer to this [article](https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-solution-template-kubernetes-trouble) for specifics about how the `Kubernetes Cluster` marketplace item works on Azure Stack.
 
-##Prerequisites:
+## Prerequisites:
 1.	Enable Azure CLI on AzureStack.  Please refer to this [article](https://docs.microsoft.com/en-us/azure-stack/user/azure-stack-version-profiles-azurecli2?view=azs-1908) 
 2.	Use az login –service-principal -u <spn-client-id> -p <spn-client-password> --tenant <tenant-id>
 
@@ -24,7 +24,7 @@ These are the logs retrieved by the script:
 - Gallery item's DVM logs
 - Cluster Snapshot
 
-## Parametes 
+## Parameters 
 1. --api-model - User can upload the apimodel.json file to Storage account
 2. --upload-logs -  Persists retrieved logs in an Azure Stack storage account. Logs can be found in "KubernetesLogs" resource group.
 3. --disable-host-key-checking - Sets SSH's StrictHostKeyChecking option to "no" while the script executes. Only use in a safe environment.
