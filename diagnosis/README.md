@@ -4,30 +4,32 @@ This short [guide](https://github.com/Azure/aks-engine/blob/master/docs/howto/tr
 
 Please refer to this [article](https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-solution-template-kubernetes-trouble) for specifics about how the `Kubernetes Cluster` marketplace item works on Azure Stack.
 
-## Prerequisites:
-1.	Enable Azure CLI on AzureStack.  Please refer to this [article](https://docs.microsoft.com/en-us/azure-stack/user/azure-stack-version-profiles-azurecli2?view=azs-1908) 
-2.	Use az login –service-principal -u <spn-client-id> -p <spn-client-password> --tenant <tenant-id>
+Follow this [article](https://docs.microsoft.com/azure-stack/user/azure-stack-version-profiles-azurecli2) to configure and login to your Azure Stack instance using Azure CLI
 
 ## Gathering logs
 
-The Bash scripts on this directory are aim to simplify the collection of relevant logs from your Kubernetes cluster. Instead of SSH-ing into the cluster nodes, you can simply download zip file and execute script `getkuberneteslogs.sh` and wait for the logs to be saved back into your workstation.  
+The Bash scripts on this directory are aim to simplify the collection of relevant logs from your Kubernetes cluster. Instead of SSH-ing into the cluster nodes, you can simply download and extract the latest [release] and execute script `getkuberneteslogs.sh`  
 
 These are the logs retrieved by the script:
 
 - Microsoft Azure Linux Agent (waagent) logs
-- Cloud-init logs
 - Custom Script Extension logs
-- Running Docker container metadata
-- Running Docker container logs
+- Running kube-system container metadata
+- Running kube-system container logs
 - Kubelet service status and journal
 - Etcd service status and journal
 - Gallery item's DVM logs
-- Cluster Snapshot
+- kube-system Snapshot
 
-## Parameters 
-1. --api-model - User can upload the apimodel.json file to Storage account
-2. --upload-logs -  Persists retrieved logs in an Azure Stack storage account. Logs can be found in "KubernetesLogs" resource group.
-3. --disable-host-key-checking - Sets SSH's StrictHostKeyChecking option to "no" while the script executes. Only use in a safe environment.
-4.  -g, --resource-group - Kubernetes cluster resource group
+## Required Parameters 
 
-After the log collection process is complete, the script will also try to look for common issues or misconfigurations. If any of those are found, they will be saved in file `ALL_ERRORS.txt`.
+-u, --user           - The administrator username for the cluster VMs
+-i, --identity-file  - RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')
+-g, --resource-group - Kubernetes cluster resource group
+
+## Optional Parameters
+
+ -n, --user-namespace       - Collect logs from containers in the specified namespaces (kube-system logs are always collected)
+--api-model                 - User can upload the apimodel.json file to Storage account
+--upload-logs               - Persists retrieved logs in an Azure Stack storage account. Logs can be found in "KubernetesLogs" resource group.
+--disable-host-key-checking - Sets SSH's StrictHostKeyChecking option to "no" while the script executes. Only use in a safe environment.
