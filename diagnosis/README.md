@@ -8,7 +8,7 @@ Follow this [article](https://docs.microsoft.com/azure-stack/user/azure-stack-ve
 
 ## Gathering logs
 
-The Bash scripts on this directory are aim to simplify the collection of relevant logs from your Kubernetes cluster. Instead of SSH-ing into the cluster nodes, you can simply download and extract the latest [release](https://github.com/msazurestackworkloads/azurestack-gallery/raw/master/diagnosis/Diagnosis.zip) and execute script `getkuberneteslogs.sh`  
+The Bash scripts on this directory are aim to simplify the collection of relevant logs from your Kubernetes cluster. Instead of SSH-ing into the cluster nodes, you can simply download and extract the latest [release](https://github.com/msazurestackworkloads/azurestack-gallery/releases/download/diagnosis-v0.1.0/diagnosis.zip) and execute script `getkuberneteslogs.sh`  
 
 These are the logs retrieved by the script:
 
