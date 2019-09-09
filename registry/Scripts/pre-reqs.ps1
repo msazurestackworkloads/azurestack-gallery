@@ -31,6 +31,8 @@ New-AzureStorageContainer -Name $saContainer | out-null
 
 Write-Host "=> Storage Account Resource ID:" $sa.Id
 
+Write-Host "Assigning contributor role to" $spnName
+New-AzureRMRoleAssignment -ApplicationId $spnName -RoleDefinitionName "Contributor" -Scope $sa.Id
 
 # KEY VAULT
 # =============================================
