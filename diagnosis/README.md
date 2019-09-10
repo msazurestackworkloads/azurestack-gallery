@@ -31,12 +31,16 @@ These are the logs retrieved by the script:
 
 ## Optional Parameters
 
-`-n, --user-namespace`        - Collect logs from containers in the specified namespaces (`kube-system` logs are always collected)
+`-n, --user-namespace`         - Collect logs from containers in the specified namespaces (`kube-system` logs are always collected)
 
-`--disable-host-key-checking` - Sets SSH's `StrictHostKeyChecking` option to `no` while the script executes. Only use in a safe environment.
+`--all-namespaces`             - Collect logs from containers in all namespaces. It overrides --user-namespace
+
+`--disable-host-key-checking`  - Sets SSH's `StrictHostKeyChecking` option to `no` while the script executes. Only use in a safe environment.
 
 `--upload-logs`                - Persists retrieved logs in an Azure Stack storage account. Logs can be found in `KubernetesLogs` resource group.
 
 `--api-model`                  - Persists apimodel.json file in an Azure Stack Storage account. 
                                  Upload apimodel.json file to storage account happens when `--upload-logs` parameter is also provided.
+
+`-h, --help`                   - Print script usage
 
