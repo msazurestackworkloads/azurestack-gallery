@@ -68,6 +68,6 @@ $tp = Get-PfxCertificate -FilePath $pfxPath
 Write-Host "=> Certificate URL:" $kvSecret.Id
 Write-Host "=> Certificate thumbprint:" $tp.Thumbprint
 
-Write-Host "Storing secret for sample user: admin"
-$userSecret = ConvertTo-SecureString -String "admin" -AsPlainText -Force
-Set-AzureKeyVaultSecret -VaultName $kvName -Name "admin" -SecretValue $userSecret | out-null
+# Write-Host "Storing secret for sample user: admin"
+# $userSecret = ConvertTo-SecureString -String "admin" -AsPlainText -Force
+# Set-AzureKeyVaultSecret -VaultName $kvName -Name "admin" -SecretValue $userSecret | out-null
