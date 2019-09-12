@@ -72,4 +72,4 @@ Write-Host "=> Certificate thumbprint:" $tp.Thumbprint
 
 Write-Host "Storing secret for sample user: $userName"
 $userSecret = ConvertTo-SecureString -String $userPass -AsPlainText -Force
-Set-AzureKeyVaultSecret -VaultName $kvName -Name $userName -SecretValue $userSecret -ContentType "user credential" | out-null
+Set-AzureKeyVaultSecret -VaultName $kvName -Name $userName -SecretValue $userSecret -ContentType "user credentials" | out-null

@@ -3,7 +3,7 @@
 ERR_APT_INSTALL_TIMEOUT=9           # Timeout installing required apt packages
 ERR_MISSING_CRT_FILE=10             # Bad cert thumbprint OR pfx not in key vault OR template misconfigured VM secrets section
 ERR_MISSING_KEY_FILE=11             # Bad cert thumbprint OR pfx not in key vault OR template misconfigured VM secrets section
-ERR_MISSING_USER_CREDENTIAL=12      # Missing any user credential to connect to server
+ERR_MISSING_USER_CREDENTIALS=12      # No user credentials secret found on given key vault
 ERR_REGISTRY_NOT_RUNNING=13         # The container registry failed to start successfully
 ERR_MOBY_APT_LIST_TIMEOUT=25        # Timeout waiting for moby apt sources
 ERR_MS_GPG_KEY_DOWNLOAD_TIMEOUT=26  # Timeout waiting for MS GPG key download
@@ -130,7 +130,7 @@ fetchCredentials() {
 
     if [ ! -s .htpasswd ]; then
         echo ".htpasswd file is empty."
-        return $ERR_MISSING_USER_CREDENTIAL
+        return $ERR_MISSING_USER_CREDENTIALS
     fi
 }
 fetchStorageKeys() {
