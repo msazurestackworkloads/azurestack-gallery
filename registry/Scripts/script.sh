@@ -130,7 +130,7 @@ fetchCredentials() {
 
     if [ ! -s .htpasswd ]; then
         echo ".htpasswd file is empty."
-        return $ERR_MISSING_USER_CREDENTIALS
+        return 1
     fi
 }
 fetchStorageKeys() {
@@ -210,7 +210,7 @@ fetchStorageKeys
 echo fetching user credentials
 HTPASSWD_DIR="/root/auth"
 mkdir -p $HTPASSWD_DIR
-fetchCredentials
+fetchCredentials || exit $ERR_MISSING_USER_CREDENTIALS
 cp .htpasswd $HTPASSWD_DIR/.htpasswd
 
 echo starting registry container
