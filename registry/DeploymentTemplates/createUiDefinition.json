@@ -90,7 +90,7 @@
                     {
                         "name": "servicePrincipalClientId",
                         "type": "Microsoft.Common.TextBox",
-                        "label": "Client ID",
+                        "label": "Service Principal Client ID",
                         "constraints": {
                             "required": true
                         }
@@ -99,8 +99,8 @@
                         "name": "servicePrincipalClientSecret",
                         "type": "Microsoft.Common.PasswordBox",
                         "label": {
-                            "password": "Password",
-                            "confirmPassword": "Confirm password"
+                            "password": "Service Principal password",
+                            "confirmPassword": "Confirm Service Principal password"
                         },
                         "constraints": {
                             "required": true
