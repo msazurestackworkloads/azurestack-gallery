@@ -8,7 +8,7 @@
             "kubernetesConfig": {
                 "kubernetesImageBase": "",
                 "useInstanceMetadata": false,
-                "networkPlugin": "flannel",
+                "networkPlugin": "kubenet",
                 "cloudProviderRateLimitBucket": 0,
                 "cloudProviderRateLimitBucketWrite": 0
             }

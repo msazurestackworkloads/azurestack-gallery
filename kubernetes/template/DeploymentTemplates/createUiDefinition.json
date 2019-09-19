@@ -484,7 +484,7 @@
         "name": "networkPlugin",
         "type": "Microsoft.Common.DropDown",
         "label": "Network Plugin name",
-        "defaultValue": "Flannel",
+        "defaultValue": "Kubenet",
         "toolTip": "Network plugin which will deployed in Kubernetes cluster",
         "constraints": {
           "allowedValues": [
