@@ -103,7 +103,7 @@
     },
     "aksEngineReleaseVersion": {
       "type": "string",
-      "defaultValue": "v0.40.0",
+      "defaultValue": "v0.41.0",
       "metadata": {
         "description": "The version of AKS Engine to download"
       }
@@ -137,7 +137,7 @@
       }
     },
     "networkPlugin": {
-      "defaultValue": "flannel",
+      "defaultValue": "kubenet",
       "allowedValues": [
         "flannel",
         "azure",
