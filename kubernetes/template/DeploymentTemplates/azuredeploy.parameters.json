@@ -69,7 +69,7 @@
       "value": ""
     },
     "networkPlugin": {
-      "value": "flannel"
+      "value": "kubenet"
     },
     "availabilityProfile": {
       "value": "AvailabilitySet"
