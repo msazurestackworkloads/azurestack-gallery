@@ -39,7 +39,7 @@
       "value": ""
     },
     "nodeDistro": {
-      "value": ""
+      "value": "ubuntu"
     },  
     "customVnetName": {
       "value": ""
