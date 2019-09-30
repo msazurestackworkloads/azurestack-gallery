@@ -97,7 +97,7 @@ fetchOAuth() {
     echo ${OAUTH} | grep -e "/adfs$"
 
     if [ $? -eq 0 ]; then
-        TOKEN_URL="${OAUTH}adfs/oauth2/token"
+        TOKEN_URL="${OAUTH}/oauth2/token"
     else
         TOKEN_URL="${OAUTH}${TENANT_ID}/oauth2/token"
     fi
@@ -129,8 +129,8 @@ fetchCredentials() {
     done
 
     if [ ! -s .htpasswd ]; then
-        echo ".htpasswd file is empty."
-        return $ERR_MISSING_USER_CREDENTIALS
+        echo "file .htpasswd is empty, credentials were not created or there was an error fetching credentials from keyvault"
+        exit $ERR_MISSING_USER_CREDENTIALS
     fi
 }
 fetchStorageKeys() {
@@ -173,8 +173,8 @@ CRT_FILE="${CERT_THUMBPRINT}.crt"
 KEY_FILE="${CERT_THUMBPRINT}.prv"
 SECRET=$(openssl rand -base64 32)
 
-if [ -f /var/log.vhd/azure/golden-image-install.complete ]; then
-    echo "golden image; skipping dependencies installation"
+if [ -f /opt/azure/vhd-install.complete ]; then
+    echo "aks base image; skipping dependencies installation"
     rm -rf /home/packer
     deluser packer
     groupdel packer
@@ -211,11 +211,6 @@ echo fetching user credentials
 HTPASSWD_DIR="/root/auth"
 mkdir -p $HTPASSWD_DIR
 fetchCredentials
-returnCode=$?
-if [[ $returnCode != 0 ]]; then
-    exit $returnCode
-fi
-
 cp .htpasswd $HTPASSWD_DIR/.htpasswd
 
 echo starting registry container
