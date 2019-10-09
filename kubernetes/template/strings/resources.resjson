@@ -1,7 +1,7 @@
 {
     "displayName":  "Kubernetes Cluster",
     "publisherDisplayName": "Microsoft",
-    "summary": "An IaaS based template for deploying a standalone Kubernetes Cluster",
+    "summary": "An IaaS based template for deploying a standalone Kubernetes cluster",
     "longSummary": "This solution deploys a standalone Kubernetes cluster using AKS Engine.",
     "description": "This solution deploys a standalone Kubernetes cluster using AKS Engine. <p>This solution is intended for testing and demo scenarios. For production scenarios please use AKS Engine.</p> <p>Kubernetes is a distributed system platform used to build scalable, reliable, and easily-managed applications for the cloud. </p>",
 	"documentationLink": "Kubernetes Help",
