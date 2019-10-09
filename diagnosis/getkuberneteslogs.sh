@@ -35,6 +35,7 @@ copyLogsToSADirectory()
     az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{host:name,akse:tags.aksEngineVersion}" --output table | grep 'k8s-' > ${SA_DIR}/akse-version.txt
     
     cp ${LOGFILEFOLDER}/k8s-*.zip ${SA_DIR}
+    cp ${LOGFILEFOLDER}/vmd-*.zip ${SA_DIR}
     cp ${LOGFILEFOLDER}/cluster-snapshot.zip ${SA_DIR}
     
     if [ -n "$API_MODEL" ]
@@ -97,14 +98,11 @@ ensureStorageAccountContainer()
 uploadLogs()
 {
     echo "$(date +%Y%m%d%H%M%S)][INFO] Uploading log files to container: ${SA_CONTAINER}"
-    az storage blob upload-batch -d ${SA_CONTAINER} -s ${SA_DIR} --destination-path ${SA_CONTAINER_DIR} --pattern *.zip --account-name ${SA_NAME}
+    az storage blob upload-batch -d ${SA_CONTAINER} -s ${SA_DIR} --destination-path ${SA_CONTAINER_DIR} --account-name ${SA_NAME}
     if [ $? -ne 0 ]; then
         echo "$(date +%Y%m%d%H%M%S)][ERR] Error uploading log files to container ${SA_CONTAINER}"
         exit 1
     fi
-    
-    az storage blob upload-batch -d ${SA_CONTAINER} -s ${SA_DIR} --destination-path ${SA_CONTAINER_DIR} --pattern *.json --account-name ${SA_NAME}
-    az storage blob upload-batch -d ${SA_CONTAINER} -s ${SA_DIR} --destination-path ${SA_CONTAINER_DIR} --pattern akse-version.txt --account-name ${SA_NAME}
 }
 
 processHost()
