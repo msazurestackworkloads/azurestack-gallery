@@ -124,6 +124,11 @@ TENANT_ID=$(sudo jq -r '.tenantId' /etc/kubernetes/azure.json)
 SUB_ID=$(sudo jq -r '.subscriptionId' /etc/kubernetes/azure.json)
 RESOURCE_GROUP=$(sudo jq -r '.resourceGroup' /etc/kubernetes/azure.json)
 
+if [ "${TENANT_ID}" == "adfs" ]
+then
+    TENANT_ID=$(sudo jq -r '.serviceManagementEndpoint' /etc/kubernetes/azurestackcloud.json | cut -d / -f4)
+fi
+
 for cid in $(docker ps -a -q --no-trunc)
 do
     cns=$(docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.namespace" }}' ${cid})
