@@ -210,7 +210,7 @@
     "customWindowsPackageURL": {
       "defaultValue": "",
       "metadata": {
-        "description": "Custom Windows K8s zip location which will be used to deploy(kubelet, kubeproxy) on windows node."
+        "description": "Custom Windows K8s zip location which will be used to deploy(kubelet, kubeproxy) on Windows node."
       },
       "type": "string"
     },
