@@ -390,7 +390,7 @@ fi
 #####################################################################################
 # custom windows package URL
 if [ "$WINDOWS_CUSTOM_PACKAGE" != "" ]; then
-    log_level -i "Adding Windows custom package url details."
+    log_level -i "Adding Windows custom package URL details."
 
     cat $AZURESTACK_CONFIGURATION | \
     jq --arg CUSTOM_PACKAGE $WINDOWS_CUSTOM_PACKAGE '.properties.orchestratorProfile.kubernetesConfig += {"customWindowsPackageURL": $CUSTOM_PACKAGE } '  \
@@ -398,8 +398,9 @@ if [ "$WINDOWS_CUSTOM_PACKAGE" != "" ]; then
 
     validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
 
-    log_level -i "Done updating Windows custom package url details."
+    log_level -i "Done updating Windows custom package URL details."
 fi
+
 #####################################################################################
 # apimodel gen
 
