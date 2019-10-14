@@ -683,7 +683,7 @@
         "type": "Microsoft.Common.TextBox",
         "label": "Custom Windows package URL",
         "defaultValue": "",
-        "toolTip": "Custom Windows K8s package URL which will be deployed on K8s version.",
+        "toolTip": "Custom Windows K8s zip location which will be used to deploy(kubelet, kubeproxy) on windows node.",
         "visible": false
       },      
       {
