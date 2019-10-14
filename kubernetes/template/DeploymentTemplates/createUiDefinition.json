@@ -679,6 +679,14 @@
         "visible": false
       },
       {
+        "name": "customWindowsPackageURL",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Custom Windows package URL",
+        "defaultValue": "",
+        "toolTip": "Custom Windows K8s package URL which will be deployed on K8s version.",
+        "visible": false
+      },      
+      {
         "name": "kubernetesImageBase",
         "type": "Microsoft.Common.TextBox",
         "label": "Kubernetes Image Base",
@@ -715,6 +723,7 @@
       "windowsAgentPoolProfileVMSize": "[steps('KubernetesClusterSettings').windowsAgentPoolProfileVMSize]",
       "windowsAdminUsername": "[steps('KubernetesClusterSettings').windowsAdminUsername]",
       "windowsAdminPassword": "[steps('KubernetesClusterSettings').windowsAdminPassword]",
+      "customWindowsPackageURL": "[steps('KubernetesClusterSettings').customWindowsPackageURL]",
       "kubernetesImageBase": "[steps('KubernetesClusterSettings').kubernetesImageBase]"
     }
   }
