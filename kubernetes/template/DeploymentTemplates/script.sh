@@ -254,6 +254,7 @@ log_level -i "WINDOWS_ADMIN_USERNAME:                   $WINDOWS_ADMIN_USERNAME"
 log_level -i "WINDOWS_ADMIN_PASSWORD:                   ----"
 log_level -i "WINDOWS_AGENT_COUNT:                      $WINDOWS_AGENT_COUNT"
 log_level -i "WINDOWS_AGENT_SIZE:                       $WINDOWS_AGENT_SIZE"
+log_level -i "WINDOWS_CUSTOM_PACKAGE:                   $WINDOWS_CUSTOM_PACKAGE"
 
 
 if [[ "$WINDOWS_AGENT_COUNT" == "0" ]] && [[ "$AGENT_COUNT" == "0" ]]; then
@@ -384,6 +385,20 @@ if [ "$CUSTOM_VNET_NAME" != "" ]; then
     validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
 
     log_level -i "Done building custom vnet  definition."
+fi
+
+#####################################################################################
+# custom windows package URL
+if [ "$WINDOWS_CUSTOM_PACKAGE" != "" ]; then
+    log_level -i "Adding Windows custom package URL details."
+
+    cat $AZURESTACK_CONFIGURATION | \
+    jq --arg CUSTOM_PACKAGE $WINDOWS_CUSTOM_PACKAGE '.properties.orchestratorProfile.kubernetesConfig += {"customWindowsPackageURL": $CUSTOM_PACKAGE } '  \
+    > $AZURESTACK_CONFIGURATION_TEMP
+
+    validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
+
+    log_level -i "Done updating Windows custom package URL details."
 fi
 
 #####################################################################################
