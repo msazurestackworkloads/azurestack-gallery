@@ -88,6 +88,9 @@
     },
     "kubernetesImageBase": {
       "value": ""
+    },
+    "customWindowsPackageURL": {
+      "value": ""
     }
   }
 }
