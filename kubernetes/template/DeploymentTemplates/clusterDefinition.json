@@ -38,10 +38,6 @@
         "windowsProfile": {
             "adminUsername": "azureuser",
             "adminPassword": "",
-            "imageVersion": "latest",
-            "WindowsPublisher": "microsoft-aks",
-            "WindowsOffer": "aks-windows",
-            "WindowsSku": "2019-Datacenter-Core-with-Containers-smalldisk",
             "sshEnabled": true
         },
         "servicePrincipalProfile": {
