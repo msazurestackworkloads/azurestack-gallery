@@ -212,7 +212,7 @@ apt_get_install()
 #####################################################################################
 # start
 
-log_level -i "Starting Kubernetes cluster deployment: v0.5.2"
+log_level -i "Starting Kubernetes cluster deployment: v1.0.0"
 log_level -i "Running script as:  $(whoami)"
 log_level -i "System information: $(uname -a)"
 
