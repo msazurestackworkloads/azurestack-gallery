@@ -39,9 +39,9 @@
             "adminUsername": "azureuser",
             "adminPassword": "",
             "imageVersion": "latest",
-            "WindowsPublisher": "MicrosoftWindowsServer",
-            "WindowsOffer": "WindowsServer",
-            "WindowsSku": "2019-Datacenter-Core-with-Containers",
+            "WindowsPublisher": "microsoft-aks",
+            "WindowsOffer": "aks-windows",
+            "WindowsSku": "2019-Datacenter-Core-with-Containers-smalldisk",
             "sshEnabled": true
         },
         "servicePrincipalProfile": {
