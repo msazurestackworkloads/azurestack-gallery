@@ -422,13 +422,19 @@ if [ "$CUSTOM_VNET_NAME" != "" ]; then
     validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
 
     if [ "$WINDOWS_AGENT_COUNT" != "0" ]; then
+
         log_level -i "Updating custom vnet properties for Windows nodes."
-        cat $AZURESTACK_CONFIGURATION | \
-        jq --arg AGENT_VNET_ID $AGENT_VNET_ID '.properties.agentPoolProfiles[1] += {"vnetSubnetId": $AGENT_VNET_ID } '  \
-        > $AZURESTACK_CONFIGURATION_TEMP
+        if [ "$AGENT_COUNT" != "0" ]; then        
+            cat $AZURESTACK_CONFIGURATION | \
+            jq --arg AGENT_VNET_ID $AGENT_VNET_ID '.properties.agentPoolProfiles[1] += {"vnetSubnetId": $AGENT_VNET_ID } '  \
+            > $AZURESTACK_CONFIGURATION_TEMP
+        else
+            cat $AZURESTACK_CONFIGURATION | \
+            jq --arg AGENT_VNET_ID $AGENT_VNET_ID '.properties.agentPoolProfiles[0] += {"vnetSubnetId": $AGENT_VNET_ID } '  \
+            > $AZURESTACK_CONFIGURATION_TEMP
+        fi
 
         validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
-
         log_level -i "Custom vnet properties update for Windows nodes done ."
     fi
 
