@@ -228,6 +228,7 @@ log_level -i "AKSE_RELEASE_VERSION                      $AKSE_RELEASE_VERSION"
 log_level -i "AVAILABILITY_PROFILE                      $AVAILABILITY_PROFILE"
 log_level -i "CUSTOM_VNET_NAME:                         $CUSTOM_VNET_NAME"
 log_level -i "DEFINITION_TEMPLATE_NAME:                 $DEFINITION_TEMPLATE_NAME"
+log_level -i "ENABLE_TILLER:                            $ENABLE_TILLER"
 log_level -i "FIRST_CONSECUTIVE_STATIC_IP:              $FIRST_CONSECUTIVE_STATIC_IP"
 log_level -i "GALLERY_BRANCH:                           $GALLERY_BRANCH"
 log_level -i "GALLERY_REPO:                             $GALLERY_REPO"
@@ -462,6 +463,7 @@ jq --arg IDENTITY_SYSTEM_LOWER $IDENTITY_SYSTEM_LOWER '.properties.customCloudPr
 jq --arg K8S_VERSION $K8S_AZURE_CLOUDPROVIDER_VERSION '.properties.orchestratorProfile.orchestratorRelease=$K8S_VERSION' | \
 jq --arg K8S_IMAGE_BASE $K8S_IMAGE_BASE '.properties.orchestratorProfile.kubernetesConfig.kubernetesImageBase=$K8S_IMAGE_BASE' | \
 jq --arg NETWORK_PLUGIN $NETWORK_PLUGIN '.properties.orchestratorProfile.kubernetesConfig.networkPlugin=$NETWORK_PLUGIN' \
+jq --arg NETWORK_PLUGIN $NETWORK_PLUGIN '.properties.orchestratorProfile.kubernetesConfig.addons[0].enabled=$ENABLE_TILLER' \
 > $AZURESTACK_CONFIGURATION_TEMP
 
 validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL

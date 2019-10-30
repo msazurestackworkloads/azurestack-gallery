@@ -10,7 +10,13 @@
                 "useInstanceMetadata": false,
                 "networkPlugin": "kubenet",
                 "cloudProviderRateLimitBucket": 0,
-                "cloudProviderRateLimitBucketWrite": 0
+                "cloudProviderRateLimitBucketWrite": 0,
+                "addons": [
+                    {
+                      "name": "tiller",
+                      "enabled": false
+                    }
+                ]
             }
         },
         "customCloudProfile": {
