@@ -369,22 +369,27 @@ if [ "$AGENT_COUNT" != "0" ]; then
 fi
 
 #####################################################################################
-#custom vnet config 
-
-if [ "$CUSTOM_VNET_NAME" != "" ]; then
-    log_level -i "Setting general custom vnet properties."
-    MASTER_VNET_ID="/subscriptions/$TENANT_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP_NAME/providers/Microsoft.Network/virtualNetworks/$CUSTOM_VNET_NAME/subnets/$MASTER_SUBNET_NAME"
-    AGENT_VNET_ID="/subscriptions/$TENANT_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP_NAME/providers/Microsoft.Network/virtualNetworks/$CUSTOM_VNET_NAME/subnets/$AGENT_SUBNET_NAME"
+#Windows Agent
+if [ "$WINDOWS_AGENT_COUNT" != "0" ]; then
+    log_level -i "Update cluster definition with Windows profile details."
 
     cat $AZURESTACK_CONFIGURATION | \
-    jq --arg MASTER_VNET_ID $MASTER_VNET_ID  '.properties.masterProfile += {"vnetSubnetId": $MASTER_VNET_ID } '| \
-    jq --arg FIRST_CONSECUTIVE_STATIC_IP $FIRST_CONSECUTIVE_STATIC_IP  '.properties.masterProfile += {"firstConsecutiveStaticIP": $FIRST_CONSECUTIVE_STATIC_IP } ' | \
-    jq --arg AGENT_VNET_ID $AGENT_VNET_ID '.properties.agentPoolProfiles[0] += {"vnetSubnetId": $AGENT_VNET_ID } '  \
+    jq --arg WINDOWS_ADMIN_USERNAME $WINDOWS_ADMIN_USERNAME '.properties.windowsProfile.adminUsername=$WINDOWS_ADMIN_USERNAME' | \
+    jq --arg WINDOWS_ADMIN_PASSWORD $WINDOWS_ADMIN_PASSWORD '.properties.windowsProfile.adminPassword=$WINDOWS_ADMIN_PASSWORD' \
     > $AZURESTACK_CONFIGURATION_TEMP
 
     validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
 
-    log_level -i "Done building custom vnet  definition."
+    log_level -i "Update Windows agent node details."
+
+    cat $AZURESTACK_CONFIGURATION | \
+    jq --arg winAgentCount $WINDOWS_AGENT_COUNT --arg winAgentSize $WINDOWS_AGENT_SIZE --arg winAvailabilityProfile $AVAILABILITY_PROFILE \
+    '.properties.agentPoolProfiles += [{"name": "windowspool", "osDiskSizeGB": 128, "AcceleratedNetworkingEnabled": false, "osType": "Windows", "count": $winAgentCount | tonumber, "vmSize": $winAgentSize, "availabilityProfile": $winAvailabilityProfile}]' \
+    > $AZURESTACK_CONFIGURATION_TEMP
+
+    validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
+
+    log_level -i "Updating cluster definition done with Windows agent node details."
 fi
 
 #####################################################################################
@@ -399,6 +404,35 @@ if [ "$WINDOWS_CUSTOM_PACKAGE" != "" ]; then
     validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
 
     log_level -i "Done updating Windows custom package URL details."
+fi
+
+#####################################################################################
+#custom vnet config 
+if [ "$CUSTOM_VNET_NAME" != "" ]; then
+    log_level -i "Setting general custom vnet properties."
+    MASTER_VNET_ID="/subscriptions/$TENANT_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP_NAME/providers/Microsoft.Network/virtualNetworks/$CUSTOM_VNET_NAME/subnets/$MASTER_SUBNET_NAME"
+    AGENT_VNET_ID="/subscriptions/$TENANT_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP_NAME/providers/Microsoft.Network/virtualNetworks/$CUSTOM_VNET_NAME/subnets/$AGENT_SUBNET_NAME"
+
+    cat $AZURESTACK_CONFIGURATION | \
+    jq --arg MASTER_VNET_ID $MASTER_VNET_ID  '.properties.masterProfile += {"vnetSubnetId": $MASTER_VNET_ID } '| \
+    jq --arg FIRST_CONSECUTIVE_STATIC_IP $FIRST_CONSECUTIVE_STATIC_IP  '.properties.masterProfile += {"firstConsecutiveStaticIP": $FIRST_CONSECUTIVE_STATIC_IP } ' | \
+    jq --arg AGENT_VNET_ID $AGENT_VNET_ID '.properties.agentPoolProfiles[0] += {"vnetSubnetId": $AGENT_VNET_ID } '  \
+    > $AZURESTACK_CONFIGURATION_TEMP
+
+    validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
+
+    if [ "$WINDOWS_AGENT_COUNT" != "0" ]; then
+        log_level -i "Updating custom vnet properties for Windows nodes."
+        cat $AZURESTACK_CONFIGURATION | \
+        jq --arg AGENT_VNET_ID $AGENT_VNET_ID '.properties.agentPoolProfiles[1] += {"vnetSubnetId": $AGENT_VNET_ID } '  \
+        > $AZURESTACK_CONFIGURATION_TEMP
+
+        validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
+
+        log_level -i "Custom vnet properties update for Windows nodes done ."
+    fi
+
+    log_level -i "Done building custom vnet  definition."
 fi
 
 #####################################################################################
@@ -428,27 +462,7 @@ validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTA
 
 
 
-if [ "$WINDOWS_AGENT_COUNT" != "0" ]; then
-    log_level -i "Update cluster definition with Windows profile details."
 
-    cat $AZURESTACK_CONFIGURATION | \
-    jq --arg WINDOWS_ADMIN_USERNAME $WINDOWS_ADMIN_USERNAME '.properties.windowsProfile.adminUsername=$WINDOWS_ADMIN_USERNAME' | \
-    jq --arg WINDOWS_ADMIN_PASSWORD $WINDOWS_ADMIN_PASSWORD '.properties.windowsProfile.adminPassword=$WINDOWS_ADMIN_PASSWORD' \
-    > $AZURESTACK_CONFIGURATION_TEMP
-
-    validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
-
-    log_level -i "Update Windows agent node details."
-
-    cat $AZURESTACK_CONFIGURATION | \
-    jq --arg winAgentCount $WINDOWS_AGENT_COUNT --arg winAgentSize $WINDOWS_AGENT_SIZE --arg winAvailabilityProfile $AVAILABILITY_PROFILE \
-    '.properties.agentPoolProfiles += [{"name": "windowspool", "osDiskSizeGB": 128, "AcceleratedNetworkingEnabled": false, "osType": "Windows", "count": $winAgentCount | tonumber, "vmSize": $winAgentSize, "availabilityProfile": $winAvailabilityProfile}]' \
-    > $AZURESTACK_CONFIGURATION_TEMP
-
-    validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
-
-    log_level -i "Updating cluster definition done with Windows agent node details."
-fi
 
 log_level -i "Done building cluster definition."
 
