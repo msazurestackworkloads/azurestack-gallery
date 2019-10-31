@@ -109,7 +109,7 @@
     },
     "galleryBranch": {
       "type": "string",
-      "defaultValue": "master",
+      "defaultValue": "patch-release-v0.43.0-azs-1910-30",
       "metadata": {
         "description": "Marketplace item branch"
       }
