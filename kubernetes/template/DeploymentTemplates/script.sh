@@ -463,7 +463,7 @@ jq --arg IDENTITY_SYSTEM_LOWER $IDENTITY_SYSTEM_LOWER '.properties.customCloudPr
 jq --arg K8S_VERSION $K8S_AZURE_CLOUDPROVIDER_VERSION '.properties.orchestratorProfile.orchestratorRelease=$K8S_VERSION' | \
 jq --arg K8S_IMAGE_BASE $K8S_IMAGE_BASE '.properties.orchestratorProfile.kubernetesConfig.kubernetesImageBase=$K8S_IMAGE_BASE' | \
 jq --arg NETWORK_PLUGIN $NETWORK_PLUGIN '.properties.orchestratorProfile.kubernetesConfig.networkPlugin=$NETWORK_PLUGIN' | \
-jq --arg ENABLE_TILLER $ENABLE_TILLER '.properties.orchestratorProfile.kubernetesConfig.addons[0].enabled=$ENABLE_TILLER' \
+jq --arg ENABLE_TILLER $ENABLE_TILLER '.properties.orchestratorProfile.kubernetesConfig.addons[0].enabled= ($ENABLE_TILLER | test("true"))' \
 > $AZURESTACK_CONFIGURATION_TEMP
 
 validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
