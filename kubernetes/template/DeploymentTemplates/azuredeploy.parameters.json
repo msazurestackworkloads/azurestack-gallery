@@ -91,6 +91,9 @@
     },
     "customWindowsPackageURL": {
       "value": ""
+    },
+    "enableTillerAddOn": {
+      "value": "false"
     }
   }
 }

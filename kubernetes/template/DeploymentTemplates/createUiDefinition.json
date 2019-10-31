@@ -477,6 +477,14 @@
         "visible": false
       },
       {
+        "name": "enableTillerAddOn",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Flag to enable Tiller addon",
+        "defaultValue": "false",
+        "toolTip": "Flag to enable Tiller addon",       
+        "visible": false
+      },
+      {
         "name": "networkPlugin",
         "type": "Microsoft.Common.DropDown",
         "label": "Network Plugin name",
@@ -714,6 +722,7 @@
       "galleryBranch": "[steps('KubernetesClusterSettings').galleryBranch]",
       "clusterDefinitionFileName": "[steps('KubernetesClusterSettings').clusterDefinitionFileName]",
       "networkPlugin": "[steps('KubernetesClusterSettings').networkPlugin]",
+      "enableTillerAddOn": "[steps('KubernetesClusterSettings').enableTillerAddOn]",
       "availabilityProfile": "[steps('KubernetesClusterSettings').availabilityProfile]",
       "windowsAgentPoolProfileCount": "[steps('KubernetesClusterSettings').windowsAgentPoolProfileCount]",
       "windowsAgentPoolProfileVMSize": "[steps('KubernetesClusterSettings').windowsAgentPoolProfileVMSize]",
