@@ -386,6 +386,9 @@
           },
           "kubernetesImageBase": {
             "value": "[parameters('kubernetesImageBase')]"
+          },
+          "enableTillerAddOn": {
+            "value": "[parameters('enableTillerAddOn')]"
           }
         }
       }
