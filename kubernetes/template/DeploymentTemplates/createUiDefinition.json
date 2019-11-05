@@ -485,6 +485,25 @@
         "visible": false
       },
       {
+        "name": "containerRuntime",
+        "type": "Microsoft.Common.DropDown",
+        "label": "Container runtime to deploy on each cluster node",
+        "defaultValue": "docker",
+        "constraints": {
+          "allowedValues": [
+            {
+              "label": "docker",
+              "value": "docker"
+            },
+            {
+              "label": "containerd",
+              "value": "containerd"
+            }
+          ]
+        },
+        "visible": false
+      },
+      {
         "name": "networkPlugin",
         "type": "Microsoft.Common.DropDown",
         "label": "Network Plugin name",
@@ -723,6 +742,7 @@
       "clusterDefinitionFileName": "[steps('KubernetesClusterSettings').clusterDefinitionFileName]",
       "networkPlugin": "[steps('KubernetesClusterSettings').networkPlugin]",
       "enableTillerAddOn": "[steps('KubernetesClusterSettings').enableTillerAddOn]",
+      "containerRuntime": "[steps('KubernetesClusterSettings').containerRuntime]",
       "availabilityProfile": "[steps('KubernetesClusterSettings').availabilityProfile]",
       "windowsAgentPoolProfileCount": "[steps('KubernetesClusterSettings').windowsAgentPoolProfileCount]",
       "windowsAgentPoolProfileVMSize": "[steps('KubernetesClusterSettings').windowsAgentPoolProfileVMSize]",
