@@ -473,6 +473,7 @@ export SERVICE_MANAGEMENT_VM_DNS_SUFFIX="cloudapp.net"
 export RESOURCE_MANAGER_VM_DNS_SUFFIX=$FQDN_ENDPOINT_SUFFIX
 export SSH_KEY_NAME="id_rsa"
 export PORTAL_ENDPOINT=$ENDPOINT_PORTAL
+#time sync is a known flake at present w/ 18.04-LTS - should have healthy time synchronization
 export GINKGO_SKIP="should be able to produce working LoadBalancers|should have healthy time synchronization"
 
 make bootstrap

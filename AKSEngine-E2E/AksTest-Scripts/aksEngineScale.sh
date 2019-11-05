@@ -240,6 +240,7 @@ else
 fi
 
 if [ $NODE_COUNT -gt 1 ] ; then
+    #time sync is a known flake at present w/ 18.04-LTS - should have healthy time synchronization
     export GINKGO_SKIP="should have have the appropriate node count|should have node labels and annotations|should be able to produce working LoadBalancers|should have healthy time synchronization"
 fi
 
