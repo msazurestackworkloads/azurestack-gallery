@@ -1,17 +1,17 @@
 #! /bin/bash
 set -e
 
-log_level() 
-{ 
+log_level()
+{
     case "$1" in
-       -e) echo "$(date) [Error]  : " ${@:2}
-          ;;
-       -w) echo "$(date) [Warning]: " ${@:2}
-          ;;       
-       -i) echo "$(date) [Info]   : " ${@:2}
-          ;;
-       *)  echo "$(date) [Verbose]: " ${@:2}
-          ;;
+        -e) echo "$(date) [Error]  : " ${@:2}
+        ;;
+        -w) echo "$(date) [Warning]: " ${@:2}
+        ;;
+        -i) echo "$(date) [Info]   : " ${@:2}
+        ;;
+        *)  echo "$(date) [Verbose]: " ${@:2}
+        ;;
     esac
 }
 
@@ -19,36 +19,36 @@ log_level()
 while [[ "$#" -gt 0 ]]
 
 do
-
+    
     case $1 in
-
+        
         --tenant-id)
-
+            
             TENANT_ID="$2"
-
+            
             shift 2
-
+            
         ;;
-
+        
         --subscription-id)
-
+            
             TENANT_SUBSCRIPTION_ID="$2"
-
+            
             shift 2
-
+            
         ;;
-
+        
         --node-count)
-
+            
             NODE_COUNT="$2"
-
+            
             shift 2
-
+            
         ;;
         *)
-
+            
     esac
-
+    
 done
 
 
@@ -58,13 +58,13 @@ done
 if [ -z "$TENANT_ID" ]
 
 then
-
+    
     echo ""
-
+    
     echo "[ERR] --tenant-id is required"
-
+    
     printUsage
-
+    
 fi
 
 
@@ -72,26 +72,26 @@ fi
 if [ -z "$TENANT_SUBSCRIPTION_ID" ]
 
 then
-
+    
     echo ""
-
+    
     echo "[ERR] --subscription-id is required"
-
+    
     printUsage
-
+    
 fi
 
 
 if [ -z "$NODE_COUNT" ]
 
 then
-
+    
     echo ""
-
+    
     echo "[ERR] --node-count is required"
-
+    
     printUsage
-
+    
 fi
 
 
@@ -170,23 +170,23 @@ CLIENT_SECRET=$(cat $ROOT_PATH/_output/$APIMODEL_FILE | jq '.properties.serviceP
 export CLIENT_SECRET=$CLIENT_SECRET
 
 if [ $CLIENT_SECRET == "" ] ; then
-   log_level -i "Client Secret not found.Scale can not be performed"
-   exit 1
+    log_level -i "Client Secret not found.Scale can not be performed"
+    exit 1
 fi
 
 ./bin/aks-engine scale \
-        --azure-env $AZURE_ENV \
-        --subscription-id $SUBSCRIPTION_ID \
-        --api-model $OUTPUT \
-        --location $REGION \
-        --resource-group $RESOURCE_GROUP  \
-        --master-FQDN $MASTER_FQDN \
-        --node-pool $AGENT_POOL \
-        --new-node-count $NODE_COUNT \
-        --auth-method $AUTH_METHOD \
-        --client-id $CLIENT_ID \
-        --client-secret $CLIENT_SECRET \
-        --identity-system $IDENTITY_SYSTEM || exit 1    
+--azure-env $AZURE_ENV \
+--subscription-id $SUBSCRIPTION_ID \
+--api-model $OUTPUT \
+--location $REGION \
+--resource-group $RESOURCE_GROUP  \
+--master-FQDN $MASTER_FQDN \
+--node-pool $AGENT_POOL \
+--new-node-count $NODE_COUNT \
+--auth-method $AUTH_METHOD \
+--client-id $CLIENT_ID \
+--client-secret $CLIENT_SECRET \
+--identity-system $IDENTITY_SYSTEM || exit 1
 
 # Scale up and down windows node if present.
 WINDOWS_AGENT_POOL=$(cat $ROOT_PATH/_output/$RESOURCE_GROUP/apimodel.json | jq '.properties.agentPoolProfiles | .[] | select (.osType == "Windows" ) | .name' | tr -d '"')
@@ -194,18 +194,18 @@ if [[ -z "$WINDOWS_AGENT_POOL" ]] ; then
     echo "No windows pool found."
 else
     ./bin/aks-engine scale \
-            --azure-env $AZURE_ENV \
-            --subscription-id $SUBSCRIPTION_ID \
-            --api-model $OUTPUT \
-            --location $REGION \
-            --resource-group $RESOURCE_GROUP  \
-            --master-FQDN $MASTER_FQDN \
-            --node-pool $WINDOWS_AGENT_POOL \
-            --new-node-count $NODE_COUNT \
-            --auth-method $AUTH_METHOD \
-            --client-id $CLIENT_ID \
-            --client-secret $CLIENT_SECRET \
-            --identity-system $IDENTITY_SYSTEM || exit 1
+    --azure-env $AZURE_ENV \
+    --subscription-id $SUBSCRIPTION_ID \
+    --api-model $OUTPUT \
+    --location $REGION \
+    --resource-group $RESOURCE_GROUP  \
+    --master-FQDN $MASTER_FQDN \
+    --node-pool $WINDOWS_AGENT_POOL \
+    --new-node-count $NODE_COUNT \
+    --auth-method $AUTH_METHOD \
+    --client-id $CLIENT_ID \
+    --client-secret $CLIENT_SECRET \
+    --identity-system $IDENTITY_SYSTEM || exit 1
 fi
 
 log_level -i "Scaling of kubernetes cluster completed.Running E2E test..."
@@ -240,7 +240,7 @@ else
 fi
 
 if [ $NODE_COUNT -gt 1 ] ; then
-    export GINKGO_SKIP="should have have the appropriate node count|should have node labels and annotations|should be able to produce working LoadBalancers"
+    export GINKGO_SKIP="should have have the appropriate node count|should have node labels and annotations|should be able to produce working LoadBalancers|should have healthy time synchronization"
 fi
 
 #####################################################################################
@@ -295,4 +295,4 @@ if [ $RESULT -gt 3 ] ; then
 else
     exit 0
 fi
-   
+

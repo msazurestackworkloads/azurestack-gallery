@@ -1,53 +1,53 @@
 #! /bin/bash
 set -e
 
-log_level() 
-{ 
+log_level()
+{
     case "$1" in
-       -e) echo "$(date) [Error]  : " ${@:2}
-          ;;
-       -w) echo "$(date) [Warning]: " ${@:2}
-          ;;       
-       -i) echo "$(date) [Info]   : " ${@:2}
-          ;;
-       *)  echo "$(date) [Verbose]: " ${@:2}
-          ;;
+        -e) echo "$(date) [Error]  : " ${@:2}
+        ;;
+        -w) echo "$(date) [Warning]: " ${@:2}
+        ;;
+        -i) echo "$(date) [Info]   : " ${@:2}
+        ;;
+        *)  echo "$(date) [Verbose]: " ${@:2}
+        ;;
     esac
 }
 
 while [[ "$#" -gt 0 ]]
 
 do
-
+    
     case $1 in
-
+        
         --tenant-id)
-
+            
             TENANT_ID="$2"
-
+            
             shift 2
-
+            
         ;;
-
+        
         --subscription-id)
-
+            
             TENANT_SUBSCRIPTION_ID="$2"
-
+            
             shift 2
-
+            
         ;;
-
+        
         --upgrade-version)
-
+            
             UPGRADE_VERSION="$2"
-
+            
             shift 2
-
+            
         ;;
         *)
-
+            
     esac
-
+    
 done
 
 
@@ -57,37 +57,37 @@ done
 if [ -z "$TENANT_ID" ]
 
 then
-
+    
     echo ""
-
+    
     echo "[ERR] --tenant-id is required"
-
+    
     printUsage
-
+    
 fi
 
 if [ -z "$TENANT_SUBSCRIPTION_ID" ]
 
 then
-
+    
     echo ""
-
+    
     echo "[ERR] --subscription-id is required"
-
+    
     printUsage
-
+    
 fi
 
 if [ -z "$UPGRADE_VERSION" ]
 
 then
-
+    
     echo ""
-
+    
     echo "[ERR] --upgrade-version is required"
-
+    
     printUsage
-
+    
 fi
 
 
@@ -169,22 +169,22 @@ CLIENT_SECRET=$(cat $ROOT_PATH/_output/$APIMODEL_FILE | jq '.properties.serviceP
 export CLIENT_SECRET=$CLIENT_SECRET
 
 if [ $CLIENT_SECRET == "" ] ; then
-   log_level -i "Client Secret not found.Upgrade can not be performed"
+    log_level -i "Client Secret not found.Upgrade can not be performed"
     exit 1
 fi
-    
+
 ./bin/aks-engine upgrade \
-        --azure-env $AZURE_ENV \
-        --subscription-id $SUBSCRIPTION_ID \
-        --api-model $OUTPUT \
-        --location $REGION \
-        --resource-group $RESOURCE_GROUP  \
-        --auth-method $AUTH_METHOD \
-        --client-id $CLIENT_ID \
-        --upgrade-version $UPGRADE_VERSION \
-        --client-secret $CLIENT_SECRET \
-        --identity-system $IDENTITY_SYSTEM \
-        --force || exit 1
+--azure-env $AZURE_ENV \
+--subscription-id $SUBSCRIPTION_ID \
+--api-model $OUTPUT \
+--location $REGION \
+--resource-group $RESOURCE_GROUP  \
+--auth-method $AUTH_METHOD \
+--client-id $CLIENT_ID \
+--upgrade-version $UPGRADE_VERSION \
+--client-secret $CLIENT_SECRET \
+--identity-system $IDENTITY_SYSTEM \
+--force || exit 1
 
 
 log_level -i "Upgrading of kubernetes cluster completed.Running E2E test..."
@@ -212,7 +212,7 @@ export SERVICE_MANAGEMENT_VM_DNS_SUFFIX="cloudapp.net"
 export RESOURCE_MANAGER_VM_DNS_SUFFIX=$FQDN_ENDPOINT_SUFFIX
 export SSH_KEY_NAME="id_rsa"
 export PORTAL_ENDPOINT=$ENDPOINT_PORTAL
-export GINKGO_SKIP="should be able to produce working LoadBalancers"
+export GINKGO_SKIP="should be able to produce working LoadBalancers|should have healthy time synchronization"
 
 if [ $IDENTITY_SYSTEM == "adfs" ] ; then
     export ACTIVE_DIRECTORY_ENDPOINT=${ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT}adfs
@@ -264,7 +264,7 @@ make bootstrap
 eval `ssh-agent`
 
 set +e
-make test-kubernetes > upgrade_test_results 
+make test-kubernetes > upgrade_test_results
 set -e
 
 RESULT=$?

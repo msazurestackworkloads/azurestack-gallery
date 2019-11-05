@@ -4,14 +4,14 @@ ERR_APT_INSTALL_TIMEOUT=9 # Timeout installing required apt packages
 ERR_AKSE_DOWNLOAD=10 # Failure downloading AKS-Engine binaries
 ERR_AKSE_DEPLOY=12 # Failure calling AKS-Engine's deploy operation
 ERR_TEMPLATE_DOWNLOAD=13 # Failure downloading AKS-Engine template
-ERR_INVALID_AGENT_COUNT_VALUE=14 # Both Windows and Linux agent value is zero 
+ERR_INVALID_AGENT_COUNT_VALUE=14 # Both Windows and Linux agent value is zero
 ERR_CACERT_INSTALL=20 # Failure moving CA certificate
 ERR_METADATA_ENDPOINT=30 # Failure calling the metadata endpoint
 ERR_API_MODEL=40 # Failure building API model using user input
 ERR_AZS_CLOUD_REGISTER=50 # Failure calling az cloud register
 ERR_APT_UPDATE_TIMEOUT=99 # Timeout waiting for apt-get update to complete
 
-### 
+###
 #   <summary>
 #       Logs output by prepending date and log level type(Error, warning, info or verbose).
 #   </summary>
@@ -21,21 +21,21 @@ ERR_APT_UPDATE_TIMEOUT=99 # Timeout waiting for apt-get update to complete
 #   <exception>None</exception>
 #   <remarks>Called within same scripts.</remarks>
 ###
-log_level() 
-{ 
+log_level()
+{
     case "$1" in
-       -e) echo "$(date) [Error]  : " ${@:2}
-          ;;
-       -w) echo "$(date) [Warning]: " ${@:2}
-          ;;       
-       -i) echo "$(date) [Info]   : " ${@:2}
-          ;;
-       *)  echo "$(date) [Verbose]: " ${@:2}
-          ;;
+        -e) echo "$(date) [Error]  : " ${@:2}
+        ;;
+        -w) echo "$(date) [Warning]: " ${@:2}
+        ;;
+        -i) echo "$(date) [Info]   : " ${@:2}
+        ;;
+        *)  echo "$(date) [Verbose]: " ${@:2}
+        ;;
     esac
 }
 
-### 
+###
 #   <summary>
 #       Retry given command by given number of times in case we have hit any failure.
 #   </summary>
@@ -46,17 +46,17 @@ log_level()
 #   <exception>None</exception>
 #   <remarks>Called within same scripts.</remarks>
 ###
-retrycmd_if_failure() 
-{ 
-    retries=$1; 
-    wait=$2; 
-    for i in $(seq 1 $retries); do 
-        ${@:3}; [ $? -eq 0  ] && break || sleep $wait; 
-    done; 
-    log_level -i "Command Executed $i times."; 
+retrycmd_if_failure()
+{
+    retries=$1;
+    wait=$2;
+    for i in $(seq 1 $retries); do
+        ${@:3}; [ $? -eq 0  ] && break || sleep $wait;
+    done;
+    log_level -i "Command Executed $i times.";
 }
 
-### 
+###
 #   <summary>
 #      Validate if file exist and it has non zero bytes. If validation passes moves file to new location.
 #   </summary>
@@ -67,14 +67,14 @@ retrycmd_if_failure()
 #   <remarks>Called within same scripts.</remarks>
 ###
 check_and_move_azurestack_configuration() {
-
+    
     if [ -s $1 ] ; then
         log_level -i "Found '$1' in path '$PWD' and is greater than zero bytes."
     else
         log_level -e "File '$1' does not exist in '$PWD' or is zero length. Error happend during building input API model or cluster definition."
         exit 1
     fi
-       
+    
     log_level -i "Moving file '$1' to '$2'"
     sudo mv $1 $2
     log_level -i "Completed creating API model file with given stamp information."
@@ -98,7 +98,7 @@ validate_and_restore_cluster_definition()
     mv $1 $2
 }
 
-### 
+###
 #   <summary>
 #       Copying AzureStack root certificate to appropriate store.
 #   </summary>
@@ -109,25 +109,25 @@ validate_and_restore_cluster_definition()
 ensureCertificates()
 {
     log_level -i "Updating certificates to appropriate store"
-
+    
     AZURESTACK_ROOT_CERTIFICATE_SOURCE_PATH="/var/lib/waagent/Certificates.pem"
     AZURESTACK_ROOT_CERTIFICATE_DEST_PATH="/usr/local/share/ca-certificates/azsCertificate.crt"
-       
+    
     log_level -i "Copy cert from '$AZURESTACK_ROOT_CERTIFICATE_SOURCE_PATH' to '$AZURESTACK_ROOT_CERTIFICATE_DEST_PATH' "
     sudo cp $AZURESTACK_ROOT_CERTIFICATE_SOURCE_PATH $AZURESTACK_ROOT_CERTIFICATE_DEST_PATH
-       
-    AZURESTACK_ROOT_CERTIFICATE_SOURCE_FINGERPRINT=`openssl x509 -in $AZURESTACK_ROOT_CERTIFICATE_SOURCE_PATH -noout -fingerprint`       
+    
+    AZURESTACK_ROOT_CERTIFICATE_SOURCE_FINGERPRINT=`openssl x509 -in $AZURESTACK_ROOT_CERTIFICATE_SOURCE_PATH -noout -fingerprint`
     AZURESTACK_ROOT_CERTIFICATE_DEST_FINGERPRINT=`openssl x509 -in $AZURESTACK_ROOT_CERTIFICATE_DEST_PATH -noout -fingerprint`
-
+    
     log_level -i "AZURESTACK_ROOT_CERTIFICATE_SOURCE_FINGERPRINT: $AZURESTACK_ROOT_CERTIFICATE_SOURCE_FINGERPRINT"
     log_level -i "AZURESTACK_ROOT_CERTIFICATE_DEST_FINGERPRINT: $AZURESTACK_ROOT_CERTIFICATE_DEST_FINGERPRINT"
-
+    
     update-ca-certificates
-
+    
     # Azure CLI specific changes.
     export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
     sudo sed -i -e "\$aREQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt" /etc/environment
-       
+    
     AZURESTACK_RESOURCE_METADATA_ENDPOINT="$TENANT_ENDPOINT/metadata/endpoints?api-version=2015-01-01"
     curl $AZURESTACK_RESOURCE_METADATA_ENDPOINT
 }
@@ -154,7 +154,7 @@ log_level -i "AKSENGINE_REPO:                           $AKSENGINE_REPO"
 log_level -i "AKSENGINE_UPGRADE_VERSION:                $AKSENGINE_UPGRADE_VERSION"
 log_level -i "AVAILABILITY_PROFILE:                     $AVAILABILITY_PROFILE"
 log_level -i "IDENTITY_SYSTEM:                          $IDENTITY_SYSTEM"
-log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:          $K8S_AZURE_CLOUDPROVIDER_VERSION" 
+log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:          $K8S_AZURE_CLOUDPROVIDER_VERSION"
 log_level -i "MASTER_COUNT:                             $MASTER_COUNT"
 log_level -i "MASTER_DNS_PREFIX:                        $MASTER_DNS_PREFIX"
 log_level -i "MASTER_SIZE:                              $MASTER_SIZE"
@@ -174,7 +174,7 @@ log_level -i "WINDOWS_AGENT_SIZE:                       $WINDOWS_AGENT_SIZE"
 
 
 #####################################################################################
-# Install all prequisite. 
+# Install all prequisite.
 log_level -i "Update the system to latest."
 retrycmd_if_failure 5 10 sudo apt-get update -y
 
@@ -199,7 +199,7 @@ retrycmd_if_failure 5 10 sudo apt-get update -y
 ####################################################################################
 #Section to install Azure CLI.
 #https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-version-profiles-azurecli2#connect-to-azure-stack
-#https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-apt?view=azure-cli-latest 
+#https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-apt?view=azure-cli-latest
 
 AZ_REPO=$(lsb_release -cs)
 RECV_KEY=BC528686B50D79E339D3721CEB3E94ADBE1229CF
@@ -213,7 +213,7 @@ log_level -i "Get the Microsoft signing key."
 retrycmd_if_failure 5 10 sudo apt-key --keyring /etc/apt/trusted.gpg.d/Microsoft.gpg adv --keyserver packages.microsoft.com --recv-keys $RECV_KEY
 
 log_level -i "Update system again to latest."
-retrycmd_if_failure 5 10 sudo apt-get update 
+retrycmd_if_failure 5 10 sudo apt-get update
 
 log_level -i "Installing azure cli...."
 retrycmd_if_failure 5 10 sudo apt-get install azure-cli
@@ -265,7 +265,7 @@ if [ ! -f $AZURESTACK_CONFIGURATION ]; then
     log_level -e "Expected location: $AZURESTACK_CONFIGURATION"
     exit 1
 fi
-    
+
 if [ ! -s $AZURESTACK_CONFIGURATION ]; then
     log_level -e "Downloaded API model template is an empty file."
     log_level -e "Template location: $AZURESTACK_CONFIGURATION"
@@ -278,7 +278,7 @@ fi
 sudo apt-get install make
 
 #####################################################################################
-# Update certificates to right location as they are required 
+# Update certificates to right location as they are required
 # for CLI and AKS to connect to Azure Stack
 
 EXTERNAL_FQDN="${PUBLICIP_FQDN//$PUBLICIP_DNS.$REGION_NAME.cloudapp.}"
@@ -334,11 +334,11 @@ if [ $IDENTITY_SYSTEM == "ADFS" ] ; then
     log_level -i "In ADFS section to get(Active_Directory_Endpoint, SPN_CLIENT_SECRET) configurations."
     ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT=`echo $METADATA  | jq '.authentication.loginEndpoint' | tr -d \" | sed -e 's/adfs*$//' | tr -d \" `
     log_level -i "Active directory endpoint is: $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT"
-
+    
     log_level -i "Append adfs back to Active directory endpoint as it is required in Azure CLI to register and login."
     ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT=${ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT}adfs
     log_level -i "Final ACTIVE_DIRECTORY endpoint value for adfs is: $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT."
-       
+    
 else
     log_level -i "In AAD section to get(Active_Directory_Endpoint) configurations.."
     ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT=`echo $METADATA  | jq '.authentication.loginEndpoint' | tr -d \"`
@@ -382,10 +382,10 @@ jq --arg NETWORK_PLUGIN $NETWORK_PLUGIN '.properties.orchestratorProfile.kuberne
 validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
 
 #####################################################################################
-#Linux agent 
+#Linux agent
 if [ "$AGENT_COUNT" != "0" ]; then
     log_level -i "Update cluster definition with Linux agent node details."
-
+    
     cat $AZURESTACK_CONFIGURATION | \
     jq --arg linuxAgentCount $AGENT_COUNT \
     --arg linuxAgentSize $AGENT_SIZE \
@@ -393,31 +393,31 @@ if [ "$AGENT_COUNT" != "0" ]; then
     --arg NODE_DISTRO "ubuntu" \
     '.properties.agentPoolProfiles += [{"name": "linuxpool", "osDiskSizeGB": 200, "AcceleratedNetworkingEnabled": false, "distro": $NODE_DISTRO, "count": $linuxAgentCount | tonumber, "vmSize": $linuxAgentSize, "availabilityProfile": $linuxAvailabilityProfile}]' \
     > $AZURESTACK_CONFIGURATION_TEMP
-
+    
     validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
-
+    
     log_level -i "Updating cluster definition done with Linux agent node details."
 fi
 
 #####################################################################################
-#Windows agent 
+#Windows agent
 if [ "$WINDOWS_AGENT_COUNT" != "0" ]; then
     log_level -i "Update cluster definition with Windows agent node details."
-
+    
     cat $AZURESTACK_CONFIGURATION | \
     jq --arg WINDOWS_ADMIN_USERNAME $WINDOWS_ADMIN_USERNAME '.properties.windowsProfile.adminUsername=$WINDOWS_ADMIN_USERNAME' | \
     jq --arg WINDOWS_ADMIN_PASSWORD $WINDOWS_ADMIN_PASSWORD '.properties.windowsProfile.adminPassword=$WINDOWS_ADMIN_PASSWORD' \
     > $AZURESTACK_CONFIGURATION_TEMP
-
+    
     validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
-
+    
     cat $AZURESTACK_CONFIGURATION | \
     jq --arg winAgentCount $WINDOWS_AGENT_COUNT --arg winAgentSize $WINDOWS_AGENT_SIZE --arg winAvailabilityProfile $AVAILABILITY_PROFILE\
     '.properties.agentPoolProfiles += [{"name": "windowspool", "osDiskSizeGB": 128, "AcceleratedNetworkingEnabled": false, "osType": "Windows", "count": $winAgentCount | tonumber, "vmSize": $winAgentSize, "availabilityProfile": $winAvailabilityProfile}]' \
     > $AZURESTACK_CONFIGURATION_TEMP
-
+    
     validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
-
+    
     log_level -i "Updating cluster definition done with Windows agent node details."
 fi
 
@@ -431,7 +431,7 @@ if [ $IDENTITY_SYSTEM == "ADFS" ]; then
     cat $AZURESTACK_CONFIGURATION | \
     jq --arg ADFS $ADFS '.properties.customCloudProfile.identitySystem=$ADFS' \
     > $AZURESTACK_CONFIGURATION_TEMP
-
+    
     validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
 fi
 
@@ -454,7 +454,7 @@ CLUSTER_DEFN=azurestack.json
 export CUSTOM_CLOUD_CLIENT_ID=$SPN_CLIENT_ID
 export AUTHENTICATION_METHOD="client_secret"
 export CUSTOM_CLOUD_SECRET=$SPN_CLIENT_SECRET
-export CLIENT_ID=$SPN_CLIENT_ID 
+export CLIENT_ID=$SPN_CLIENT_ID
 export CLIENT_SECRET=$SPN_CLIENT_SECRET
 export TENANT_ID=$TENANT_ID
 export SUBSCRIPTION_ID=$TENANT_SUBSCRIPTION_ID
@@ -473,7 +473,7 @@ export SERVICE_MANAGEMENT_VM_DNS_SUFFIX="cloudapp.net"
 export RESOURCE_MANAGER_VM_DNS_SUFFIX=$FQDN_ENDPOINT_SUFFIX
 export SSH_KEY_NAME="id_rsa"
 export PORTAL_ENDPOINT=$ENDPOINT_PORTAL
-export GINKGO_SKIP="should be able to produce working LoadBalancers"
+export GINKGO_SKIP="should be able to produce working LoadBalancers|should have healthy time synchronization"
 
 make bootstrap
 
@@ -502,7 +502,7 @@ log_level -i "CUSTOM_CLOUD_SECRET: $CUSTOM_CLOUD_SECRET"
 log_level -i "GALLERY_ENDPOINT: $GALLERY_ENDPOINT"
 log_level -i "GRAPH_ENDPOINT: $GRAPH_ENDPOINT"
 log_level -i "KEY_VAULT_DNS_SUFFIX: $KEY_VAULT_DNS_SUFFIX"
-log_level -i "IDENTITY_SYSTEM: $IDENTITY_SYSTEM" 
+log_level -i "IDENTITY_SYSTEM: $IDENTITY_SYSTEM"
 log_level -i "LOCATION: $LOCATION"
 log_level -i "PORTAL_ENDPOINT: $ENDPOINT_PORTAL"
 log_level -i "REGION_NAME: $REGION_NAME"
@@ -518,7 +518,7 @@ log_level -i "TENANT_ID: $TENANT_ID"
 log_level -i "------------------------------------------------------------------------"
 
 set +e
-make test-kubernetes > deploy_test_results 
+make test-kubernetes > deploy_test_results
 set -e
 
 RESULT=$?
