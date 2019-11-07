@@ -85,7 +85,7 @@ compressLogsDirectory()
     sudo chown -R ${CURRETUSER} ${LOGDIRECTORY}
     # TODO This wont work on a disconnected scenario
     (cd $TMP && zip -q -r ~/${LOGFILENAME} ${HOSTNAME})
-    sudo chown ${CURRETUSER} ${LOGFILENAME}
+    sudo chown ${CURRETUSER} ~/${LOGFILENAME}
 }
 
 TMP=$(mktemp -d)
@@ -98,6 +98,12 @@ cd /var/log/azure
 for f in *.log
 do
     sudo cp "$f" ${LOGDIRECTORY}/var/log/azure/k8s-"${f%}" || :
+done
+
+cd /var/log
+for f in cloud-init*.log
+do
+    sudo cp "$f" ${LOGDIRECTORY}/var/log/k8s-"${f%}" || :
 done
 
 sudo cp /var/log/waagent.log ${LOGDIRECTORY}/var/log/k8s-waagent.log || :

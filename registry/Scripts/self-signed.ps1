@@ -1,3 +1,5 @@
+#requires -RunAsAdministrator
+
 # Create a self-signed certificate
 $PASSWORD=""
 $CN=""
