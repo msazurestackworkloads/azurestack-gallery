@@ -228,8 +228,8 @@ ROOT_PATH=/home/azureuser
 #sudo mkdir $ROOT_PATH
 sudo mkdir $ROOT_PATH/bin
 cd $ROOT_PATH
-sudo wget https://dl.google.com/go/go1.11.4.linux-amd64.tar.gz
-sudo tar -C  $ROOT_PATH/bin -xzf go1.11.4.linux-amd64.tar.gz
+sudo wget https://dl.google.com/go/go1.13.4.linux-amd64.tar.gz
+sudo tar -C  $ROOT_PATH/bin -xzf go1.13.4.linux-amd64.tar.gz
 
 sudo apt install gcc make -y
 
