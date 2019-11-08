@@ -35,7 +35,6 @@ func escapeSingleLine(escapedStr string) string {
 	escapedStr = strings.Replace(escapedStr, "\\", "\\\\", -1)
 	escapedStr = strings.Replace(escapedStr, "\r\n", "\\n", -1)
 	escapedStr = strings.Replace(escapedStr, "\n", "\\n", -1)
-	escapedStr = strings.Replace(escapedStr, "!!binary |", "!!binary \\|", -1)
 	escapedStr = strings.Replace(escapedStr, "\"", "\\\"", -1)
 	return escapedStr
 }

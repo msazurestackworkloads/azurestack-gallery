@@ -18,7 +18,6 @@ ERR_APT_UPDATE_TIMEOUT=99 # Timeout waiting for apt-get update to complete
 #ERR_AZS_LOGIN_ADFS=54 # Failure to log in to ADFS environment
 #ERR_AZS_ACCOUNT_SUB=55 # Failure setting account default subscription
 
-
 function collect_deployment_and_operations
 {
     # Store main exit code
@@ -212,7 +211,7 @@ apt_get_install()
 #####################################################################################
 # start
 
-log_level -i "Starting Kubernetes cluster deployment: v1.0.0"
+log_level -i "Starting Kubernetes cluster deployment: v1.0.1"
 log_level -i "Running script as:  $(whoami)"
 log_level -i "System information: $(uname -a)"
 
