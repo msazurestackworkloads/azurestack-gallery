@@ -309,14 +309,6 @@ sudo cp /usr/local/bin/kubectl /usr/local/bin/k
 
 export PATH=/usr/local/bin:$PATH
 
-
-#####################################################################################
-# Section to install golang-dep
-
-sudo curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-
-export PATH=$GOPATH/bin:$PATH
-
 #####################################################################################
 # Section to create API model file for AKS-Engine.
 
