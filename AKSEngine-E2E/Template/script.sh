@@ -441,6 +441,11 @@ fi
 
 cd $ROOT_PATH/src/github.com/Azure/aks-engine
 
+# Set the environment variables
+export GOPATH=/home/azureuser
+export GOROOT=/home/azureuser/bin/go
+export PATH=$GOPATH:$GOROOT/bin:$PATH
+
 CLUSTER_DEFN=azurestack.json
 
 export CUSTOM_CLOUD_CLIENT_ID=$SPN_CLIENT_ID
