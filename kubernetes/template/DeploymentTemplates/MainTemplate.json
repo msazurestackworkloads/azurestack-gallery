@@ -82,7 +82,7 @@
     },
     "kubernetesAzureCloudProviderVersion": {
       "type": "string",
-      "defaultValue": "1.13",
+      "defaultValue": "1.14",
       "metadata": {
         "description": "This is the version for the Kubernetes Azure cloud provider. We would use a custom Kubernetes build specifically for Azure Stack for each version."
       }
@@ -103,7 +103,7 @@
     },
     "aksEngineReleaseVersion": {
       "type": "string",
-      "defaultValue": "v0.41.2",
+      "defaultValue": "v0.43.0",
       "metadata": {
         "description": "The version of AKS Engine to download"
       }
@@ -161,7 +161,14 @@
         "description": "User password for the Windows virtual machines that are part of the Kubernetes cluster."
       },
       "type": "securestring"
-    },    
+    },
+    "customWindowsPackageURL": {
+      "defaultValue": "",
+      "metadata": {
+        "description": "Custom Windows K8s zip location which will be used to deploy(kubelet, kubeproxy) on Windows node."
+      },
+      "type": "string"
+    },
     "windowsAgentPoolProfileCount": {
       "defaultValue": "0",      
       "metadata": {
@@ -225,6 +232,13 @@
       "metadata": {
         "description": "The base for Kubernetes images"
       }
+    },
+    "enableTillerAddOn": {
+      "type": "string",
+      "defaultValue": "false",
+      "metadata": {
+        "description": "Flag to enable Tiller addon"
+      }
     }
   },
   "variables": {
@@ -256,7 +270,7 @@
     "tenantSubscriptionId": "[subscription().subscriptionId]",
     "scriptName": "script",
     "singleQuote": "'",
-    "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' WINDOWS_AGENT_COUNT=','\"',parameters('windowsAgentPoolProfileCount'),'\"' ,' WINDOWS_AGENT_SIZE=','\"',parameters('windowsAgentPoolProfileVMSize'),'\"',' WINDOWS_ADMIN_USERNAME=','\"',parameters('windowsAdminUsername'),'\"',' WINDOWS_ADMIN_PASSWORD=','\"',parameters('windowsAdminPassword'),'\"',' NETWORK_PLUGIN=','\"',parameters('networkPlugin'),'\"',' AVAILABILITY_PROFILE=','\"',parameters('availabilityProfile'),'\"',' FIRST_CONSECUTIVE_STATIC_IP=','\"',parameters('firstConsecutiveStaticIP'),'\"',' AGENT_SUBNET_NAME=','\"',parameters('agentSubnetName'),'\"',' MASTER_SUBNET_NAME=','\"',parameters('masterSubnetName'),'\"',' CUSTOM_VNET_NAME=','\"',parameters('customVnetName'),'\"',' NODE_DISTRO=','\"',parameters('nodeDistro'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"')]"
+    "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' ENABLE_TILLER=','\"',parameters('enableTillerAddOn'),'\"' ,' WINDOWS_CUSTOM_PACKAGE=','\"',parameters('customWindowsPackageURL'),'\"' ,' WINDOWS_AGENT_COUNT=','\"',parameters('windowsAgentPoolProfileCount'),'\"' ,' WINDOWS_AGENT_SIZE=','\"',parameters('windowsAgentPoolProfileVMSize'),'\"',' WINDOWS_ADMIN_USERNAME=','\"',parameters('windowsAdminUsername'),'\"',' WINDOWS_ADMIN_PASSWORD=','\"',parameters('windowsAdminPassword'),'\"',' NETWORK_PLUGIN=','\"',parameters('networkPlugin'),'\"',' AVAILABILITY_PROFILE=','\"',parameters('availabilityProfile'),'\"',' FIRST_CONSECUTIVE_STATIC_IP=','\"',parameters('firstConsecutiveStaticIP'),'\"',' AGENT_SUBNET_NAME=','\"',parameters('agentSubnetName'),'\"',' MASTER_SUBNET_NAME=','\"',parameters('masterSubnetName'),'\"',' CUSTOM_VNET_NAME=','\"',parameters('customVnetName'),'\"',' NODE_DISTRO=','\"',parameters('nodeDistro'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"')]"
   },
   "resources": [
     {
@@ -363,12 +377,18 @@
           },
           "windowsAdminUsername": {
             "value": "[parameters('windowsAdminUsername')]"
-          },          
+          },
           "windowsAdminPassword": {
             "value": "[parameters('windowsAdminPassword')]"
-          },          
+          },
+          "customWindowsPackageURL": {
+            "value": "[parameters('customWindowsPackageURL')]"
+          },
           "kubernetesImageBase": {
             "value": "[parameters('kubernetesImageBase')]"
+          },
+          "enableTillerAddOn": {
+            "value": "[parameters('enableTillerAddOn')]"
           }
         }
       }

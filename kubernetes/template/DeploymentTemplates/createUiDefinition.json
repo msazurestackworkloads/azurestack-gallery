@@ -405,14 +405,10 @@
         "name": "kubernetesAzureCloudProviderVersion",
         "type": "Microsoft.Common.DropDown",
         "label": "Kubernetes version",
-        "defaultValue": "1.13",
+        "defaultValue": "1.14",
         "toolTip": "This is the version for the Kubernetes Azure cloud provider.",
         "constraints": {
           "allowedValues": [
-            {
-              "label": "1.13",
-              "value": "1.13"
-            },
             {
               "label": "1.14",
               "value": "1.14"
@@ -478,6 +474,14 @@
         "constraints": {
           "required": true
         },
+        "visible": false
+      },
+      {
+        "name": "enableTillerAddOn",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Flag to enable Tiller addon",
+        "defaultValue": "false",
+        "toolTip": "Flag to enable Tiller addon",       
         "visible": false
       },
       {
@@ -679,6 +683,14 @@
         "visible": false
       },
       {
+        "name": "customWindowsPackageURL",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Custom Windows package URL",
+        "defaultValue": "",
+        "toolTip": "Custom Windows K8s zip location which will be used to deploy(kubelet, kubeproxy) on Windows node.",
+        "visible": false
+      },      
+      {
         "name": "kubernetesImageBase",
         "type": "Microsoft.Common.TextBox",
         "label": "Kubernetes Image Base",
@@ -710,11 +722,13 @@
       "galleryBranch": "[steps('KubernetesClusterSettings').galleryBranch]",
       "clusterDefinitionFileName": "[steps('KubernetesClusterSettings').clusterDefinitionFileName]",
       "networkPlugin": "[steps('KubernetesClusterSettings').networkPlugin]",
+      "enableTillerAddOn": "[steps('KubernetesClusterSettings').enableTillerAddOn]",
       "availabilityProfile": "[steps('KubernetesClusterSettings').availabilityProfile]",
       "windowsAgentPoolProfileCount": "[steps('KubernetesClusterSettings').windowsAgentPoolProfileCount]",
       "windowsAgentPoolProfileVMSize": "[steps('KubernetesClusterSettings').windowsAgentPoolProfileVMSize]",
       "windowsAdminUsername": "[steps('KubernetesClusterSettings').windowsAdminUsername]",
       "windowsAdminPassword": "[steps('KubernetesClusterSettings').windowsAdminPassword]",
+      "customWindowsPackageURL": "[steps('KubernetesClusterSettings').customWindowsPackageURL]",
       "kubernetesImageBase": "[steps('KubernetesClusterSettings').kubernetesImageBase]"
     }
   }
