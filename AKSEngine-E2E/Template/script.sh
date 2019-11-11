@@ -225,13 +225,15 @@ log_level -i "Azure CLI version : $(az --version)"
 
 
 ROOT_PATH=/home/azureuser
-#sudo mkdir $ROOT_PATH
 sudo mkdir $ROOT_PATH/bin
 cd $ROOT_PATH
 sudo wget https://dl.google.com/go/go1.13.4.linux-amd64.tar.gz
 sudo tar -C  $ROOT_PATH/bin -xzf go1.13.4.linux-amd64.tar.gz
 
 sudo apt install gcc make -y
+
+#Set $HOME variable required for go version 1.12 or later
+export HOME=/home/azureuser
 
 # Set the environment variables
 export GOPATH=/home/azureuser
@@ -441,11 +443,6 @@ fi
 
 cd $ROOT_PATH/src/github.com/Azure/aks-engine
 
-# Set the environment variables
-export GOPATH=/home/azureuser
-export GOROOT=/home/azureuser/bin/go
-export PATH=$GOPATH:$GOROOT/bin:$PATH
-
 CLUSTER_DEFN=azurestack.json
 
 export CUSTOM_CLOUD_CLIENT_ID=$SPN_CLIENT_ID
@@ -472,6 +469,8 @@ export SSH_KEY_NAME="id_rsa"
 export PORTAL_ENDPOINT=$ENDPOINT_PORTAL
 #time sync is a known flake at present w/ 18.04-LTS - should have healthy time synchronization
 export GINKGO_SKIP="should be able to produce working LoadBalancers|should have healthy time synchronization"
+
+go env
 
 make bootstrap
 
