@@ -238,7 +238,8 @@ export HOME=/home/azureuser
 # Set the environment variables
 export GOPATH=/home/azureuser
 export GOROOT=/home/azureuser/bin/go
-export PATH=$GOPATH:$GOROOT/bin:$PATH
+export PATH=$GOPATH:$GOROOT/bin:$GOPATH/bin:$PATH
+
 
 #####################################################################################
 #Section to install/get AKS-Engine respository and definition template
