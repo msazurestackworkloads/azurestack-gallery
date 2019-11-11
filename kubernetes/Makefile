@@ -9,3 +9,8 @@ clean:
 .PHONY: generate
 generate: clean build-encoder
 	hack/generate.sh
+
+# Windows only
+.PHONY: release
+release: clean
+	powershell hack/release.ps1
