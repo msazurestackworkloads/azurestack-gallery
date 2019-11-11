@@ -225,7 +225,6 @@ log_level -i "Azure CLI version : $(az --version)"
 
 
 ROOT_PATH=/home/azureuser
-#sudo mkdir $ROOT_PATH
 sudo mkdir $ROOT_PATH/bin
 cd $ROOT_PATH
 sudo wget https://dl.google.com/go/go1.13.4.linux-amd64.tar.gz
@@ -233,10 +232,14 @@ sudo tar -C  $ROOT_PATH/bin -xzf go1.13.4.linux-amd64.tar.gz
 
 sudo apt install gcc make -y
 
+#Set $HOME variable required for go version 1.12 or later
+export HOME=/home/azureuser
+
 # Set the environment variables
 export GOPATH=/home/azureuser
 export GOROOT=/home/azureuser/bin/go
-export PATH=$GOPATH:$GOROOT/bin:$PATH
+export PATH=$GOPATH:$GOROOT/bin:$GOPATH/bin:$PATH
+
 
 #####################################################################################
 #Section to install/get AKS-Engine respository and definition template
@@ -308,14 +311,6 @@ sudo chmod +x /usr/local/bin/kubectl
 sudo cp /usr/local/bin/kubectl /usr/local/bin/k
 
 export PATH=/usr/local/bin:$PATH
-
-
-#####################################################################################
-# Section to install golang-dep
-
-sudo curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-
-export PATH=$GOPATH/bin:$PATH
 
 #####################################################################################
 # Section to create API model file for AKS-Engine.
@@ -475,6 +470,8 @@ export SSH_KEY_NAME="id_rsa"
 export PORTAL_ENDPOINT=$ENDPOINT_PORTAL
 #time sync is a known flake at present w/ 18.04-LTS - should have healthy time synchronization
 export GINKGO_SKIP="should be able to produce working LoadBalancers|should have healthy time synchronization"
+
+go env
 
 make bootstrap
 
