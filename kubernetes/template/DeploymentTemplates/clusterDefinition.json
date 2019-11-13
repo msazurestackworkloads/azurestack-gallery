@@ -14,8 +14,8 @@
                 "cloudProviderRateLimitBucketWrite": 0,
                 "addons": [
                     {
-                      "name": "tiller",
-                      "enabled": false
+                        "name": "tiller",
+                        "enabled": false
                     }
                 ]
             }
@@ -30,8 +30,7 @@
             "count": 3,
             "vmSize": "Standard_D2_v2"
         },
-        "agentPoolProfiles": [            
-        ],
+        "agentPoolProfiles": [],
         "linuxProfile": {
             "adminUsername": "azureuser",
             "ssh": {
@@ -52,4 +51,4 @@
             "secret": ""
         }
     }
-} 
+}
