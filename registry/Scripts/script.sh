@@ -157,7 +157,7 @@ fetchRegistryCredentials() {
         SECRET_NAME=$(echo ${SECRET_NAME_VERSION} | cut -d '/' -f 2)
         SECRET_VALUE=$(curl -s --retry 5 --retry-delay 10 --max-time 60 -f \
             "${secret}?api-version=2016-10-01" -H "Authorization: Bearer ${TOKEN}" | jq -r .value)
-        if [ ( $1 = "true" ) ]; then
+        if [ $1 = "true" ]; then
             local _REGISTRY_USER=$2
             local _REGISTRY_PASSWORD=$3
             eval $_REGISTRY_USER="'${SECRET_NAME}'" $_REGISTRY_PASSWORD="'${SECRET_VALUE}'"
