@@ -11,6 +11,9 @@ ERR_MOBY_INSTALL_TIMEOUT=27         # Timeout waiting for moby install
 ERR_METADATA=30                     # Error querying metadata
 ERR_MS_PROD_DEB_DOWNLOAD_TIMEOUT=42 # Timeout waiting for https://packages.microsoft.com/config/ubuntu/16.04/packages-microsoft-prod.deb
 ERR_MS_PROD_DEB_PKG_ADD_FAIL=43     # Failed to add repo pkg file
+ERR_REGISTRY_LOGIN_FAILED=50        # Failed to log into the docker registry
+ERR_REGISTRY_PUSH_FAILED=51         # Failed to push images to the docker registry
+ERR_REGISTRY_PULL_FAILED=52         # Failed to pull images from the docker registry
 ERR_APT_UPDATE_TIMEOUT=99           # Timeout waiting for apt-get update to complete
 
 retrycmd_if_failure() {
@@ -133,6 +136,35 @@ fetchCredentials() {
         exit $ERR_MISSING_USER_CREDENTIALS
     fi
 }
+fetchRegistryCredentials() {
+    RESOURCE=$(jq -r .authentication.audiences[0] ${ENDPOINTS} | sed "s|https://management.|https://vault.|")
+
+    TOKEN=$(curl -s --retry 5 --retry-delay 10 --max-time 60 -f -X POST \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        -d "grant_type=client_credentials" \
+        -d "client_id=${SPN_CLIENT_ID}" \
+        --data-urlencode "client_secret=${SPN_CLIENT_SECRET}" \
+        --data-urlencode "resource=${RESOURCE}" \
+        ${TOKEN_URL} | jq -r '.access_token')
+
+    KV_URL="https://${KV_NAME}.vault.${FQDN}/secrets"
+    SECRETS=$(curl -s --retry 5 --retry-delay 10 --max-time 60 -f \
+        "${KV_URL}?api-version=2016-10-01" -H "Authorization: Bearer ${TOKEN}" | jq -r .value[].id)
+
+    for secret in ${SECRETS}
+    do
+        SECRET_NAME_VERSION="${secret//$KV_URL}"
+        SECRET_NAME=$(echo ${SECRET_NAME_VERSION} | cut -d '/' -f 2)
+        SECRET_VALUE=$(curl -s --retry 5 --retry-delay 10 --max-time 60 -f \
+            "${secret}?api-version=2016-10-01" -H "Authorization: Bearer ${TOKEN}" | jq -r .value)
+        if [ ( $1 = "true" ) ]; then
+            local _REGISTRY_USER=$2
+            local _REGISTRY_PASSWORD=$3
+            eval $_REGISTRY_USER="'${SECRET_NAME}'" $_REGISTRY_PASSWORD="'${SECRET_VALUE}'"
+            break
+        fi
+    done
+}
 fetchStorageKeys() {
     RESOURCE=$(jq -r .authentication.audiences[0] ${ENDPOINTS})
 
@@ -149,19 +181,20 @@ fetchStorageKeys() {
         "${SA_URL}" -H "Authorization: Bearer ${TOKEN}" -H "Content-Length: 0" | jq -r ".keys[0].value")
 }
 
-echo LOCATION:          ${LOCATION}
-echo TENANT_ID:         ${TENANT_ID}
-echo ADMIN_USER_NAME:   ${ADMIN_USER_NAME}
-echo SA_RESOURCE_ID:    ${SA_RESOURCE_ID}
-echo SA_CONTAINER:      ${SA_CONTAINER}
-echo KV_RESOURCE_ID:    ${KV_RESOURCE_ID}
-echo CERT_THUMBPRINT:   ${CERT_THUMBPRINT}
-echo PIP_FQDN:          ${PIP_FQDN}
-echo PIP_LABEL:         ${PIP_LABEL}
-echo REGISTRY_TAG:      ${REGISTRY_TAG}
-echo REGISTRY_REPLICAS: ${REGISTRY_REPLICAS}
-echo SPN_CLIENT_ID:     ${SPN_CLIENT_ID}
-echo SPN_CLIENT_SECRET: ***
+echo LOCATION:            ${LOCATION}
+echo TENANT_ID:           ${TENANT_ID}
+echo ADMIN_USER_NAME:     ${ADMIN_USER_NAME}
+echo SA_RESOURCE_ID:      ${SA_RESOURCE_ID}
+echo SA_CONTAINER:        ${SA_CONTAINER}
+echo KV_RESOURCE_ID:      ${KV_RESOURCE_ID}
+echo CERT_THUMBPRINT:     ${CERT_THUMBPRINT}
+echo PIP_FQDN:            ${PIP_FQDN}
+echo PIP_LABEL:           ${PIP_LABEL}
+echo REGISTRY_TAG:        ${REGISTRY_TAG}
+echo REGISTRY_REPLICAS:   ${REGISTRY_REPLICAS}
+echo SPN_CLIENT_ID:       ${SPN_CLIENT_ID}
+echo SPN_CLIENT_SECRET:   ***
+echo REGISTRY_VALIDATION: ${REGISTRY_VALIDATION}
 
 SA_NAME=$(echo ${SA_RESOURCE_ID} | grep -oh -e '[[:alnum:]]*$')
 KV_NAME=$(echo ${KV_RESOURCE_ID} | grep -oh -e '[[:alnum:]]*$')
@@ -211,6 +244,9 @@ echo fetching user credentials
 HTPASSWD_DIR="/root/auth"
 mkdir -p $HTPASSWD_DIR
 fetchCredentials
+REGISTRY_USER=""
+REGISTRY_PASSWORD=""
+fetchRegistryCredentials $REGISTRY_VALIDATION REGISTRY_USER REGISTRY_PASSWORD
 cp .htpasswd $HTPASSWD_DIR/.htpasswd
 
 echo starting registry container
@@ -252,9 +288,27 @@ docker stack deploy registry -c docker-compose.yml
 sleep 30
 sudo docker system prune -a -f &
 
-echo validationg container status
+echo validating container status
 CID=$(docker ps | grep "registry_registry.1\." | head -c 12)
 STATUS=$(docker inspect ${CID} | jq ".[0].State.Status" | xargs)
 if [[ ! $STATUS == "running" ]]; then 
     exit $ERR_REGISTRY_NOT_RUNNING
+fi
+
+echo validating docker registry
+if [ $REGISTRY_VALIDATION = "true" ]; then
+    docker login localhost:443 -u $REGISTRY_USER -p $REGISTRY_PASSWORD
+    if [ $? -ne 0 ]; then
+        exit $ERR_REGISTRY_LOGIN_FAILED
+    fi
+    docker tag registry:${REGISTRY_TAG} localhost:443/registry:${REGISTRY_TAG}
+    docker push localhost:443/registry:${REGISTRY_TAG}
+    if [ $? -ne 0 ]; then
+        exit $ERR_REGISTRY_PUSH_FAILED
+    fi
+    docker rmi localhost:443/registry:${REGISTRY_TAG}
+    docker pull localhost:443/registry:${REGISTRY_TAG}
+    if [ $? -ne 0 ]; then
+        exit $ERR_REGISTRY_PULL_FAILED
+    fi
 fi
