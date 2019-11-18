@@ -136,7 +136,7 @@ fetchCredentials() {
         exit $ERR_MISSING_USER_CREDENTIALS
     fi
 }
-fetchRegistryCredentials() {
+fetchValidationCredentials() {
     RESOURCE=$(jq -r .authentication.audiences[0] ${ENDPOINTS} | sed "s|https://management.|https://vault.|")
 
     TOKEN=$(curl -s --retry 5 --retry-delay 10 --max-time 60 -f -X POST \
@@ -154,15 +154,10 @@ fetchRegistryCredentials() {
     for secret in ${SECRETS}
     do
         SECRET_NAME_VERSION="${secret//$KV_URL}"
-        SECRET_NAME=$(echo ${SECRET_NAME_VERSION} | cut -d '/' -f 2)
-        SECRET_VALUE=$(curl -s --retry 5 --retry-delay 10 --max-time 60 -f \
+        REGISTRY_USER=$(echo ${SECRET_NAME_VERSION} | cut -d '/' -f 2)
+        REGISTRY_PASSWORD=$(curl -s --retry 5 --retry-delay 10 --max-time 60 -f \
             "${secret}?api-version=2016-10-01" -H "Authorization: Bearer ${TOKEN}" | jq -r .value)
-        if [ $1 = "true" ]; then
-            local _REGISTRY_USER=$2
-            local _REGISTRY_PASSWORD=$3
-            eval $_REGISTRY_USER="'${SECRET_NAME}'" $_REGISTRY_PASSWORD="'${SECRET_VALUE}'"
-            break
-        fi
+        break
     done
 }
 fetchStorageKeys() {
@@ -194,7 +189,7 @@ echo REGISTRY_TAG:        ${REGISTRY_TAG}
 echo REGISTRY_REPLICAS:   ${REGISTRY_REPLICAS}
 echo SPN_CLIENT_ID:       ${SPN_CLIENT_ID}
 echo SPN_CLIENT_SECRET:   ***
-echo REGISTRY_VALIDATION: ${REGISTRY_VALIDATION}
+echo ENABLE_VALIDATIONS: ${ENABLE_VALIDATIONS}
 
 SA_NAME=$(echo ${SA_RESOURCE_ID} | grep -oh -e '[[:alnum:]]*$')
 KV_NAME=$(echo ${KV_RESOURCE_ID} | grep -oh -e '[[:alnum:]]*$')
@@ -244,9 +239,6 @@ echo fetching user credentials
 HTPASSWD_DIR="/root/auth"
 mkdir -p $HTPASSWD_DIR
 fetchCredentials
-REGISTRY_USER=""
-REGISTRY_PASSWORD=""
-fetchRegistryCredentials $REGISTRY_VALIDATION REGISTRY_USER REGISTRY_PASSWORD
 cp .htpasswd $HTPASSWD_DIR/.htpasswd
 
 echo starting registry container
@@ -296,7 +288,10 @@ if [[ ! $STATUS == "running" ]]; then
 fi
 
 echo validating docker registry
-if [ $REGISTRY_VALIDATION = "true" ]; then
+if [ $ENABLE_VALIDATIONS = "true" ]; then
+    REGISTRY_USER=""
+    REGISTRY_PASSWORD=""
+    fetchValidationCredentials
     docker login localhost:443 -u $REGISTRY_USER -p $REGISTRY_PASSWORD
     if [ $? -ne 0 ]; then
         exit $ERR_REGISTRY_LOGIN_FAILED

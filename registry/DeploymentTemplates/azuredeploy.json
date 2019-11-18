@@ -125,7 +125,7 @@
                 "description": "Secret of the client with access to list and get secrets from the credentials Key Vault instance"
             }
         },
-        "registryValidation": {
+        "enableValidations": {
             "type": "string",
             "defaultValue": "false",
             "metadata": {
@@ -219,7 +219,7 @@
             "name": "[concat(variables('rgname'),'-vm/cse')]",
             "properties": {
                 "protectedSettings": {
-                    "commandToExecute": "[concat(variables('provisionScriptParameters'),' LOCATION=',variables('location'),' TENANT_ID=',variables('tenantId'),' PIP_FQDN=', '\"', reference(resourceId('Microsoft.Network/publicIPAddresses',parameters('pipName')),'2017-10-01').dnsSettings.fqdn,'\"',' REGISTRY_VALIDATION=',parameters('registryValidation'),' /opt/azure/containers/script.sh >> /var/log/azure/docker-registry.log 2>&1')]"
+                    "commandToExecute": "[concat(variables('provisionScriptParameters'),' LOCATION=',variables('location'),' TENANT_ID=',variables('tenantId'),' PIP_FQDN=', '\"', reference(resourceId('Microsoft.Network/publicIPAddresses',parameters('pipName')),'2017-10-01').dnsSettings.fqdn,'\"',' ENABLE_VALIDATIONS=',parameters('enableValidations'),' /opt/azure/containers/script.sh >> /var/log/azure/docker-registry.log 2>&1')]"
                 },
                 "publisher": "Microsoft.Azure.Extensions",
                 "settings": {},
