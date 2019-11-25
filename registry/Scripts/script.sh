@@ -189,7 +189,7 @@ echo REGISTRY_TAG:        ${REGISTRY_TAG}
 echo REGISTRY_REPLICAS:   ${REGISTRY_REPLICAS}
 echo SPN_CLIENT_ID:       ${SPN_CLIENT_ID}
 echo SPN_CLIENT_SECRET:   ***
-echo ENABLE_VALIDATIONS: ${ENABLE_VALIDATIONS}
+echo ENABLE_VALIDATIONS:  ${ENABLE_VALIDATIONS}
 
 SA_NAME=$(echo ${SA_RESOURCE_ID} | grep -oh -e '[[:alnum:]]*$')
 KV_NAME=$(echo ${KV_RESOURCE_ID} | grep -oh -e '[[:alnum:]]*$')
@@ -288,7 +288,7 @@ if [[ ! $STATUS == "running" ]]; then
 fi
 
 echo validating docker registry
-if [ $ENABLE_VALIDATIONS = "true" ]; then
+if [ $ENABLE_VALIDATIONS == "true" ]; then
     REGISTRY_USER=""
     REGISTRY_PASSWORD=""
     fetchValidationCredentials
