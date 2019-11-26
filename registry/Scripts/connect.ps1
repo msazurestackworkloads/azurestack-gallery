@@ -1,8 +1,10 @@
+# External FQDN of the instance
 $FQDN=""
+
 $TENANT_NAME = ""
 $SUBSCRIPTION = ""
 
-# Connect
+# Connect to tenant space
 Add-AzureRMEnvironment -Name "AzureStackTenant" -ArmEndpoint "https://management.$FQDN"
 
 $AuthEndpoint = (Get-AzureRmEnvironment -Name "AzureStackTenant").ActiveDirectoryAuthority.TrimEnd('/')
