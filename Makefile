@@ -1,6 +1,6 @@
 .PHONY: build-encoder
 build-encoder: 
-	go build -o _out/encoder hack/encode/main.go
+	go build -o _out/encoder scripts/encode/main.go
 
 .PHONY: clean
 clean: 
@@ -8,9 +8,9 @@ clean:
 
 .PHONY: generate
 generate: clean build-encoder
-	hack/generate.sh
+	scripts/generate.sh
 
 # Windows only
 .PHONY: release
 release: clean
-	powershell hack/release.ps1
+	powershell scripts/release.ps1

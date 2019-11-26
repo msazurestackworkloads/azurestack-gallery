@@ -1,3 +1,4 @@
+# External FQDN of the instance
 $FQDN=""
 
 # Admin Login
@@ -18,4 +19,4 @@ $PKG_VERSION=""
 Add-AzsGalleryItem -Force -GalleryItemUri "https://$PKG_SA_NAME.blob.$FQDN/$PKG_SA_CONTAINER/Microsoft.AzureStackDockerContainerRegistry.$PKG_VERSION.azpkg"
 
 # Remove package
-Remove-AzsGalleryItem -Force -Name "Microsoft.AzureStackDockerContainerRegistry.$PKG_VERSION"
+# Remove-AzsGalleryItem -Force -Name "Microsoft.AzureStackDockerContainerRegistry.$PKG_VERSION"
