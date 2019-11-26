@@ -7,5 +7,8 @@ $src = (Get-Location).Path + "\_out\Azure Stack Marketplace Item Generator and S
 $dst = (Get-Location).Path + "\_out\packager\"
 Move-Item -Path $src -Destination $dst
 
-$manifest = (Get-Location).Path + "\template\manifest.json"
-_out\packager\AzureGalleryPackager.exe -m $manifest -o _out
+$manifest_k8s = (Get-Location).Path + "\kubernetes\template\manifest.json"
+_out\packager\AzureGalleryPackager.exe -m $manifest_k8s -o _out
+
+$manifest_registry = (Get-Location).Path + "\registry\manifest.json"
+_out\packager\AzureGalleryPackager.exe -m $manifest_registry -o _out

@@ -12,7 +12,7 @@ import (
 
 func main() {
 	scriptstring := getBase64CustomScript(os.Args[1])
-	customerString := getSingleLine("hack/encode/template.yaml", scriptstring)
+	customerString := getSingleLine("makeScripts/encode/template.yaml", scriptstring)
 	fmt.Print(fmt.Sprintf("[base64(concat('%s'))]", customerString))
 }
 
