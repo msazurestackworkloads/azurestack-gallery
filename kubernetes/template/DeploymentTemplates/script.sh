@@ -211,7 +211,7 @@ apt_get_install()
 #####################################################################################
 # start
 
-log_level -i "Starting Kubernetes cluster deployment: v1.0.2"
+log_level -i "Starting Kubernetes cluster deployment: v1.0.3"
 log_level -i "Running script as:  $(whoami)"
 log_level -i "System information: $(uname -a)"
 
@@ -228,6 +228,7 @@ log_level -i "AVAILABILITY_PROFILE                      $AVAILABILITY_PROFILE"
 log_level -i "CUSTOM_VNET_NAME:                         $CUSTOM_VNET_NAME"
 log_level -i "DEFINITION_TEMPLATE_NAME:                 $DEFINITION_TEMPLATE_NAME"
 log_level -i "ENABLE_TILLER:                            $ENABLE_TILLER"
+log_level -i "CONTAINER_RUNTIME:                        $CONTAINER_RUNTIME"
 log_level -i "FIRST_CONSECUTIVE_STATIC_IP:              $FIRST_CONSECUTIVE_STATIC_IP"
 log_level -i "GALLERY_BRANCH:                           $GALLERY_BRANCH"
 log_level -i "GALLERY_REPO:                             $GALLERY_REPO"
@@ -462,6 +463,7 @@ jq --arg IDENTITY_SYSTEM_LOWER $IDENTITY_SYSTEM_LOWER '.properties.customCloudPr
 jq --arg K8S_VERSION $K8S_AZURE_CLOUDPROVIDER_VERSION '.properties.orchestratorProfile.orchestratorRelease=$K8S_VERSION' | \
 jq --arg K8S_IMAGE_BASE $K8S_IMAGE_BASE '.properties.orchestratorProfile.kubernetesConfig.kubernetesImageBase=$K8S_IMAGE_BASE' | \
 jq --arg NETWORK_PLUGIN $NETWORK_PLUGIN '.properties.orchestratorProfile.kubernetesConfig.networkPlugin=$NETWORK_PLUGIN' | \
+jq --arg CONTAINER_RUNTIME $CONTAINER_RUNTIME '.properties.orchestratorProfile.kubernetesConfig.containerRuntime=$CONTAINER_RUNTIME' | \
 jq --arg ENABLE_TILLER $ENABLE_TILLER '.properties.orchestratorProfile.kubernetesConfig.addons[0].enabled= ($ENABLE_TILLER | test("true"))' \
 > $AZURESTACK_CONFIGURATION_TEMP
 

@@ -50,7 +50,7 @@
     "agentSubnetName": {
       "value": ""
     },
-     "firstConsecutiveStaticIP": {
+    "firstConsecutiveStaticIP": {
       "value": ""
     },
     "aksEngineBaseURL": {
@@ -94,6 +94,9 @@
     },
     "enableTillerAddOn": {
       "value": "false"
+    },
+    "containerRuntime": {
+      "value": "docker"
     }
   }
 }
