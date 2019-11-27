@@ -239,6 +239,17 @@
       "metadata": {
         "description": "Flag to enable Tiller addon"
       }
+    },
+    "containerRuntime": {
+      "defaultValue": "docker",
+      "allowedValues": [
+        "docker",
+        "containerd"
+      ],
+      "metadata": {
+        "description": "Container runtime to deploy on each cluster node."
+      },
+      "type": "string"
     }
   },
   "variables": {
@@ -270,7 +281,7 @@
     "tenantSubscriptionId": "[subscription().subscriptionId]",
     "scriptName": "script",
     "singleQuote": "'",
-    "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' ENABLE_TILLER=','\"',parameters('enableTillerAddOn'),'\"' ,' WINDOWS_CUSTOM_PACKAGE=','\"',parameters('customWindowsPackageURL'),'\"' ,' WINDOWS_AGENT_COUNT=','\"',parameters('windowsAgentPoolProfileCount'),'\"' ,' WINDOWS_AGENT_SIZE=','\"',parameters('windowsAgentPoolProfileVMSize'),'\"',' WINDOWS_ADMIN_USERNAME=','\"',parameters('windowsAdminUsername'),'\"',' WINDOWS_ADMIN_PASSWORD=','\"',parameters('windowsAdminPassword'),'\"',' NETWORK_PLUGIN=','\"',parameters('networkPlugin'),'\"',' AVAILABILITY_PROFILE=','\"',parameters('availabilityProfile'),'\"',' FIRST_CONSECUTIVE_STATIC_IP=','\"',parameters('firstConsecutiveStaticIP'),'\"',' AGENT_SUBNET_NAME=','\"',parameters('agentSubnetName'),'\"',' MASTER_SUBNET_NAME=','\"',parameters('masterSubnetName'),'\"',' CUSTOM_VNET_NAME=','\"',parameters('customVnetName'),'\"',' NODE_DISTRO=','\"',parameters('nodeDistro'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"')]"
+    "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' ENABLE_TILLER=','\"',parameters('enableTillerAddOn'),'\"' ,' CONTAINER_RUNTIME=','\"',parameters('containerRuntime'),'\"' ,' WINDOWS_CUSTOM_PACKAGE=','\"',parameters('customWindowsPackageURL'),'\"' ,' WINDOWS_AGENT_COUNT=','\"',parameters('windowsAgentPoolProfileCount'),'\"' ,' WINDOWS_AGENT_SIZE=','\"',parameters('windowsAgentPoolProfileVMSize'),'\"',' WINDOWS_ADMIN_USERNAME=','\"',parameters('windowsAdminUsername'),'\"',' WINDOWS_ADMIN_PASSWORD=','\"',parameters('windowsAdminPassword'),'\"',' NETWORK_PLUGIN=','\"',parameters('networkPlugin'),'\"',' AVAILABILITY_PROFILE=','\"',parameters('availabilityProfile'),'\"',' FIRST_CONSECUTIVE_STATIC_IP=','\"',parameters('firstConsecutiveStaticIP'),'\"',' AGENT_SUBNET_NAME=','\"',parameters('agentSubnetName'),'\"',' MASTER_SUBNET_NAME=','\"',parameters('masterSubnetName'),'\"',' CUSTOM_VNET_NAME=','\"',parameters('customVnetName'),'\"',' NODE_DISTRO=','\"',parameters('nodeDistro'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"')]"
   },
   "resources": [
     {
@@ -351,7 +362,7 @@
           "agentSubnetName": {
             "value": "[parameters('agentSubnetName')]"
           },
-           "firstConsecutiveStaticIP": {
+          "firstConsecutiveStaticIP": {
             "value": "[parameters('firstConsecutiveStaticIP')]"
           },
           "aksEngineBaseURL": {
@@ -389,6 +400,9 @@
           },
           "enableTillerAddOn": {
             "value": "[parameters('enableTillerAddOn')]"
+          },
+          "containerRuntime": {
+            "value": "[parameters('containerRuntime')]"
           }
         }
       }
