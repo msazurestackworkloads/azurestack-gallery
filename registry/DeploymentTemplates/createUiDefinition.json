@@ -88,6 +88,16 @@
                         }
                     },
                     {
+                        "name": "virtualMachineSku",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Image SKU",
+                        "defaultValue": "aks-ubuntu-1604-201909",
+                        "toolTip": "OS image SKU",
+                        "constraints": {
+                            "required": true
+                        }
+                    },
+                    {
                         "name": "servicePrincipalClientId",
                         "type": "Microsoft.Common.TextBox",
                         "label": "Service Principal Client ID",
@@ -173,6 +183,7 @@
             "pfxKeyVaultSecretUrl": "[steps('StoragePfxStep').keyVaultSecretUrl]",
             "pfxThumbprint": "[steps('StoragePfxStep').certificateThumbprint]",
             "registryReplicas": "[steps('VirtualMachineStep').registryReplicas]",
+            "virtualMachineSku": "[steps('VirtualMachineStep').virtualMachineSku]",
             "servicePrincipalClientId": "[steps('VirtualMachineStep').servicePrincipalClientId]",
             "servicePrincipalClientSecret": "[steps('VirtualMachineStep').servicePrincipalClientSecret]"
         }
