@@ -331,10 +331,6 @@
             "type": "string",
             "value": "[parameters('virtualMachineSku')]"
         },
-        "registryTag": {
-            "type": "string",
-            "value": "[parameters('registryTag')]"
-        },
         "registryReplicas": {
             "type": "string",
             "value": "[parameters('registryReplicas')]"
