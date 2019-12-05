@@ -244,13 +244,13 @@ cp .htpasswd $HTPASSWD_DIR/.htpasswd
 
 echo fetching available registry image tag
 REGISTRY_IMAGE_TAG=$(docker images --filter=reference='registry:*' --format "{{.Tag}}" | head -n 1)
-echo REGISTRY_IMAGE_TAG:   ${REGISTRY_IMAGE_TAG}
 if [ -z "$REGISTRY_IMAGE_TAG" ]; then
     echo using registry tag passed as no image tag found 
     REGISTRY_IMAGE_TAG=$REGISTRY_TAG
 else
     echo using registry tag retireved from query
 fi
+echo REGISTRY_IMAGE_TAG:   ${REGISTRY_IMAGE_TAG}
 
 echo starting registry container
 cat <<EOF >> docker-compose.yml
@@ -307,16 +307,20 @@ if [ $ENABLE_VALIDATIONS == "true" ]; then
     if [ $? -ne 0 ]; then
         exit $ERR_REGISTRY_LOGIN_FAILED
     fi
+    docker images
     docker tag registry:${REGISTRY_IMAGE_TAG} localhost:443/registry:${REGISTRY_IMAGE_TAG}
+    docker images
     docker push localhost:443/registry:${REGISTRY_IMAGE_TAG}
     if [ $? -ne 0 ]; then
         exit $ERR_REGISTRY_PUSH_FAILED
     fi
     docker rmi localhost:443/registry:${REGISTRY_IMAGE_TAG}
+    docker images
     docker pull localhost:443/registry:${REGISTRY_IMAGE_TAG}
     if [ $? -ne 0 ]; then
         exit $ERR_REGISTRY_PULL_FAILED
     fi
+    docker images
 fi
 
 echo "registry setup done"
