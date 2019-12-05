@@ -50,6 +50,6 @@ Create a resource -> Compute -> Docker Container Registry
 
 ## Logs
 
-The container registy logs are located in directory `/var/lib/docker/containers/`
+The container registry logs are located in directory `/var/lib/docker/containers/`
 
 To query all logs: `cat /var/lib/docker/containers/*/*-json.log | grep "authentication failure"`

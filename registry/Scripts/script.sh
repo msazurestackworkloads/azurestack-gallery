@@ -185,6 +185,7 @@ echo MARKETPLACE_VERSION: ${MARKETPLACE_VERSION}
 echo PIP_FQDN:            ${PIP_FQDN}
 echo PIP_LABEL:           ${PIP_LABEL}
 echo REGISTRY_REPLICAS:   ${REGISTRY_REPLICAS}
+echo REGISTRY_TAG:        ${REGISTRY_TAG}
 echo SA_CONTAINER:        ${SA_CONTAINER}
 echo SA_RESOURCE_ID:      ${SA_RESOURCE_ID}
 echo SPN_CLIENT_ID:       ${SPN_CLIENT_ID}
@@ -243,8 +244,14 @@ fetchCredentials
 cp .htpasswd $HTPASSWD_DIR/.htpasswd
 
 echo fetching available registry image tag
-REGISTRY_IMAGE_TAG=$(docker images --filter=reference='registry*:*' --format "{{.Tag}}" | head -n 1)
+REGISTRY_IMAGE_TAG=$(docker images --filter=reference='registry:*' --format "{{.Tag}}" | head -n 1)
 echo REGISTRY_IMAGE_TAG:   ${REGISTRY_IMAGE_TAG}
+if [ -z "$REGISTRY_IMAGE_TAG" ]; then
+    echo using registry tag passed as no image tag found 
+    REGISTRY_IMAGE_TAG=$REGISTRY_TAG
+else
+    echo using registry tag retireved from query
+fi
 
 echo starting registry container
 cat <<EOF >> docker-compose.yml
