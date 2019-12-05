@@ -47,9 +47,6 @@
         "pfxThumbprint": {
             "value": ""
         },
-        "registryTag": {
-            "value": "2.7.1"
-        },
         "registryReplicas": {
             "value": "20"
         },
