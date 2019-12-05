@@ -14,6 +14,8 @@ ERR_MS_PROD_DEB_PKG_ADD_FAIL=43     # Failed to add repo pkg file
 ERR_REGISTRY_LOGIN_FAILED=50        # Failed to log into the docker registry
 ERR_REGISTRY_PUSH_FAILED=51         # Failed to push images to the docker registry
 ERR_REGISTRY_PULL_FAILED=52         # Failed to pull images from the docker registry
+ERR_REGISTRY_BUILD_FAILED=53        # Failed to build image locally
+ERR_REGISTRY_REMOVE_FAILED=54       # Failed to remove image locally
 ERR_APT_UPDATE_TIMEOUT=99           # Timeout waiting for apt-get update to complete
 
 retrycmd_if_failure() {
@@ -289,13 +291,26 @@ docker swarm init
 docker stack deploy registry -c docker-compose.yml
 
 sleep 30
-sudo docker system prune -a -f &
-
 echo validating container status
-CID=$(docker ps | grep "registry_registry.1\." | head -c 12)
-STATUS=$(docker inspect ${CID} | jq ".[0].State.Status" | xargs)
+
+i=0
+while [ $i -lt 6 ];do
+
+    CID=$(docker ps | grep "registry_registry.1\." | head -c 12)
+    STATUS=$(docker inspect ${CID} | jq ".[0].State.Status" | xargs)
+    if [[ ! $STATUS == "running" ]]; then 
+        echo containers are not up. we will retry to check the status 
+        sleep 10s
+    else 
+        break
+    fi
+    let i=i+1
+done
+
 if [[ ! $STATUS == "running" ]]; then 
     exit $ERR_REGISTRY_NOT_RUNNING
+else 
+    echo registry containers are up and running
 fi
 
 if [ $ENABLE_VALIDATIONS == "true" ]; then
@@ -307,20 +322,29 @@ if [ $ENABLE_VALIDATIONS == "true" ]; then
     if [ $? -ne 0 ]; then
         exit $ERR_REGISTRY_LOGIN_FAILED
     fi
-    docker images
-    docker tag registry:${REGISTRY_IMAGE_TAG} localhost:443/registry:${REGISTRY_IMAGE_TAG}
-    docker images
-    docker push localhost:443/registry:${REGISTRY_IMAGE_TAG}
+    cat <<EOF >> Dockerfile
+    FROM registry:${REGISTRY_IMAGE_TAG}
+    RUN touch registry 
+EOF
+
+    TEST_IMAGE_NAME="localhost:443/testbuild"
+    docker build -t ${TEST_IMAGE_NAME} -f Dockerfile .
+    if [ $? -ne 0 ]; then
+        exit $ERR_REGISTRY_BUILD_FAILED
+    fi
+    docker push ${TEST_IMAGE_NAME}
     if [ $? -ne 0 ]; then
         exit $ERR_REGISTRY_PUSH_FAILED
     fi
-    docker rmi localhost:443/registry:${REGISTRY_IMAGE_TAG}
-    docker images
-    docker pull localhost:443/registry:${REGISTRY_IMAGE_TAG}
+    docker rmi ${TEST_IMAGE_NAME}
+    if [ $? -ne 0 ]; then
+        exit $ERR_REGISTRY_REMOVE_FAILED
+    fi
+    docker pull ${TEST_IMAGE_NAME}
     if [ $? -ne 0 ]; then
         exit $ERR_REGISTRY_PULL_FAILED
     fi
-    docker images
 fi
 
-echo "registry setup done"
+echo "registry setup done. Cleanup images which are not required"
+sudo docker system prune -a -f &
