@@ -242,7 +242,7 @@ mkdir -p $HTPASSWD_DIR
 fetchCredentials
 cp .htpasswd $HTPASSWD_DIR/.htpasswd
 
-echo fetching registry image available 
+echo fetching available registry image tag
 REGISTRY_IMAGE_TAG=$(docker images --filter=reference='registry*:*' --format "{{.Tag}}" | head -n 1)
 echo REGISTRY_IMAGE_TAG:   ${REGISTRY_IMAGE_TAG}
 
