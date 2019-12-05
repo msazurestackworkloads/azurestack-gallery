@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 
 ERR_APT_INSTALL_TIMEOUT=9           # Timeout installing required apt packages
 ERR_MISSING_CRT_FILE=10             # Bad cert thumbprint OR pfx not in key vault OR template misconfigured VM secrets section
@@ -176,20 +176,21 @@ fetchStorageKeys() {
         "${SA_URL}" -H "Authorization: Bearer ${TOKEN}" -H "Content-Length: 0" | jq -r ".keys[0].value")
 }
 
-echo LOCATION:            ${LOCATION}
-echo TENANT_ID:           ${TENANT_ID}
 echo ADMIN_USER_NAME:     ${ADMIN_USER_NAME}
-echo SA_RESOURCE_ID:      ${SA_RESOURCE_ID}
-echo SA_CONTAINER:        ${SA_CONTAINER}
-echo KV_RESOURCE_ID:      ${KV_RESOURCE_ID}
 echo CERT_THUMBPRINT:     ${CERT_THUMBPRINT}
+echo ENABLE_VALIDATIONS:  ${ENABLE_VALIDATIONS}
+echo KV_RESOURCE_ID:      ${KV_RESOURCE_ID}
+echo LOCATION:            ${LOCATION}
+echo MARKETPLACE_VERSION: ${MARKETPLACE_VERSION}
 echo PIP_FQDN:            ${PIP_FQDN}
 echo PIP_LABEL:           ${PIP_LABEL}
-echo REGISTRY_TAG:        ${REGISTRY_TAG}
 echo REGISTRY_REPLICAS:   ${REGISTRY_REPLICAS}
+echo SA_CONTAINER:        ${SA_CONTAINER}
+echo SA_RESOURCE_ID:      ${SA_RESOURCE_ID}
 echo SPN_CLIENT_ID:       ${SPN_CLIENT_ID}
 echo SPN_CLIENT_SECRET:   ***
-echo ENABLE_VALIDATIONS:  ${ENABLE_VALIDATIONS}
+echo TENANT_ID:           ${TENANT_ID}
+
 
 SA_NAME=$(echo ${SA_RESOURCE_ID} | grep -oh -e '[[:alnum:]]*$')
 KV_NAME=$(echo ${KV_RESOURCE_ID} | grep -oh -e '[[:alnum:]]*$')
@@ -241,12 +242,16 @@ mkdir -p $HTPASSWD_DIR
 fetchCredentials
 cp .htpasswd $HTPASSWD_DIR/.htpasswd
 
+echo fetching available registry image tag
+REGISTRY_IMAGE_TAG=$(docker images --filter=reference='registry*:*' --format "{{.Tag}}" | head -n 1)
+echo REGISTRY_IMAGE_TAG:   ${REGISTRY_IMAGE_TAG}
+
 echo starting registry container
 cat <<EOF >> docker-compose.yml
 version: '3'
 services:
   registry:
-    image: registry:${REGISTRY_TAG}
+    image: registry:${REGISTRY_IMAGE_TAG}
     deploy:
       mode: replicated
       replicas: ${REGISTRY_REPLICAS}
@@ -287,8 +292,8 @@ if [[ ! $STATUS == "running" ]]; then
     exit $ERR_REGISTRY_NOT_RUNNING
 fi
 
-echo validating docker registry
 if [ $ENABLE_VALIDATIONS == "true" ]; then
+    echo validating docker registry
     REGISTRY_USER=""
     REGISTRY_PASSWORD=""
     fetchValidationCredentials
@@ -296,14 +301,16 @@ if [ $ENABLE_VALIDATIONS == "true" ]; then
     if [ $? -ne 0 ]; then
         exit $ERR_REGISTRY_LOGIN_FAILED
     fi
-    docker tag registry:${REGISTRY_TAG} localhost:443/registry:${REGISTRY_TAG}
-    docker push localhost:443/registry:${REGISTRY_TAG}
+    docker tag registry:${REGISTRY_IMAGE_TAG} localhost:443/registry:${REGISTRY_IMAGE_TAG}
+    docker push localhost:443/registry:${REGISTRY_IMAGE_TAG}
     if [ $? -ne 0 ]; then
         exit $ERR_REGISTRY_PUSH_FAILED
     fi
-    docker rmi localhost:443/registry:${REGISTRY_TAG}
-    docker pull localhost:443/registry:${REGISTRY_TAG}
+    docker rmi localhost:443/registry:${REGISTRY_IMAGE_TAG}
+    docker pull localhost:443/registry:${REGISTRY_IMAGE_TAG}
     if [ $? -ne 0 ]; then
         exit $ERR_REGISTRY_PULL_FAILED
     fi
 fi
+
+echo "registry setup done"
