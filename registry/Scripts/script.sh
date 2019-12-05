@@ -189,7 +189,6 @@ echo REGISTRY_TAG:        ${REGISTRY_TAG}
 echo SA_CONTAINER:        ${SA_CONTAINER}
 echo SA_RESOURCE_ID:      ${SA_RESOURCE_ID}
 echo SPN_CLIENT_ID:       ${SPN_CLIENT_ID}
-echo SPN_CLIENT_SECRET:   ***
 echo TENANT_ID:           ${TENANT_ID}
 
 
