@@ -142,7 +142,8 @@
         "subnetRef": "[concat(variables('vnetId'), '/subnets/default')]",
         "tenantId": "[subscription().tenantId]",
         "location": "[resourceGroup().location]",
-        "provisionScriptParameters": "[concat('MARKETPLACE_VERSION=1.0.0','ADMIN_USER_NAME=', parameters('adminUsername'),' SA_RESOURCE_ID=', parameters('storageAccountResourceId'),' SA_CONTAINER=', parameters('storageAccountContainer'),' KV_RESOURCE_ID=', parameters('pfxKeyVaultResourceId'),' CERT_THUMBPRINT=', parameters('pfxThumbprint'),' PIP_LABEL=', parameters('pipDomainNameLabel'),' REGISTRY_TAG=', parameters('registryTag'),' SPN_CLIENT_ID=',parameters('servicePrincipalClientId'),' SPN_CLIENT_SECRET=',parameters('servicePrincipalClientSecret'),' ENABLE_VALIDATIONS=',parameters('enableValidations'),' REGISTRY_REPLICAS=', parameters('registryReplicas'))]"
+        "marketplaceVersion": "1.0.0",
+        "provisionScriptParameters": "[concat('MARKETPLACE_VERSION=', variables('marketplaceVersion'),' ADMIN_USER_NAME=', parameters('adminUsername'),' SA_RESOURCE_ID=', parameters('storageAccountResourceId'),' SA_CONTAINER=', parameters('storageAccountContainer'),' KV_RESOURCE_ID=', parameters('pfxKeyVaultResourceId'),' CERT_THUMBPRINT=', parameters('pfxThumbprint'),' PIP_LABEL=', parameters('pipDomainNameLabel'),' REGISTRY_TAG=', parameters('registryTag'),' SPN_CLIENT_ID=',parameters('servicePrincipalClientId'),' SPN_CLIENT_SECRET=',parameters('servicePrincipalClientSecret'),' ENABLE_VALIDATIONS=',parameters('enableValidations'),' REGISTRY_REPLICAS=', parameters('registryReplicas'))]"
     },
     "resources": [
         {
