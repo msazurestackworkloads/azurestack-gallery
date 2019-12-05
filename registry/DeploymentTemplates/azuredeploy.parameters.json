@@ -48,10 +48,10 @@
             "value": ""
         },
         "registryTag": {
-            "value": ""
+            "value": "2.7.1"
         },
         "registryReplicas": {
-            "value": ""
+            "value": "20"
         },
         "servicePrincipalClientId": {
             "value": ""
