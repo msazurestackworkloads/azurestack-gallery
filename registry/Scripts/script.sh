@@ -290,12 +290,9 @@ EOF
 docker swarm init
 docker stack deploy registry -c docker-compose.yml
 
-sleep 30
 echo validating container status
-
 i=0
 while [ $i -lt 6 ];do
-
     CID=$(docker ps | grep "registry_registry.1\." | head -c 12)
     STATUS=$(docker inspect ${CID} | jq ".[0].State.Status" | xargs)
     if [[ ! $STATUS == "running" ]]; then 
@@ -346,5 +343,5 @@ EOF
     fi
 fi
 
-echo "registry setup done. Cleanup images which are not required"
+echo "Registry setup done. Remove non required images."
 sudo docker system prune -a -f &
