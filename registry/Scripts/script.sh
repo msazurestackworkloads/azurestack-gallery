@@ -194,8 +194,8 @@ echo SPN_CLIENT_ID:       ${SPN_CLIENT_ID}
 echo TENANT_ID:           ${TENANT_ID}
 
 
-SA_NAME=$(echo ${SA_RESOURCE_ID} | grep -oh -e '[[:alnum:]]*$')
-KV_NAME=$(echo ${KV_RESOURCE_ID} | grep -oh -e '[[:alnum:]]*$')
+SA_NAME=$(echo ${SA_RESOURCE_ID} | awk -F"/" '{print $NF}')
+KV_NAME=$(echo ${KV_RESOURCE_ID} | awk -F"/" '{print $NF}')
 
 EXT_DOMAIN_NAME="${PIP_FQDN//$PIP_LABEL.$LOCATION.cloudapp.}"
 FQDN=${LOCATION}.${EXT_DOMAIN_NAME}
@@ -290,12 +290,9 @@ EOF
 docker swarm init
 docker stack deploy registry -c docker-compose.yml
 
-sleep 30
 echo validating container status
-
 i=0
 while [ $i -lt 6 ];do
-
     CID=$(docker ps | grep "registry_registry.1\." | head -c 12)
     STATUS=$(docker inspect ${CID} | jq ".[0].State.Status" | xargs)
     if [[ ! $STATUS == "running" ]]; then 
@@ -346,5 +343,5 @@ EOF
     fi
 fi
 
-echo "registry setup done. Cleanup images which are not required"
+echo "Registry setup done. Remove non required images."
 sudo docker system prune -a -f &
