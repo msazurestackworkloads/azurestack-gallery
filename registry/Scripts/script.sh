@@ -194,8 +194,8 @@ echo SPN_CLIENT_ID:       ${SPN_CLIENT_ID}
 echo TENANT_ID:           ${TENANT_ID}
 
 
-SA_NAME=$(echo ${SA_RESOURCE_ID} | grep -oh -e '[[:alnum:]]*$')
-KV_NAME=$(echo ${KV_RESOURCE_ID} | grep -oh -e '[[:alnum:]]*$')
+SA_NAME=$(echo ${SA_RESOURCE_ID} | awk -F"/" '{print $NF}')
+KV_NAME=$(echo ${KV_RESOURCE_ID} | awk -F"/" '{print $NF}')
 
 EXT_DOMAIN_NAME="${PIP_FQDN//$PIP_LABEL.$LOCATION.cloudapp.}"
 FQDN=${LOCATION}.${EXT_DOMAIN_NAME}
