@@ -24,7 +24,51 @@ function New-ResourceGroup (
     if ($doesResourceGroupExist) {
         # Create resource group
         Write-Host "Resource group ($ResourceGroupName) does not exist. Creating a new resource group." 
-        New-AzureRmResourceGroup -Name $ResourceGroupName -Location $Location | out-null
+        New-AzureRmResourceGroup -Name $ResourceGroupName -Location $Location | Out-Null
+        Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorVariable doesResourceGroupExist
+        if ($doesResourceGroupExist) {
+            throw "Creation of resource group($ResourceGroupName) failed."
+        }
+    }
+}
+
+<#
+.Synopsis
+    Create a storage account under given resource group
+
+.Description
+    Create a storage account under given resource group
+
+.Parameter StorageAccountName
+    Storage account name which needs to be created.
+
+.Example
+   New-StorageAccount -StorageAccountName "storageAccountName"
+#>
+function New-StorageAccount (
+    [string] $ResourceGroupName,
+    [string] $Location,
+    [string] $StorageAccountName,
+    [string] $SkuName = "Premium_LRS",
+    [int] $EnableHttpsTrafficOnly = 1
+)
+{
+    # STORAGE ACCOUNT
+    # =============================================
+
+    # Create storage account
+    Write-Host "Check if storage account($StorageAccountName) already exist" 
+    $sa = New-AzureRmStorageAccount -ResourceGroupName $ResourceGroupName -AccountName $StorageAccountName -Location $Location -SkuName $SkuName -EnableHttpsTrafficOnly $EnableHttpsTrafficOnly
+
+    Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorVariable doesResourceGroupExist | Out-Null
+    if ($doesResourceGroupExist) {
+        # Create resource group
+        Write-Host "Resource group ($ResourceGroupName) does not exist. Creating a new resource group." 
+        New-AzureRmResourceGroup -Name $ResourceGroupName -Location $Location | Out-Null
+        Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorVariable doesResourceGroupExist
+        if ($doesResourceGroupExist) {
+            throw "Creation of resource group($ResourceGroupName) failed."
+        }
     }
 }
 
@@ -58,12 +102,6 @@ Param
 # Assuming tenant is logged in already and selected the given subscription. 
 New-ResourceGroup -ResourceGroupName $ResourceGroupName
 
-# STORAGE ACCOUNT
-# =============================================
-
-# Create storage account
-Write-Host "Creating storage account:" $StorageAccountName
-$sa = New-AzureRmStorageAccount -ResourceGroupName $ResourceGroupName -AccountName $StorageAccountName -Location $Location -SkuName Premium_LRS -EnableHttpsTrafficOnly 1
 
 # Create container
 Write-Host "Creating blob container:" $StorageAccountContainer
