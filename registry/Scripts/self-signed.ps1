@@ -1,4 +1,4 @@
-#requires -RunAsAdministrator
+#requires -runasadministrator
 
 Param
 (
