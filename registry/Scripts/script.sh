@@ -178,20 +178,21 @@ fetchStorageKeys() {
         "${SA_URL}" -H "Authorization: Bearer ${TOKEN}" -H "Content-Length: 0" | jq -r ".keys[0].value")
 }
 
-echo ADMIN_USER_NAME:     ${ADMIN_USER_NAME}
-echo CERT_THUMBPRINT:     ${CERT_THUMBPRINT}
-echo ENABLE_VALIDATIONS:  ${ENABLE_VALIDATIONS}
-echo KV_RESOURCE_ID:      ${KV_RESOURCE_ID}
-echo LOCATION:            ${LOCATION}
-echo MARKETPLACE_VERSION: ${MARKETPLACE_VERSION}
-echo PIP_FQDN:            ${PIP_FQDN}
-echo PIP_LABEL:           ${PIP_LABEL}
-echo REGISTRY_REPLICAS:   ${REGISTRY_REPLICAS}
-echo REGISTRY_TAG:        ${REGISTRY_TAG}
-echo SA_CONTAINER:        ${SA_CONTAINER}
-echo SA_RESOURCE_ID:      ${SA_RESOURCE_ID}
-echo SPN_CLIENT_ID:       ${SPN_CLIENT_ID}
-echo TENANT_ID:           ${TENANT_ID}
+echo ADMIN_USER_NAME:             ${ADMIN_USER_NAME}
+echo CERT_THUMBPRINT:             ${CERT_THUMBPRINT}
+echo CONTAINER_STATUS_WAIT_TIME:  ${CONTAINER_STATUS_WAIT_TIME}
+echo ENABLE_VALIDATIONS:          ${ENABLE_VALIDATIONS}
+echo KV_RESOURCE_ID:              ${KV_RESOURCE_ID}
+echo LOCATION:                    ${LOCATION}
+echo MARKETPLACE_VERSION:         ${MARKETPLACE_VERSION}
+echo PIP_FQDN:                    ${PIP_FQDN}
+echo PIP_LABEL:                   ${PIP_LABEL}
+echo REGISTRY_REPLICAS:           ${REGISTRY_REPLICAS}
+echo REGISTRY_TAG:                ${REGISTRY_TAG}
+echo SA_CONTAINER:                ${SA_CONTAINER}
+echo SA_RESOURCE_ID:              ${SA_RESOURCE_ID}
+echo SPN_CLIENT_ID:               ${SPN_CLIENT_ID}
+echo TENANT_ID:                   ${TENANT_ID}
 
 
 SA_NAME=$(echo ${SA_RESOURCE_ID} | awk -F"/" '{print $NF}')
@@ -292,16 +293,16 @@ docker stack deploy registry -c docker-compose.yml
 
 echo validating container status
 i=0
-while [ $i -lt 6 ];do
+while [ $i -lt $CONTAINER_STATUS_WAIT_TIME ];do
     CID=$(docker ps | grep "registry_registry.1\." | head -c 12)
     STATUS=$(docker inspect ${CID} | jq ".[0].State.Status" | xargs)
     if [[ ! $STATUS == "running" ]]; then 
         echo containers are not up. we will retry to check the status 
-        sleep 10s
+        sleep 30s
     else 
         break
     fi
-    let i=i+1
+    let i=i+30
 done
 
 if [[ ! $STATUS == "running" ]]; then 
