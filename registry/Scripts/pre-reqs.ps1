@@ -1,4 +1,50 @@
 
+function New-SelfSignedCert (
+    [Parameter(Mandatory = $true, HelpMessage = "Certificate fully qualified domain name.")]
+    [string] $CertificateCN,
+    [Parameter(Mandatory = $true, HelpMessage = "Certificate Password to be used to export the cert.")]
+    [string] $CertificateSecret,
+    [Parameter(Mandatory = $true, HelpMessage = "Certificate file export path including certificate filename.")]
+    [string] $CertificateFileExportPath
+)
+{
+    if (-not (Test-Path -Path $CertificateFileExportPath -IsValid))
+    {
+        Write-Host "Error: CertificateFileExportPath is not a valid path."
+    }
+    
+    if (-not ([IO.Path]::GetExtension($CertificateFileExportPath) -eq '.pfx'))
+    {
+        Write-Host "Error: Invalid syntax for CertificateFileExportPath variable. Extension value in path should end with '.pfx'"
+    }
+    
+    # Create a self-signed certificate
+    $ssc = New-SelfSignedCertificate -certstorelocation cert:\LocalMachine\My -dnsname $CertificateCN
+    $crt = "cert:\localMachine\my\" + $ssc.Thumbprint
+    $pwd = ConvertTo-SecureString -String $CertificateSecret -Force -AsPlainText
+    Export-PfxCertificate -cert $crt -FilePath $CertificateFileExportPath -Password $pwd
+}
+
+function Get-AzureStackLoginStatus ()
+{
+    Get-AzureRmSubscription -ErrorVariable isTenantLogin
+    if ($isTenantLogin)
+    {
+        throw "Tenant login is not done. Please login and select a given subscription"
+    }
+}
+
+function Get-VMImageSku (
+    [Parameter(Mandatory = $true, HelpMessage = "Location of Azure Stack.")]
+    [string] $Location,
+    [Parameter(Mandatory = $false, HelpMessage = "")]
+    [string] $PublisherName = "microsoft-aks",
+    [Parameter(Mandatory = $false, HelpMessage = "")]
+    [string] $Offer = "aks"
+)
+{
+    Get-AzureRmVMImageSku -Location $Location -PublisherName $PublisherName -Offer $Offer | Select-Object Skus
+}
 
 <#
 .Synopsis
@@ -20,13 +66,13 @@ function New-ResourceGroup (
     # RESOURCE GROUP
     # =============================================
     Write-Host "Check if resource group($ResourceGroupName) already exist" 
-    Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorVariable doesResourceGroupExist | Out-Null
-    if ($doesResourceGroupExist) {
+    Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorVariable resourceGroupExistError | Out-Null
+    if ($resourceGroupExistError) {
         # Create resource group
         Write-Host "Resource group ($ResourceGroupName) does not exist. Creating a new resource group." 
         New-AzureRmResourceGroup -Name $ResourceGroupName -Location $Location | Out-Null
-        Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorVariable doesResourceGroupExist
-        if ($doesResourceGroupExist) {
+        Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorVariable resourceGroupExistError
+        if ($resourceGroupExistError) {
             throw "Creation of resource group($ResourceGroupName) failed."
         }
     }
@@ -39,11 +85,27 @@ function New-ResourceGroup (
 .Description
     Create a storage account under given resource group
 
+.Parameter ResourceGroupName
+    Resource group name under which storage account needs to be created.
+
+.Parameter Location
+    Azure Stack Location.
+
 .Parameter StorageAccountName
     Storage account name which needs to be created.
 
+.Parameter SkuName
+    Storage account SKU to be used.
+
+.Parameter EnableHttpsTrafficOnly
+    Enable to have https traffic only.
+
 .Example
-   New-StorageAccount -StorageAccountName "storageAccountName"
+   New-StorageAccount -ResourceGroupName "resourcegroupname"
+                      -Location "local"
+                      -StorageAccountName "storageaccountname"
+                      -SkuName "Premium_LRS"
+                      -EnableHttpsTrafficOnly 1
 #>
 function New-StorageAccount (
     [string] $ResourceGroupName,
@@ -53,26 +115,138 @@ function New-StorageAccount (
     [int] $EnableHttpsTrafficOnly = 1
 )
 {
-    # STORAGE ACCOUNT
-    # =============================================
-
     # Create storage account
     Write-Host "Check if storage account($StorageAccountName) already exist" 
-    $sa = New-AzureRmStorageAccount -ResourceGroupName $ResourceGroupName -AccountName $StorageAccountName -Location $Location -SkuName $SkuName -EnableHttpsTrafficOnly $EnableHttpsTrafficOnly
+    $storageAccountDetails = Get-AzureRmStorageAccount -ResourceGroupName $ResourceGroupName `
+                                                       -Name $StorageAccountName `
+                                                       -ErrorVariable storageAccountExistError | Out-Null
+    if ($storageAccountExistError) {
+        Write-Host "Storage account does not exist."
+        Write-Host "Creating a new storage account($StorageAccountName) under resource group($ResourceGroupName)." 
+        New-AzureRmStorageAccount -ResourceGroupName $ResourceGroupName `
+                                  -AccountName $StorageAccountName `
+                                  -Location $Location `
+                                  -SkuName $SkuName `
+                                  -EnableHttpsTrafficOnly $EnableHttpsTrafficOnly
+        $storageAccountDetails = Get-AzureRmStorageAccount -ResourceGroupName $ResourceGroupName `
+                                                           -Name $StorageAccountName `
+                                                           -ErrorVariable storageAccountExistError | Out-Null
+        if ($storageAccountExistError) {
+            throw "Creation a new storage account($StorageAccountName) under resource group($ResourceGroupName) failed." 
+        }
+    }
 
-    Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorVariable doesResourceGroupExist | Out-Null
-    if ($doesResourceGroupExist) {
-        # Create resource group
-        Write-Host "Resource group ($ResourceGroupName) does not exist. Creating a new resource group." 
-        New-AzureRmResourceGroup -Name $ResourceGroupName -Location $Location | Out-Null
-        Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorVariable doesResourceGroupExist
-        if ($doesResourceGroupExist) {
-            throw "Creation of resource group($ResourceGroupName) failed."
+    return $storageAccountDetails
+}
+
+<#
+.Synopsis
+    Create a account blob container under given storage account
+
+.Description
+    Create a account blob container under given storage account
+
+.Parameter ResourceGroupName
+    Resource group name under which storage account needs to be created.
+
+.Parameter StorageAccountName
+    Storage account name under which storage account needs to be created.
+
+.Parameter StorageAccountBlobContainer
+    Storage account blob container name which needs to be created.
+
+.Example
+   New-ResourceGroup -ResourceGroupName "resourcegroupname"
+#>
+function New-StorageAccountContainer (
+    [string] $ResourceGroupName,
+    [string] $StorageAccountName,
+    [string] $StorageAccountBlobContainer
+)
+{
+    # Storage Account Container
+    # =============================================
+    Write-Host "Check if storage account blob container($StorageAccountContainer) already exist." 
+    Get-AzureStorageContainer -Name $StorageAccountContainer -ErrorVariable storageContainerExistError | Out-Null
+    if ($storageContainerExistError) {
+        # Create container under storage account
+        Write-Host "Creating blob container($StorageAccountContainer) under stroage account($StorageAccountName)." 
+        New-AzureStorageContainer -Name $StorageAccountContainer | out-null
+        Get-AzureStorageContainer -Name $StorageAccountContainer -ErrorVariable storageContainerExistError | Out-Null
+        if ($storageContainerExistError) {
+            throw "Creation of storage blob container($StorageAccountContainer) failed."
         }
     }
 }
 
-Param
+function New-KeyVault (
+    [string] $ResourceGroupName,
+    [string] $Location,
+    [string] $KeyVaultName,
+    [string] $Sku = "standard"
+)
+{
+    Write-Host "Check if key vault($KeyVaultName) exist." 
+    $keyVaultDetails = Get-AzureRmKeyVault -Name $KeyVaultName
+    if (-not $keyVaultDetails)
+    {
+        Write-Host "Creating key vault($KeyVaultName) as it does not exist."
+        $keyVaultDetails = New-AzureRmKeyVault -ResourceGroupName $ResourceGroupName `
+                                               -VaultName $KeyVaultName `
+                                               -Location $Location `
+                                               -Sku $Sku `
+                                               -EnabledForDeployment
+    }
+
+    return $keyVaultDetails
+}
+
+
+function New-KeyVaultSecret (
+    [string] $KeyVaultName,
+    [string] $SecretName,
+    [string] $SecretValue,
+    [string] $ContentType
+)
+{
+    Write-Host "Check if key vault secret name ($SecretName) exist." 
+    $keyVaultSecretDetails = Get-AzureKeyVaultSecret -VaultName $KeyVaultName -Name $SecretName
+    if (-not $keyVaultSecretDetails)
+    {
+        Write-Host "Creating key vault secret name ($SecretName) as it does not exist."
+        $secureSecret = ConvertTo-SecureString -String $SecretValue -AsPlainText -Force
+        Set-AzureKeyVaultSecret -VaultName $KeyVaultName `
+                                -Name $SecretName `
+                                -SecretValue $secureSecret `
+                                -ContentType $ContentType
+    }
+    else {
+        throw "Key vault secret name already exist. "
+    }
+}
+
+
+function Get-CertificateEncoded (
+    [string] $CertificateFilePath,
+    [string] $CertificateSecret
+)
+{
+    # Store certificate as secret
+    $fileContentBytes = get-content $CertificateFilePath -Encoding Byte
+    $fileContentEncoded = [System.Convert]::ToBase64String($fileContentBytes)
+    $jsonObject = @"
+    {
+    "data": "$filecontentencoded",
+    "dataType" :"pfx",
+    "password": "$CertificateSecret"
+    }
+"@
+    $jsonObjectBytes = [System.Text.Encoding]::UTF8.GetBytes($jsonObject)
+    $jsonEncoded = [System.Convert]::ToBase64String($jsonObjectBytes)
+    return $jsonEncoded
+}
+
+function New-ContainerRegistryPrerequisite
 (
     [Parameter(Mandatory = $true, HelpMessage = "")]
     [string] $Location,
@@ -83,7 +257,7 @@ Param
     [Parameter(Mandatory = $true, HelpMessage = "")]
     [string] $StorageAccountName,
     [Parameter(Mandatory = $true, HelpMessage = "")]
-    [string] $StorageAccountContainer,
+    [string] $StorageAccountBlobContainer,
     [Parameter(Mandatory = $true, HelpMessage = "")]
     [string] $KeyVaultName,
     [Parameter(Mandatory = $true, HelpMessage = "")]
@@ -97,56 +271,56 @@ Param
     [Parameter(Mandatory = $true, HelpMessage = "")]
     [string] $DockerUserPassword
 )
-
-
-# Assuming tenant is logged in already and selected the given subscription. 
-New-ResourceGroup -ResourceGroupName $ResourceGroupName
-
-
-# Create container
-Write-Host "Creating blob container:" $StorageAccountContainer
-Set-AzureRmCurrentStorageAccount -ResourceGroupName $ResourceGroupName -AccountName $StorageAccountName | out-null
-New-AzureStorageContainer -Name $StorageAccountContainer | out-null
-
-Write-Host "=> Storage Account Resource ID:" $sa.Id
-
-Write-Host "Assigning contributor role to" $ServicePrincipleName
-New-AzureRMRoleAssignment -ApplicationId $ServicePrincipleName -RoleDefinitionName "Contributor" -Scope $sa.Id
-
-# KEY VAULT
-# =============================================
-
-# Create key vault enabled for deployment
-Write-Host "Creating key vault:" $KeyVaultName
-$kv = New-AzureRmKeyVault -ResourceGroupName $ResourceGroupName -VaultName $KeyVaultName -Location $Location -Sku standard -EnabledForDeployment
-Write-Host "=> Key Vault Resource ID:" $kv.ResourceId
-
-Write-Host "Setting access polices for client" $ServicePrincipleName
-Set-AzureRmKeyVaultAccessPolicy -VaultName $KeyVaultName -ServicePrincipalName $ServicePrincipleName -PermissionsToSecrets GET,LIST
-
-# Store certificate as secret
-Write-Host "Storing certificate in key vault:" $CertificateFilePath
-$fileContentBytes = get-content $CertificateFilePath -Encoding Byte
-$fileContentEncoded = [System.Convert]::ToBase64String($fileContentBytes)
-$jsonObject = @"
 {
-"data": "$filecontentencoded",
-"dataType" :"pfx",
-"password": "$CertificatePassword"
+    # Assuming tenant is logged in already and selected the given subscription. 
+
+    # Create resource group. In case exist skip creation.
+    New-ResourceGroup -ResourceGroupName $ResourceGroupName
+
+    # Create storage account. In case exist skip creation.
+    $storageAccountDetails = New-StorageAccount -ResourceGroupName $ResourceGroupName `
+                                    -Location $Location `
+                                    -StorageAccountName $StorageAccountName
+
+    # Create current context to given storage account.
+    Set-AzureRmCurrentStorageAccount -ResourceGroupName $ResourceGroupName -AccountName $StorageAccountName | out-null
+
+    # Create new storage blob container.
+    New-StorageAccountContainer -ResourceGroupName $ResourceGroupName `
+                                -StorageAccountName $StorageAccountName `
+                                -StorageAccountBlobContainer $StorageAccountBlobContainer
+
+    # Todo need to check how to make it idempotent
+    Write-Host "Assigning contributor role to $ServicePrincipleName on $StorageAccountName"
+    New-AzureRMRoleAssignment -ApplicationId $ServicePrincipleName -RoleDefinitionName "Contributor" -Scope $storageAccountDetails.Id
+
+    # Create key vault enabled for deployment
+    $keyVaultDetails = New-KeyVault -ResourceGroupName $ResourceGroupName -Location $Location -KeyVaultName $KeyVaultName -Sku standard
+
+    # Todo need to check how to make it idempotent
+    Write-Host "Setting access polices for client" $ServicePrincipleName
+    Set-AzureRmKeyVaultAccessPolicy -VaultName $KeyVaultName -ServicePrincipalName $ServicePrincipleName -PermissionsToSecrets GET,LIST
+
+    # Store certificate as secret
+
+    $secret = Get-CertificateEncoded -CertificateFilePath $CertificateFilePath -CertificateSecret $CertificatePassword
+
+    # Secret related to certificate.
+    New-KeyVaultSecret -KeyVaultName $KeyVaultName `
+                    -SecretName $CertificateSecretName `
+                    -SecretValue $secret `
+                    -ContentType pfx
+
+    # Secret related to docker credentials.
+    New-KeyVaultSecret -KeyVaultName $KeyVaultName `
+                    -SecretName $DockerUserName `
+                    -SecretValue $DockerUserPassword `
+                    -ContentType "user credentials"
+
+    #Write-Host "=> Storage Account Resource ID:" $storageAccountDetails.Id
+    # Compute certificate thumbprint
+    #Write-Host "Computing certificate thumbprint"
+    #$tp = Get-PfxCertificate -FilePath $CertificateFilePath
+    #Write-Host "=> Certificate URL:" $kvSecret.Id
+    #Write-Host "=> Certificate thumbprint:" $tp.Thumbprint
 }
-"@
-$jsonObjectBytes = [System.Text.Encoding]::UTF8.GetBytes($jsonObject)
-$jsonEncoded = [System.Convert]::ToBase64String($jsonObjectBytes)
-$secret = ConvertTo-SecureString -String $jsonEncoded -AsPlainText -Force
-$kvSecret = Set-AzureKeyVaultSecret -VaultName $KeyVaultName -Name $CertificateSecretName -SecretValue $secret -ContentType pfx
-
-# Compute certificate thumbprint
-Write-Host "Computing certificate thumbprint"
-$tp = Get-PfxCertificate -FilePath $CertificateFilePath
-
-Write-Host "=> Certificate URL:" $kvSecret.Id
-Write-Host "=> Certificate thumbprint:" $tp.Thumbprint
-
-Write-Host "Storing secret for sample user: $DockerUserName"
-$userSecret = ConvertTo-SecureString -String $DockerUserPassword -AsPlainText -Force
-Set-AzureKeyVaultSecret -VaultName $KeyVaultName -Name $DockerUserName -SecretValue $userSecret -ContentType "user credentials" | out-null
