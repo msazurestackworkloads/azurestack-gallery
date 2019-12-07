@@ -1,15 +1,15 @@
-#! /bin/bash
-set -e
-ERR_APT_INSTALL_TIMEOUT=9 # Timeout installing required apt packages
-ERR_AKSE_DOWNLOAD=10 # Failure downloading AKS-Engine binaries
-ERR_AKSE_DEPLOY=12 # Failure calling AKS-Engine's deploy operation
-ERR_TEMPLATE_DOWNLOAD=13 # Failure downloading AKS-Engine template
-ERR_INVALID_AGENT_COUNT_VALUE=14 # Both Windows and Linux agent value is zero
-ERR_CACERT_INSTALL=20 # Failure moving CA certificate
-ERR_METADATA_ENDPOINT=30 # Failure calling the metadata endpoint
-ERR_API_MODEL=40 # Failure building API model using user input
-ERR_AZS_CLOUD_REGISTER=50 # Failure calling az cloud register
-ERR_APT_UPDATE_TIMEOUT=99 # Timeout waiting for apt-get update to complete
+#! /bin/bash -e
+
+ERR_APT_INSTALL_TIMEOUT=9           # Timeout installing required apt packages
+ERR_AKSE_DOWNLOAD=10                # Failure downloading AKS-Engine binaries
+ERR_AKSE_DEPLOY=12                  # Failure calling AKS-Engine's deploy operation
+ERR_TEMPLATE_DOWNLOAD=13            # Failure downloading AKS-Engine template
+ERR_INVALID_AGENT_COUNT_VALUE=14    # Both Windows and Linux agent value is zero
+ERR_CACERT_INSTALL=20               # Failure moving CA certificate
+ERR_METADATA_ENDPOINT=30            # Failure calling the metadata endpoint
+ERR_API_MODEL=40                    # Failure building API model using user input
+ERR_AZS_CLOUD_REGISTER=50           # Failure calling az cloud register
+ERR_APT_UPDATE_TIMEOUT=99           # Timeout waiting for apt-get update to complete
 
 ###
 #   <summary>
@@ -79,6 +79,7 @@ check_and_move_azurestack_configuration() {
     sudo mv $1 $2
     log_level -i "Completed creating API model file with given stamp information."
 }
+
 ##
 #   <summary>
 #      Validate if file exist and it has non zero bytes. If validation passes moves file to new location.
@@ -300,7 +301,7 @@ retrycmd_if_failure 20 30 ensureCertificates
 
 #####################################################################################
 #Section to install kubectl
-KUBECTL_VERSION=1.11.7
+KUBECTL_VERSION=1.14.9
 
 echo "==> Downloading kubectl version ${KUBECTL_VERSION} <=="
 
@@ -386,7 +387,7 @@ if [ "$AGENT_COUNT" != "0" ]; then
     --arg linuxAgentSize $AGENT_SIZE \
     --arg linuxAvailabilityProfile $AVAILABILITY_PROFILE \
     --arg NODE_DISTRO "ubuntu" \
-    '.properties.agentPoolProfiles += [{"name": "linuxpool", "osDiskSizeGB": 200, "AcceleratedNetworkingEnabled": false, "distro": $NODE_DISTRO, "count": $linuxAgentCount | tonumber, "vmSize": $linuxAgentSize, "availabilityProfile": $linuxAvailabilityProfile}]' \
+    '.properties.agentPoolProfiles += [{"name": "linuxpool", "osDiskSizeGB": 100, "AcceleratedNetworkingEnabled": false, "distro": $NODE_DISTRO, "count": $linuxAgentCount | tonumber, "vmSize": $linuxAgentSize, "availabilityProfile": $linuxAvailabilityProfile}]' \
     > $AZURESTACK_CONFIGURATION_TEMP
     
     validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL

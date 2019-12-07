@@ -1,51 +1,50 @@
 {
-  "apiVersion": "vlabs",
-  "location": "",
-  "properties": {
-      "orchestratorProfile": {
-          "orchestratorType": "Kubernetes",
-          "orchestratorRelease": "1.11",
-          "kubernetesConfig": {
-              "kubernetesImageBase": "mcr.microsoft.com/k8s/azurestack/core/",
-              "useInstanceMetadata": false,
-              "networkPlugin": "flannel",
-              "customWindowsPackageURL": ""
-          }
-      },
-      "customCloudProfile": {
-          "portalURL": ""
-      },
-      "masterProfile": {
-          "dnsPrefix": "",
-          "distro": "ubuntu",
-          "osDiskSizeGB": 200,
-          "count": 3,
-          "vmSize": "Standard_D2_v2"
-      },
-      "agentPoolProfiles": [            
-      ],
-      "linuxProfile": {
-          "adminUsername": "azureuser",
-          "ssh": {
-              "publicKeys": [
-                  {
-                      "keyData": ""
-                  }
-              ]
-          }
-      },
-      "windowsProfile": {
-          "adminUsername": "azureuser",
-          "adminPassword": "",
-          "imageVersion": "latest",
-          "WindowsPublisher": "MicrosoftWindowsServer",
-          "WindowsOffer": "WindowsServer",
-          "WindowsSku": "2019-Datacenter-Core-with-Containers",
-          "sshEnabled": true
-      },
-      "servicePrincipalProfile": {
-          "clientId": "",
-          "secret": ""
-      }
-  }
-} 
+    "apiVersion": "vlabs",
+    "location": "",
+    "properties": {
+        "orchestratorProfile": {
+            "orchestratorType": "Kubernetes",
+            "orchestratorRelease": "1.11",
+            "kubernetesConfig": {
+                "kubernetesImageBase": "mcr.microsoft.com/k8s/azurestack/core/",
+                "useInstanceMetadata": false,
+                "networkPlugin": "flannel",
+                "customWindowsPackageURL": ""
+            }
+        },
+        "customCloudProfile": {
+            "portalURL": ""
+        },
+        "masterProfile": {
+            "dnsPrefix": "",
+            "distro": "ubuntu",
+            "osDiskSizeGB": 100,
+            "count": 3,
+            "vmSize": "Standard_D2_v2"
+        },
+        "agentPoolProfiles": [],
+        "linuxProfile": {
+            "adminUsername": "azureuser",
+            "ssh": {
+                "publicKeys": [
+                    {
+                        "keyData": ""
+                    }
+                ]
+            }
+        },
+        "windowsProfile": {
+            "adminUsername": "azureuser",
+            "adminPassword": "",
+            "imageVersion": "latest",
+            "WindowsPublisher": "MicrosoftWindowsServer",
+            "WindowsOffer": "WindowsServer",
+            "WindowsSku": "2019-Datacenter-Core-with-Containers",
+            "sshEnabled": true
+        },
+        "servicePrincipalProfile": {
+            "clientId": "",
+            "secret": ""
+        }
+    }
+}
