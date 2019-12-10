@@ -5,5 +5,9 @@
             "name": "CreateMultiVmWizardBlade",
             "extension": "Microsoft_Azure_Compute"
         }
+    },
+    "options": {
+        "hideBuyBlade": true,
+        "allowExistingResourceGroups": true
     }
 }
