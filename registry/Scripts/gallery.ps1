@@ -8,19 +8,19 @@
   The script provide functionality to install a marketplace item from given URL.
 
 .Parameter AzureStackDomainName
-  Fully qualified domain name to create FQDN specific certificate.
+  Fully qualified domain name of Azure Stack instance.
 
 .Parameter AdminUserName
-  Admin user name to connect ARM endpoint.
+  Admin username.
 
 .Parameter AdminPassword
-  Admin password to connect ARM endpoint.
+  Admin password.
 
 .Parameter TenantId
   Tenant ID of Azure Stack.
 
-.Parameter GalleryItemUri
-  Full URL from to download marketplace item.
+.Parameter MarketplaceUri
+  Marketplace package download URL.
 
 .Parameter EnvironmentName
   Name of the environment.
@@ -30,20 +30,20 @@
                -AdminUserName admin@localazurestack.onmicrosoft.com 
                -AdminPassword <Login Password> 
                -TenantId 00000000-0000-0000-0000-000000000000 
-               -GalleryItemUri https://local.blob.core.windows.net/marketplaceblob/Microsoft.AzureStackDockerContainerRegistry.1.0.0.azpkg
+               -MarketplaceUri https://local.blob.core.windows.net/marketplaceblob/Microsoft.AzureStackDockerContainerRegistry.1.0.0.azpkg
 #>
 Param
 (
-    [Parameter(Mandatory = $true, HelpMessage = "Fully qualified domain name using which Azure Stack is deployed.")]
+    [Parameter(Mandatory = $true, HelpMessage = "Fully qualified domain name of Azure Stack instance.")]
     [string] $AzureStackDomainName,
-    [Parameter(Mandatory = $true, HelpMessage = "Admin user name to connect ARM endpoint.")]
+    [Parameter(Mandatory = $true, HelpMessage = "Admin username.")]
     [string] $AdminUserName,
-    [Parameter(Mandatory = $true, HelpMessage = "Admin password to connect ARM endpoint")]
+    [Parameter(Mandatory = $true, HelpMessage = "Admin password")]
     [string] $AdminPassword,
     [Parameter(Mandatory = $true, HelpMessage = "Tenant ID of Azure Stack.")]
     [string] $TenantId,
-    [Parameter(Mandatory = $true, HelpMessage = "Full URL from to download marketplace item.")]
-    [string] $GalleryItemUri,
+    [Parameter(Mandatory = $true, HelpMessage = "Marketplace package download URL.")]
+    [string] $MarketplaceUri,
     [Parameter(Mandatory = $false, HelpMessage = "Name of the environment.")]
     [string] $EnvironmentName = "AzureStackAdmin"
 )
@@ -56,7 +56,7 @@ if ($null -eq $environment)
 }
 else
 {
-    Write-Host "Environment($EnvironmentName) is already set." 
+    Write-Host "Environment($EnvironmentName) is already in use." 
 }
 
 $secpasswd = ConvertTo-SecureString $AdminPassword -AsPlainText -Force
@@ -69,7 +69,7 @@ Login-AzureRmAccount -Credential $mycreds -EnvironmentName $EnvironmentName -Ten
 #$PKG_VERSION=""
 #"https://$PKG_SA_NAME.blob.$AzureStackDomainName/$PKG_SA_CONTAINER/Microsoft.AzureStackDockerContainerRegistry.$PKG_VERSION.azpkg"
 
-Add-AzsGalleryItem -Force -GalleryItemUri $GalleryItemUri
+Add-AzsGalleryItem -Force -MarketplaceUri $MarketplaceUri
 
 
 

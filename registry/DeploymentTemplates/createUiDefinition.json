@@ -61,7 +61,7 @@
                     {
                         "name": "dnsPrefix",
                         "type": "Microsoft.Common.TextBox",
-                        "label": "Domain name label DNS prefix",
+                        "label": "Domain name label",
                         "defaultValue": "registry",
                         "toolTip": "This must be a region-unique name, for example, registry-12345. A best practice is to use the same prefix for the DNS and region name.",
                         "constraints": {

@@ -7,10 +7,10 @@
   The script provide functionality to create self signed certificate.
 
 .Parameter CertificateCN
-  Fully qualified domain name to create FQDN specific certificate.
+  Certificate common name.
 
 .Parameter CertificatePassword
-  Certificate Password to be used to export the cert.
+  Certificate Password.
 
 .Parameter CertificateFileExportPath
   Certificate file export path including certificate filename.
@@ -22,9 +22,9 @@
 #>
 Param
 (
-    [Parameter(Mandatory = $true, HelpMessage = "Fully qualified domain name to create FQDN specific certificate.")]
+    [Parameter(Mandatory = $true, HelpMessage = "Certificate common name.")]
     [string] $CertificateCN,
-    [Parameter(Mandatory = $true, HelpMessage = "Certificate Password to be used to export the cert.")]
+    [Parameter(Mandatory = $true, HelpMessage = "Certificate Password.")]
     [string] $CertificatePassword,
     [Parameter(Mandatory = $true, HelpMessage = "Certificate file export path including certificate filename.")]
     [string] $CertificateFileExportPath
@@ -35,14 +35,9 @@ if (-not (Test-Path -Path $CertificateFileExportPath -IsValid))
     throw "Error: CertificateFileExportPath is not a valid path."
 }
 
-if (-not ([IO.Path]::GetExtension($CertificateFileExportPath) -eq '.pfx'))
-{
-    throw "Error: Invalid syntax for CertificateFileExportPath variable. Extension value in path should end with '.pfx'"
-}
-
 if (Test-Path -Path $CertificateFileExportPath)
 {
-    throw "Error: File already exist ($CertificateFileExportPath). Please remove to provide a different name."
+    throw "Error: File($CertificateFileExportPath) already exist. Please remove to provide a different name."
 }
 
 # Create a self-signed certificate
