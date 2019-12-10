@@ -47,6 +47,20 @@ if (Test-Path -Path $CertificateFileExportPath)
 
 # Create a self-signed certificate
 $ssc = New-SelfSignedCertificate -certstorelocation cert:\LocalMachine\My -dnsname $CertificateCN
+if ($ssc){
+    Write-Host "Certificate created successfully. Now exporting the certificate."
+}
+else {
+    throw "Error: Creation of certificate failed."
+}
+
 $crt = "cert:\localMachine\my\" + $ssc.Thumbprint
 $pwd = ConvertTo-SecureString -String $CertificatePassword -Force -AsPlainText
-Export-PfxCertificate -cert $crt -FilePath $CertificateFileExportPath -Password $pwd -Force
+Export-PfxCertificate -cert $crt -FilePath $CertificateFileExportPath -Password $pwd -Force | Out-Null
+if (Test-Path -Path $CertificateFileExportPath) {
+    Write-Host "Certificate ($CertificateFileExportPath) exported successfully." 
+}
+else {
+    throw "Error: Export of certificate failed."
+}
+
