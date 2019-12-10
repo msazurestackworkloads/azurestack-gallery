@@ -4,10 +4,11 @@
 #######################################################################################################################
 <#
 .Synopsis
-    Check if current user is connected to tenant ARM endpoint.
+    Check if current user is logged in.
 
 .Description
-    Check if current user is connected to tenant ARM endpoint.
+    Check if current user is logged in.
+    Throws exption if user is not logged in.
 
 .Example
    Get-AzureStackLoginStatus
@@ -25,14 +26,14 @@ function Get-AzureStackLoginStatus ()
 
 <#
 .Synopsis
-    Create a resource group under selected subscription for logged tenant
+    Create a resource group under selected subscription
     
 .Description
-    Create a resource group under selected subscription for logged tenant 
+    Create a resource group under selected subscription
     It will skip creation of resource group if already present.
 
 .Parameter ResourceGroupName
-    Resource group name which needs to be created. 
+    Name of the resource group to be created.
 
 .Example
    New-ResourceGroup -ResourceGroupName "resourcegroupname"
@@ -72,10 +73,10 @@ function New-ResourceGroup (
     Return storage account details.
 
 .Parameter ResourceGroupName
-    Resource group name under which storage account needs to be created.
+    Name of the resource group under which stroage account to be created.
 
 .Parameter Location
-    Azure Stack Location.
+    Location of Azure Stack.
 
 .Parameter StorageAccountName
     Storage account name which needs to be created.
@@ -145,7 +146,7 @@ function New-StorageAccount (
     It will skip creation of storage account blob container if already present.
 
 .Parameter ResourceGroupName
-    Resource group name under which storage account needs to be created.
+    Name of the resource group under which stroage account to be created.
 
 .Parameter StorageAccountName
     Storage account name under which storage account needs to be created.
@@ -197,10 +198,10 @@ function New-StorageAccountContainer (
     Return key vault details.
 
 .Parameter ResourceGroupName
-    Resource group name under which key vault needs to be created.
+    Name of the resource group under which stroage account to be created.
 
 .Parameter Location
-    Azure Stack Location.
+    Location of Azure Stack.
 
 .Parameter KeyVaultName
     Keyvault name which needs to be created.
@@ -220,7 +221,7 @@ function New-KeyVault (
     [string] $Location,
     [Parameter(Mandatory = $true, HelpMessage = "Keyvault name which needs to be created.")]
     [string] $KeyVaultName,
-    [Parameter(Mandatory = $false, HelpMessage = "Sku to be used to create keyVault. Default is standard.")]
+    [Parameter(Mandatory = $false, HelpMessage = "Sku to be used to create keyVault.")]
     [string] $Sku = "standard"
 )
 {
@@ -246,10 +247,10 @@ function New-KeyVault (
 
 <#
 .Synopsis
-    Create a key vault secret under given key vault.
+    Create a secret under given key vault.
 
 .Description
-    Create a key vault secret under given key vault.
+    Create a secret under given key vault.
     It will throw error if already present. 
     Force update is allowed when SkipExistCheck value is true. 
 
@@ -309,11 +310,11 @@ function New-KeyVaultSecret (
 
 <#
 .Synopsis
-    Read and convert certificate in Json enable key vault secret format.
+    Read and convert certificate in Json enable format.
 
 .Description
-    Read and convert certificate in Json enable key vault secret format.
-    Returns json based certificate details.
+    Read and convert certificate in Json enable format.
+    Returns json based certificate details which can then be added as secret to Key vault.
 
 .Parameter CertificateFilePath
     Full file path where certificate file is present.
@@ -354,12 +355,11 @@ function Get-CertificateEncoded (
 
 <#
 .Synopsis
-    Create a new or update existing key vault secret under given key vault.
+    Create or update existing cert secret under given key vault.
 
 .Description
-    Create a new or update existing key vault secret under given key vault.
-    It will throw error if already present. 
-    Force update is allowed when SkipExistCheck value is true. 
+    Create or update existing cert secret under given key vault.
+    Force update is allowed when SkipExistCheck value is true.
 
 .Parameter KeyVaultName
     Keyvault name under which secret needs to be created.
@@ -426,11 +426,10 @@ function Set-CertificateSecret (
 
 <#
 .Synopsis
-    Create a new or update existing access key vault secret under given key vault.
+    Create or update existing secret under given key vault.
 
 .Description
-    Create a new or update existing access key vault secret under given key vault.
-    It will throw error if already present. 
+    Create or update existing secret under given key vault.
     Force update is allowed when SkipExistCheck value is true. 
 
 .Parameter KeyVaultName
