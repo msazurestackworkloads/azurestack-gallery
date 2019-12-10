@@ -12,13 +12,13 @@
             "value": "Standard_F8s_v2"
         },
         "virtualMachinePublisher": {
-            "value": "Canonical"
+            "value": "microsoft-aks"
         },
         "virtualMachineOffer": {
-            "value": "UbuntuServer"
+            "value": "aks"
         },
         "virtualMachineSku": {
-            "value": "16.04-LTS"
+            "value": "aks-ubuntu-1604-201909"
         },
         "virtualMachineVersion": {
             "value": "latest"
@@ -46,9 +46,6 @@
         },
         "pfxThumbprint": {
             "value": ""
-        },
-        "registryTag": {
-            "value": "2.7.1"
         },
         "registryReplicas": {
             "value": "20"

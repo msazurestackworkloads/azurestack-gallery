@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 
 ERR_APT_INSTALL_TIMEOUT=9           # Timeout installing required apt packages
 ERR_MISSING_CRT_FILE=10             # Bad cert thumbprint OR pfx not in key vault OR template misconfigured VM secrets section
@@ -11,6 +11,11 @@ ERR_MOBY_INSTALL_TIMEOUT=27         # Timeout waiting for moby install
 ERR_METADATA=30                     # Error querying metadata
 ERR_MS_PROD_DEB_DOWNLOAD_TIMEOUT=42 # Timeout waiting for https://packages.microsoft.com/config/ubuntu/16.04/packages-microsoft-prod.deb
 ERR_MS_PROD_DEB_PKG_ADD_FAIL=43     # Failed to add repo pkg file
+ERR_REGISTRY_LOGIN_FAILED=50        # Failed to log into the docker registry
+ERR_REGISTRY_PUSH_FAILED=51         # Failed to push images to the docker registry
+ERR_REGISTRY_PULL_FAILED=52         # Failed to pull images from the docker registry
+ERR_REGISTRY_BUILD_FAILED=53        # Failed to build image locally
+ERR_REGISTRY_REMOVE_FAILED=54       # Failed to remove image locally
 ERR_APT_UPDATE_TIMEOUT=99           # Timeout waiting for apt-get update to complete
 
 retrycmd_if_failure() {
@@ -133,6 +138,30 @@ fetchCredentials() {
         exit $ERR_MISSING_USER_CREDENTIALS
     fi
 }
+fetchValidationCredentials() {
+    RESOURCE=$(jq -r .authentication.audiences[0] ${ENDPOINTS} | sed "s|https://management.|https://vault.|")
+
+    TOKEN=$(curl -s --retry 5 --retry-delay 10 --max-time 60 -f -X POST \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        -d "grant_type=client_credentials" \
+        -d "client_id=${SPN_CLIENT_ID}" \
+        --data-urlencode "client_secret=${SPN_CLIENT_SECRET}" \
+        --data-urlencode "resource=${RESOURCE}" \
+        ${TOKEN_URL} | jq -r '.access_token')
+
+    KV_URL="https://${KV_NAME}.vault.${FQDN}/secrets"
+    SECRETS=$(curl -s --retry 5 --retry-delay 10 --max-time 60 -f \
+        "${KV_URL}?api-version=2016-10-01" -H "Authorization: Bearer ${TOKEN}" | jq -r .value[].id)
+
+    for secret in ${SECRETS}
+    do
+        SECRET_NAME_VERSION="${secret//$KV_URL}"
+        REGISTRY_USER=$(echo ${SECRET_NAME_VERSION} | cut -d '/' -f 2)
+        REGISTRY_PASSWORD=$(curl -s --retry 5 --retry-delay 10 --max-time 60 -f \
+            "${secret}?api-version=2016-10-01" -H "Authorization: Bearer ${TOKEN}" | jq -r .value)
+        break
+    done
+}
 fetchStorageKeys() {
     RESOURCE=$(jq -r .authentication.audiences[0] ${ENDPOINTS})
 
@@ -149,22 +178,25 @@ fetchStorageKeys() {
         "${SA_URL}" -H "Authorization: Bearer ${TOKEN}" -H "Content-Length: 0" | jq -r ".keys[0].value")
 }
 
-echo LOCATION:          ${LOCATION}
-echo TENANT_ID:         ${TENANT_ID}
-echo ADMIN_USER_NAME:   ${ADMIN_USER_NAME}
-echo SA_RESOURCE_ID:    ${SA_RESOURCE_ID}
-echo SA_CONTAINER:      ${SA_CONTAINER}
-echo KV_RESOURCE_ID:    ${KV_RESOURCE_ID}
-echo CERT_THUMBPRINT:   ${CERT_THUMBPRINT}
-echo PIP_FQDN:          ${PIP_FQDN}
-echo PIP_LABEL:         ${PIP_LABEL}
-echo REGISTRY_TAG:      ${REGISTRY_TAG}
-echo REGISTRY_REPLICAS: ${REGISTRY_REPLICAS}
-echo SPN_CLIENT_ID:     ${SPN_CLIENT_ID}
-echo SPN_CLIENT_SECRET: ***
+echo ADMIN_USER_NAME:             ${ADMIN_USER_NAME}
+echo CERT_THUMBPRINT:             ${CERT_THUMBPRINT}
+echo CONTAINER_STATUS_WAIT_TIME:  ${CONTAINER_STATUS_WAIT_TIME}
+echo ENABLE_VALIDATIONS:          ${ENABLE_VALIDATIONS}
+echo KV_RESOURCE_ID:              ${KV_RESOURCE_ID}
+echo LOCATION:                    ${LOCATION}
+echo MARKETPLACE_VERSION:         ${MARKETPLACE_VERSION}
+echo PIP_FQDN:                    ${PIP_FQDN}
+echo PIP_LABEL:                   ${PIP_LABEL}
+echo REGISTRY_REPLICAS:           ${REGISTRY_REPLICAS}
+echo REGISTRY_TAG:                ${REGISTRY_TAG}
+echo SA_CONTAINER:                ${SA_CONTAINER}
+echo SA_RESOURCE_ID:              ${SA_RESOURCE_ID}
+echo SPN_CLIENT_ID:               ${SPN_CLIENT_ID}
+echo TENANT_ID:                   ${TENANT_ID}
 
-SA_NAME=$(echo ${SA_RESOURCE_ID} | grep -oh -e '[[:alnum:]]*$')
-KV_NAME=$(echo ${KV_RESOURCE_ID} | grep -oh -e '[[:alnum:]]*$')
+
+SA_NAME=$(echo ${SA_RESOURCE_ID} | awk -F"/" '{print $NF}')
+KV_NAME=$(echo ${KV_RESOURCE_ID} | awk -F"/" '{print $NF}')
 
 EXT_DOMAIN_NAME="${PIP_FQDN//$PIP_LABEL.$LOCATION.cloudapp.}"
 FQDN=${LOCATION}.${EXT_DOMAIN_NAME}
@@ -213,12 +245,22 @@ mkdir -p $HTPASSWD_DIR
 fetchCredentials
 cp .htpasswd $HTPASSWD_DIR/.htpasswd
 
+echo fetching available registry image tag
+REGISTRY_IMAGE_TAG=$(docker images --filter=reference='registry:*' --format "{{.Tag}}" | head -n 1)
+if [ -z "$REGISTRY_IMAGE_TAG" ]; then
+    echo using registry tag passed as no image tag found 
+    REGISTRY_IMAGE_TAG=$REGISTRY_TAG
+else
+    echo using registry tag retireved from query
+fi
+echo REGISTRY_IMAGE_TAG:   ${REGISTRY_IMAGE_TAG}
+
 echo starting registry container
 cat <<EOF >> docker-compose.yml
 version: '3'
 services:
   registry:
-    image: registry:${REGISTRY_TAG}
+    image: registry:${REGISTRY_IMAGE_TAG}
     deploy:
       mode: replicated
       replicas: ${REGISTRY_REPLICAS}
@@ -249,12 +291,58 @@ EOF
 docker swarm init
 docker stack deploy registry -c docker-compose.yml
 
-sleep 30
-sudo docker system prune -a -f &
+echo validating container status
+i=0
+while [ $i -lt $CONTAINER_STATUS_WAIT_TIME ];do
+    CID=$(docker ps | grep "registry_registry.1\." | head -c 12)
+    STATUS=$(docker inspect ${CID} | jq ".[0].State.Status" | xargs)
+    if [[ ! $STATUS == "running" ]]; then 
+        echo containers are not up. we will retry to check the status 
+        sleep 30s
+    else 
+        break
+    fi
+    let i=i+30
+done
 
-echo validationg container status
-CID=$(docker ps | grep "registry_registry.1\." | head -c 12)
-STATUS=$(docker inspect ${CID} | jq ".[0].State.Status" | xargs)
 if [[ ! $STATUS == "running" ]]; then 
     exit $ERR_REGISTRY_NOT_RUNNING
+else 
+    echo registry containers are up and running
 fi
+
+if [ $ENABLE_VALIDATIONS == "true" ]; then
+    echo validating docker registry
+    REGISTRY_USER=""
+    REGISTRY_PASSWORD=""
+    fetchValidationCredentials
+    docker login localhost:443 -u $REGISTRY_USER -p $REGISTRY_PASSWORD
+    if [ $? -ne 0 ]; then
+        exit $ERR_REGISTRY_LOGIN_FAILED
+    fi
+    cat <<EOF >> Dockerfile
+    FROM registry:${REGISTRY_IMAGE_TAG}
+    RUN touch registry 
+EOF
+
+    TEST_IMAGE_NAME="localhost:443/testbuild"
+    docker build -t ${TEST_IMAGE_NAME} -f Dockerfile .
+    if [ $? -ne 0 ]; then
+        exit $ERR_REGISTRY_BUILD_FAILED
+    fi
+    docker push ${TEST_IMAGE_NAME}
+    if [ $? -ne 0 ]; then
+        exit $ERR_REGISTRY_PUSH_FAILED
+    fi
+    docker rmi ${TEST_IMAGE_NAME}
+    if [ $? -ne 0 ]; then
+        exit $ERR_REGISTRY_REMOVE_FAILED
+    fi
+    docker pull ${TEST_IMAGE_NAME}
+    if [ $? -ne 0 ]; then
+        exit $ERR_REGISTRY_PULL_FAILED
+    fi
+fi
+
+echo "Registry setup done. Remove non required images."
+sudo docker system prune -a -f &

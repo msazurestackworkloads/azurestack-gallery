@@ -1,12 +1,19 @@
+# information of instance
 $location = ""
+$spnName = ""
+
+# information of resources to be created
 $resourceGroup = ""
 $saName = ""
 $saContainer = ""
 $kvName = ""
-$pfxSecret = ""
+$pfxSecretName = ""
+
+# information of exported certificate in previous step
 $pfxPath = ""
 $pfxPass = ""
-$spnName = ""
+
+# information of docker registry user credentials to be created
 $userName = ""
 $userPass = ""
 
@@ -61,7 +68,7 @@ $jsonObject = @"
 $jsonObjectBytes = [System.Text.Encoding]::UTF8.GetBytes($jsonObject)
 $jsonEncoded = [System.Convert]::ToBase64String($jsonObjectBytes)
 $secret = ConvertTo-SecureString -String $jsonEncoded -AsPlainText -Force
-$kvSecret = Set-AzureKeyVaultSecret -VaultName $kvName -Name $pfxSecret -SecretValue $secret -ContentType pfx
+$kvSecret = Set-AzureKeyVaultSecret -VaultName $kvName -Name $pfxSecretName -SecretValue $secret -ContentType pfx
 
 # Compute certificate thumbprint
 Write-Host "Computing certificate thumbprint"

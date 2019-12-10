@@ -47,11 +47,8 @@
         "pfxThumbprint": {
             "value": ""
         },
-        "registryTag": {
-            "value": ""
-        },
         "registryReplicas": {
-            "value": ""
+            "value": "20"
         },
         "servicePrincipalClientId": {
             "value": ""
