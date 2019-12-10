@@ -40,8 +40,13 @@ if (-not ([IO.Path]::GetExtension($CertificateFileExportPath) -eq '.pfx'))
     throw "Error: Invalid syntax for CertificateFileExportPath variable. Extension value in path should end with '.pfx'"
 }
 
+if (Test-Path -Path $CertificateFileExportPath)
+{
+    throw "Error: File already exist ($CertificateFileExportPath). Please remove to provide a different name."
+}
+
 # Create a self-signed certificate
 $ssc = New-SelfSignedCertificate -certstorelocation cert:\LocalMachine\My -dnsname $CertificateCN
 $crt = "cert:\localMachine\my\" + $ssc.Thumbprint
 $pwd = ConvertTo-SecureString -String $CertificatePassword -Force -AsPlainText
-Export-PfxCertificate -cert $crt -FilePath $CertificateFileExportPath -Password $pwd
+Export-PfxCertificate -cert $crt -FilePath $CertificateFileExportPath -Password $pwd -Force

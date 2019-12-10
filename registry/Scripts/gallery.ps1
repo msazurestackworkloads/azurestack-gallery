@@ -11,19 +11,19 @@
   Fully qualified domain name to create FQDN specific certificate.
 
 .Parameter AdminUserName
-  Certificate Password to be used to export the cert.
+  Admin user name to connect ARM endpoint.
 
 .Parameter AdminPassword
-  Certificate file export path including certificate filename.
+  Admin password to connect ARM endpoint.
 
 .Parameter TenantId
-  Certificate file export path including certificate filename.
+  Tenant ID of Azure Stack.
 
 .Parameter GalleryItemUri
-  Certificate file export path including certificate filename.
+  Full URL from to download marketplace item.
 
 .Parameter EnvironmentName
-  Certificate file export path including certificate filename.
+  Name of the environment.
 
 .Example
    gallery.ps1 -AzureStackDomainName local.microsoft.com 
