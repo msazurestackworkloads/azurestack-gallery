@@ -483,7 +483,7 @@ function Set-RegistryAccessSecret (
     Location of Azure Stack.
 
 .Parameter ServicePrincipleId
-    Name of service principle which need to add to provide contributor access
+    Service principle ID which will be added to provide contributor access
 
 .Parameter ResourceGroupName
     Name of the resource group to be created.
@@ -513,14 +513,14 @@ function Set-RegistryAccessSecret (
     Password using which images will be push and pull.
 
 .Example
-  Set-ContainerRegistryPrerequisite
+  Set-ContainerRegistryPrerequisites
 
 #>
-function Set-ContainerRegistryPrerequisite
+function Set-ContainerRegistryPrerequisites
 (
     [Parameter(Mandatory = $true, HelpMessage = "Location of Azure Stack.")]
     [string] $Location,
-    [Parameter(Mandatory = $true, HelpMessage = "Service principle id which will be added to provide contributor access.")]
+    [Parameter(Mandatory = $true, HelpMessage = "Service principle ID which will be added to provide contributor access.")]
     [string] $ServicePrincipleId,
     [Parameter(Mandatory = $true, HelpMessage = "Name of the resource group to be created.")]
     [string] $ResourceGroupName,
@@ -563,20 +563,20 @@ function Set-ContainerRegistryPrerequisite
                                 -StorageAccountName $StorageAccountName `
                                 -StorageAccountBlobContainer $StorageAccountBlobContainer
 
-    Write-Host "Check if storage account($StorageAccountName) already gave access to ApplicationId($ServicePrincipleId)"
+    Write-Host "Checking if on storage account($StorageAccountName), ServicePrincipleId($ServicePrincipleId) already has access."
     $ErrorActionPreference = "SilentlyContinue";
     Get-AzureRMRoleAssignment -ServicePrincipalName $ServicePrincipleId `
                               -Scope $storageAccountDetails.Id `
                               -ErrorVariable accessExistError | Out-Null
     $ErrorActionPreference = "Continue"; #Turning errors back on
     if ($accessExistError) {
-        Write-Host "Assigning contributor role on storage account($StorageAccountName) with ApplicationId($ServicePrincipleId)"
+        Write-Host "Assigning servicePrincipleId($ServicePrincipleId) contributor role on storage account($StorageAccountName)"
         New-AzureRMRoleAssignment -ApplicationId $ServicePrincipleId `
                                   -RoleDefinitionName "Contributor" `
                                   -Scope $storageAccountDetails.Id
     }
     else {
-        Write-Host "Storage account($StorageAccountName) already provided access to ApplicationId($ServicePrincipleId)"
+        Write-Host "ServicePrincipleId($ServicePrincipleId) already has access on Storage account($StorageAccountName) "
     }
 
     # Create key vault enabled for deployment
@@ -584,7 +584,7 @@ function Set-ContainerRegistryPrerequisite
                  -Location $Location `
                  -KeyVaultName $KeyVaultName `
                  -Sku standard | Out-Null
-    Write-Host "Set access on keyvault($KeyVaultName) for client($ServicePrincipleId)" 
+    Write-Host "Set access policy on keyvault($KeyVaultName) for client($ServicePrincipleId)" 
     Set-AzureRmKeyVaultAccessPolicy -VaultName $KeyVaultName `
                                     -ServicePrincipalName $ServicePrincipleId `
                                     -PermissionsToSecrets GET,LIST
@@ -609,10 +609,10 @@ function Set-ContainerRegistryPrerequisite
 
 <#
 .Synopsis
-    The function return set of SKUs available for given publisher and offer.
+    Returns set of SKUs available for given publisher and offer.
 
 .Description
-    The function return set of SKUs available for given publisher and offer.
+    Return set of SKUs available for given publisher and offer.
 
 .Parameter Location
     Location where Azure Stack is deployed.
