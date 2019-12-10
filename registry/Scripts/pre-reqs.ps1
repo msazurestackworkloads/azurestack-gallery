@@ -611,7 +611,7 @@ function Set-ContainerRegistryPrerequisites
     Returns set of SKUs available for given publisher and offer.
 
 .Description
-    Return set of SKUs available for given publisher and offer.
+    Returns set of SKUs available for given publisher and offer.
 
 .Parameter Location
     Location where Azure Stack is deployed.
