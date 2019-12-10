@@ -59,21 +59,15 @@
                         }
                     },
                     {
-                        "name": "publicIp",
-                        "type": "Microsoft.Network.PublicIpAddressCombo",
-                        "label": {
-                            "publicIpAddress": "Public IP address",
-                            "domainNameLabel": "Domain name label"
-                        },
+                        "name": "dnsPrefix",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Domain name label",
+                        "defaultValue": "registry",
+                        "toolTip": "This must be a region-unique name, for example, registry-12345. A best practice is to use the same prefix for the DNS and region name.",
                         "constraints": {
-                            "required": {
-                                "domainNameLabel": true
-                            }
-                        },
-                        "options": {
-                            "hideNone": true,
-                            "hideDomainNameLabel": false,
-                            "hideExisting": true
+                          "required": true,
+                          "regex": "^[a-z][a-z0-9-]{1,16}[a-z0-9]$",
+                          "validationMessage": "DNS prefix is invalid. The prefix must conform to the following regular expression: ^[a-z][a-z0-9-]{1,16}[a-z0-9]$."
                         }
                     },
                     {
@@ -174,9 +168,9 @@
             "adminUsername": "[steps('VirtualMachineStep').adminUsername]",
             "adminPublicKey": "[steps('VirtualMachineStep').adminPublicKey.sshPublicKey]",
             "virtualMachineSize": "[steps('VirtualMachineStep').virtualMachineSize]",
-            "pipName": "[steps('VirtualMachineStep').publicIp.name]",
-            "pipDomainNameLabel": "[steps('VirtualMachineStep').publicIp.domainNameLabel]",
-            "pipAllocationMethod": "[steps('VirtualMachineStep').publicIp.publicIPAllocationMethod]",
+            "pipName": "[steps('VirtualMachineStep').dnsPrefix]",
+            "pipDomainNameLabel": "[steps('VirtualMachineStep').dnsPrefix]",
+            "pipAllocationMethod": "Static",
             "storageAccountResourceId": "[steps('StoragePfxStep').storageAccountResourceId]",
             "storageAccountContainer": "[steps('StoragePfxStep').storageAccountContainer]",
             "pfxKeyVaultResourceId": "[steps('StoragePfxStep').keyVaultResourceId]",
