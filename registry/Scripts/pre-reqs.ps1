@@ -604,6 +604,9 @@ function Set-ContainerRegistryPrerequisites
     Write-Host "StorageAccountResourceId     : $($storageAccountDetails.Id)"
     Write-Host "Blob Container               : $StorageAccountBlobContainer"
     Write-Host "----------------------------------------------------------------"
+    Write-Host "Image Sku details "
+    Get-VMImageSku
+    Write-Host "----------------------------------------------------------------"
 }
 
 <#
