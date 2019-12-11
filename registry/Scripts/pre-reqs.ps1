@@ -605,7 +605,7 @@ function Set-ContainerRegistryPrerequisites
     Write-Host "Blob Container               : $StorageAccountBlobContainer"
     Write-Host "----------------------------------------------------------------"
     Write-Host "Image Sku details "
-    Get-VMImageSku
+    Get-VMImageSku -Location $Location
     Write-Host "----------------------------------------------------------------"
 }
 
