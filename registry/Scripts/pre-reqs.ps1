@@ -640,5 +640,12 @@ function Get-VMImageSku (
     # Assuming tenant is logged in already and selected the given subscription.
     # best case check if tenant is loged in. Currently subscription selected status is not checked.
     Get-AzureStackLoginStatus
-    Get-AzureRmVMImageSku -Location $Location -PublisherName $PublisherName -Offer $Offer | Select-Object Skus
+
+    $skuDetails = Get-AzureRmVMImageSku -Location $Location -PublisherName $PublisherName -Offer $Offer
+    if ($skuDetails) {
+        $skuDetails | Select-Object Skus
+    }
+    else {
+        Write-Host "No SKU available. Please ask administrator to add image from the marketplace."
+    }
 }
