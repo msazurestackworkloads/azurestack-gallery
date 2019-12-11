@@ -645,6 +645,6 @@ function Get-VMImageSku (
         $skuDetails | Select-Object Skus
     }
     else {
-        Write-Host "No SKU available. Please ask administrator to add image from the marketplace."
+        Write-Host "No image install with Publisher($PublisherName)."
     }
 }
