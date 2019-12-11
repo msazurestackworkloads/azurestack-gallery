@@ -645,6 +645,6 @@ function Get-VMImageSku (
         $skuDetails | Select-Object Skus
     }
     else {
-        Write-Host "No image install with Publisher($PublisherName)."
+        Write-Host "No image sku install with Publisher as $PublisherName and offer as $Offer)."
     }
 }
