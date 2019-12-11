@@ -69,9 +69,7 @@ Login-AzureRmAccount -Credential $mycreds -EnvironmentName $EnvironmentName -Ten
 #$PKG_VERSION=""
 #"https://$PKG_SA_NAME.blob.$AzureStackDomainName/$PKG_SA_CONTAINER/Microsoft.AzureStackDockerContainerRegistry.$PKG_VERSION.azpkg"
 
-Add-AzsGalleryItem -Force -MarketplaceUri $MarketplaceUri
-
-
+Add-AzsGalleryItem -Force -GalleryItemUri $MarketplaceUri
 
 # Remove package
 # Remove-AzsGalleryItem -Force -Name "Microsoft.AzureStackDockerContainerRegistry.$PKG_VERSION"

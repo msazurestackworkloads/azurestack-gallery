@@ -604,6 +604,8 @@ function Set-ContainerRegistryPrerequisites
     Write-Host "StorageAccountResourceId     : $($storageAccountDetails.Id)"
     Write-Host "Blob Container               : $StorageAccountBlobContainer"
     Write-Host "----------------------------------------------------------------"
+    Get-VMImageSku -Location $Location
+    Write-Host "----------------------------------------------------------------"
 }
 
 <#
@@ -637,5 +639,12 @@ function Get-VMImageSku (
     # Assuming tenant is logged in already and selected the given subscription.
     # best case check if tenant is loged in. Currently subscription selected status is not checked.
     Get-AzureStackLoginStatus
-    Get-AzureRmVMImageSku -Location $Location -PublisherName $PublisherName -Offer $Offer | Select-Object Skus
+
+    $skuDetails = Get-AzureRmVMImageSku -Location $Location -PublisherName $PublisherName -Offer $Offer
+    if ($skuDetails) {
+        $skuDetails | Select-Object Skus
+    }
+    else {
+        Write-Host "No image sku install with Publisher as $PublisherName and offer as $Offer)."
+    }
 }
