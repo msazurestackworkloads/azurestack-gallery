@@ -1,4 +1,4 @@
-#! /bin/bash -e
+#! /bin/bash -ex
 
 ERR_APT_INSTALL_TIMEOUT=9           # Timeout installing required apt packages
 ERR_AKSE_DOWNLOAD=10                # Failure downloading AKS-Engine binaries
@@ -175,27 +175,11 @@ log_level -i "WINDOWS_AGENT_SIZE:                       $WINDOWS_AGENT_SIZE"
 
 
 #####################################################################################
-# Install all prequisite.
-log_level -i "Update the system to latest."
+# Install pre-requisites
+
 retrycmd_if_failure 5 10 sudo apt-get update -y
-
-log_level -i "Installing pax for string manipulation."
-retrycmd_if_failure 5 10 sudo apt-get install pax -y
-
-log_level -i "Installing jq for JSON manipulation."
-retrycmd_if_failure 5 10 sudo apt-get install jq -y
-
-log_level -i "Installing curl."
-retrycmd_if_failure 5 10 sudo apt-get install curl -y
-
-log_level -i "Installing apt-transport-https and lsb-release required for Azure CLI."
-retrycmd_if_failure 5 10 sudo apt-get install apt-transport-https lsb-release -y
-
-log_level -i "Installing software-properties-common and dirmngr required for Azure CLI."
-retrycmd_if_failure 5 10 sudo apt-get install software-properties-common dirmngr -y
-
-log_level -i "Update system again to latest."
-retrycmd_if_failure 5 10 sudo apt-get update -y
+PACKAGES="make pax jq curl apt-transport-https lsb-release software-properties-common dirmngr"
+retrycmd_if_failure 5 10 sudo apt-get install ${PACKAGES} -y
 
 ####################################################################################
 #Section to install Azure CLI.
@@ -277,11 +261,6 @@ if [ ! -s $AZURESTACK_CONFIGURATION ]; then
 fi
 
 #####################################################################################
-#Section to install make
-
-sudo apt-get install make
-
-#####################################################################################
 # Update certificates to right location as they are required
 # for CLI and AKS to connect to Azure Stack
 
@@ -300,17 +279,17 @@ log_level -i "TENANT_ENDPOINT is:$TENANT_ENDPOINT"
 retrycmd_if_failure 20 30 ensureCertificates
 
 #####################################################################################
-#Section to install kubectl
-KUBECTL_VERSION=1.14.9
+# Make sure `k` is in the path
+# https://github.com/Azure/aks-engine/blob/master/docs/community/developer-guide.md#end-to-end-tests
+
+KUBECTL_VERSION=1.15.7
 
 echo "==> Downloading kubectl version ${KUBECTL_VERSION} <=="
-
 sudo curl -L https://storage.googleapis.com/kubernetes-release/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl
-
 sudo chmod +x /usr/local/bin/kubectl
 
-sudo cp /usr/local/bin/kubectl /usr/local/bin/k
-
+sudo cp $ROOT_PATH/src/github.com/Azure/aks-engine/scripts/k /usr/local/bin/k
+sudo chmod +x /usr/local/bin/k
 export PATH=/usr/local/bin:$PATH
 
 #####################################################################################
@@ -475,10 +454,8 @@ export GINKGO_SKIP="should be able to produce working LoadBalancers|should have 
 go env
 
 make bootstrap
-
 make validate-dependencies
-
-make build-cross
+make build
 
 if [ -f "./bin/aks-engine" ] ; then
     log_level -i "Found aks-engine binary"
@@ -516,16 +493,15 @@ log_level -i "SUBSCRIPTION_ID: $SUBSCRIPTION_ID"
 log_level -i "TENANT_ID: $TENANT_ID"
 log_level -i "------------------------------------------------------------------------"
 
-set +e
 make test-kubernetes > deploy_test_results
-set -e
 
 RESULT=$?
 
 chown -R azureuser /home/azureuser
 chmod -R u=rwx /home/azureuser
 
-# Below condition is to make the deployment success even if the test cases fail, if the deployment of kubernetes fails it exits with the failure code
+# Below condition is to make the deployment success even if the test cases fail, 
+# if the deployment of kubernetes fails it exits with the failure code
 log_level -i "Result: $RESULT"
 if [ $RESULT -gt 3 ] ; then
     exit 1
