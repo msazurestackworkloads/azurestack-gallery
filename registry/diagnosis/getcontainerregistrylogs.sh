@@ -25,9 +25,9 @@ processRegistryHost()
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing registry server ${host}"
     scp ${scpflags} collectlogs.sh ${user}@${host}:/home/${user}/collectlogs.sh
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Collecting logs from registry server ${host}"
-    ssh ${sshflags} ${user}@${host} "sudo chmod 744 collectlogs.sh; ./collectlogs.sh logdirectory;"
-    scp ${scpflags} ${user}@${host}:/home/${user}/logdirectory/* ${logfilefolder}/
-    ssh ${sshflags} ${user}@${host} "rm -f -r collectlogs.sh logdirectory"
+    ssh ${sshflags} ${user}@${host} "sudo chmod 744 collectlogs.sh; ./collectlogs.sh containerregistry;"
+    scp ${scpflags} ${user}@${host}:/home/${user}/containerregistry.zip ${logfilefolder}/
+    ssh ${sshflags} ${user}@${host} "rm -f -r collectlogs.sh containerregistry.zip"
 }
 
 printUsage()
