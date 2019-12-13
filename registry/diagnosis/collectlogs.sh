@@ -23,7 +23,7 @@ compressLogsDirectory()
 FILENAME=$1
 TMP=$(mktemp -d)
 LOGDIRECTORY=${TMP}/${HOSTNAME}
-echo "[$(date +%Y%m%d%H%M%S)][INFO] Creating log directory(${LOGDIRECTORY})"
+echo "[$(date +%Y%m%d%H%M%S)][INFO] Creating log directory (${LOGDIRECTORY})"
 mkdir -p ${LOGDIRECTORY}
 mkdir -p ${LOGDIRECTORY}/var/log/azure
 cd /var/log/azure
