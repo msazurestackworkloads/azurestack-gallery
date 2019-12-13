@@ -1,28 +1,49 @@
 #!/bin/bash
 
-LOGDIRECTORY=~/$1
+compressLogsDirectory()
+{
+    sync
+    
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Compressing logs and cleaning up temp files"
+    CURRENTUSER=$(whoami)
+    LOGFILENAME="${FILENAME}.zip"
+    sudo rm -f ${LOGFILENAME}
+    
+    sudo chown -R ${CURRENTUSER} ${LOGDIRECTORY}
+    if [ -f /opt/azure/vhd-install.complete ]; then
+        echo "[$(date +%Y%m%d%H%M%S)][INFO] AKS base image; skipping dependencies installation"
+    else
+        echo "[$(date +%Y%m%d%H%M%S)][INFO] Installing zip package"
+        sudo apt install zip -y
+    fi
+    (cd $TMP && zip -q -r ~/${LOGFILENAME} ${HOSTNAME})
+    sudo chown ${CURRENTUSER} ~/${LOGFILENAME}
+}
 
-if [ -d "$LOGDIRECTORY" ]; then
-    NOW=`date +%Y%m%d%H%M%S`
-    mv $LOGDIRECTORY ${LOGDIRECTORY}-${NOW}
-fi
-
+FILENAME=$1
+TMP=$(mktemp -d)
+LOGDIRECTORY=${TMP}/${HOSTNAME}
+echo "[$(date +%Y%m%d%H%M%S)][INFO] Creating log directory (${LOGDIRECTORY})"
 mkdir -p ${LOGDIRECTORY}
-
-#sudo cp /var/log/cloud-init.log ${LOGDIRECTORY}/reg-cloud-init.log || :
-#sudo cp /var/log/waagent.log ${LOGDIRECTORY}/reg-waagent.log || :
+mkdir -p ${LOGDIRECTORY}/var/log/azure
 cd /var/log/azure
 for f in *.log
 do
-    sudo cp "$f" ${LOGDIRECTORY}/reg-"${f%}" || :
+    sudo cp "$f" ${LOGDIRECTORY}/var/log/azure/reg-"${f%}" || :
 done
 
-cd ${LOGDIRECTORY}
+#sudo cp /var/log/cloud-init.log ${LOGDIRECTORY}/reg-cloud-init.log || :
+#sudo cp /var/log/waagent.log ${LOGDIRECTORY}/reg-waagent.log || :
+
+mkdir -p ${LOGDIRECTORY}/containers
+echo "[$(date +%Y%m%d%H%M%S)][INFO] Collecting registry container logs."
 for cid in $(sudo docker ps -a -q --no-trunc)
 do
     cname=$(sudo docker inspect --format='{{ index .Config.Labels "com.docker.swarm.task.name" }}' ${cid})
     clog=$(sudo docker inspect --format='{{ .LogPath }}' ${cid})
     
-    sudo docker inspect ${cid} &> ${LOGDIRECTORY}/${cname}.json
-    sudo cat $clog >> ${LOGDIRECTORY}/${cname}.log
+    sudo docker inspect ${cid} &> ${LOGDIRECTORY}/containers/${cname}.json
+    sudo cat $clog >> ${LOGDIRECTORY}/containers/${cname}.log
 done
+
+compressLogsDirectory
