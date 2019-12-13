@@ -134,7 +134,7 @@ echo "[$(date +%Y%m%d%H%M%S)][INFO] Checking connectivity with server "
 validateKeys $USER ${REGISRTY_HOST} "${SSH_FLAGS}"
 
 NOW=`date +%Y%m%d%H%M%S`
-LOGFILEFOLDER="_output/log-${REGISRTY_HOST}-${NOW}"
+LOGFILEFOLDER="_output/log-${NOW}"
 mkdir -p $LOGFILEFOLDER
 
 processRegistryHost $USER ${REGISRTY_HOST} "${SSH_FLAGS}" "${SCP_FLAGS}" $LOGFILEFOLDER

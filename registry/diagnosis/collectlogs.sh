@@ -11,7 +11,6 @@ mkdir -p ${LOGDIRECTORY}
 
 #sudo cp /var/log/cloud-init.log ${LOGDIRECTORY}/reg-cloud-init.log || :
 #sudo cp /var/log/waagent.log ${LOGDIRECTORY}/reg-waagent.log || :
-
 cd /var/log/azure
 for f in *.log
 do
