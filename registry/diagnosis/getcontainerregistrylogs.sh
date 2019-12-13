@@ -68,7 +68,7 @@ do
             shift 2
         ;;
         -r|--registry-server-name)
-            REGISRTY_HOST="$2"
+            REGISTRY_HOST="$2"
             shift 2
         ;;
         --disable-host-key-checking)
@@ -112,7 +112,7 @@ else
     || { echo "Provided identity file $IDENTITYFILE is not a RSA Private Key file."; echo "A RSA private key starts with '-----BEGIN [RSA|OPENSSH] PRIVATE KEY-----''"; exit 1; }
 fi
 
-if [ -z "$REGISRTY_HOST" ]
+if [ -z "$REGISTRY_HOST" ]
 then
     echo ""
     echo "[ERR] --registry-server-name is required"
@@ -124,19 +124,19 @@ fi
 echo ""
 echo "user:                    $USER"
 echo "identity-file:           $IDENTITYFILE"
-echo "registry-server:         $REGISRTY_HOST"
+echo "registry-server:         $REGISTRY_HOST"
 echo ""
 
 SSH_FLAGS="-q -t -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS}"
 SCP_FLAGS="-q -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS}"
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Checking connectivity with server "
-validateKeys $USER ${REGISRTY_HOST} "${SSH_FLAGS}"
+validateKeys $USER ${REGISTRY_HOST} "${SSH_FLAGS}"
 
 NOW=`date +%Y%m%d%H%M%S`
 LOGFILEFOLDER="_output/log-${NOW}"
 mkdir -p $LOGFILEFOLDER
 
-processRegistryHost $USER ${REGISRTY_HOST} "${SSH_FLAGS}" "${SCP_FLAGS}" $LOGFILEFOLDER
+processRegistryHost $USER ${REGISTRY_HOST} "${SSH_FLAGS}" "${SCP_FLAGS}" $LOGFILEFOLDER
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Logs can be found here: $LOGFILEFOLDER"
