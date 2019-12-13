@@ -78,14 +78,14 @@ compressLogsDirectory()
     sync
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Compressing logs and cleaning up temp files"
-    CURRETUSER=$(whoami)
+    CURRENTUSER=$(whoami)
     LOGFILENAME="${HOSTNAME}.zip"
     sudo rm -f ${LOGFILENAME}
     
-    sudo chown -R ${CURRETUSER} ${LOGDIRECTORY}
+    sudo chown -R ${CURRENTUSER} ${LOGDIRECTORY}
     # TODO This wont work on a disconnected scenario
     (cd $TMP && zip -q -r ~/${LOGFILENAME} ${HOSTNAME})
-    sudo chown ${CURRETUSER} ~/${LOGFILENAME}
+    sudo chown ${CURRENTUSER} ~/${LOGFILENAME}
 }
 
 TMP=$(mktemp -d)

@@ -5,19 +5,19 @@ compressLogsDirectory()
     sync
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Compressing logs and cleaning up temp files"
-    CURRETUSER=$(whoami)
+    CURRENTUSER=$(whoami)
     LOGFILENAME="${FILENAME}.zip"
     sudo rm -f ${LOGFILENAME}
     
-    sudo chown -R ${CURRETUSER} ${LOGDIRECTORY}
+    sudo chown -R ${CURRENTUSER} ${LOGDIRECTORY}
     if [ -f /opt/azure/vhd-install.complete ]; then
-        echo "[$(date +%Y%m%d%H%M%S)][INFO] aks base image; skipping dependencies installation"
+        echo "[$(date +%Y%m%d%H%M%S)][INFO] AKS base image; skipping dependencies installation"
     else
-        echo "[$(date +%Y%m%d%H%M%S)][INFO] installing zip module"
+        echo "[$(date +%Y%m%d%H%M%S)][INFO] Installing zip package"
         sudo apt install zip -y
     fi
     (cd $TMP && zip -q -r ~/${LOGFILENAME} ${HOSTNAME})
-    sudo chown ${CURRETUSER} ~/${LOGFILENAME}
+    sudo chown ${CURRENTUSER} ~/${LOGFILENAME}
 }
 
 FILENAME=$1
@@ -36,7 +36,7 @@ done
 #sudo cp /var/log/waagent.log ${LOGDIRECTORY}/reg-waagent.log || :
 
 mkdir -p ${LOGDIRECTORY}/containers
-echo "[$(date +%Y%m%d%H%M%S)][INFO] Collect registry container logs."
+echo "[$(date +%Y%m%d%H%M%S)][INFO] Collecting registry container logs."
 for cid in $(sudo docker ps -a -q --no-trunc)
 do
     cname=$(sudo docker inspect --format='{{ index .Config.Labels "com.docker.swarm.task.name" }}' ${cid})
