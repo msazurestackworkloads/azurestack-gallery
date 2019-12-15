@@ -32,7 +32,7 @@ Param
     [Parameter(Mandatory = $true, HelpMessage = "Certificate file export path including certificate filename.")]
     [string] $CertificateFileExportPath,
     [Parameter(Mandatory = $false, HelpMessage = "Flag to generate wild card cert.")]
-    [string] $GenerateWildCardCert = $false
+    [bool] $GenerateWildCardCert = $false
 )
 
 if (-not (Test-Path -Path $CertificateFileExportPath -IsValid))
@@ -47,9 +47,11 @@ if (Test-Path -Path $CertificateFileExportPath)
 
 # Create a self-signed certificate
 if ($GenerateWildCardCert){
+  Write-Host "Generating wildcard cert for $CertificateCN."
   $ssc = New-SelfSignedCertificate -Subject *.$CertificateCN -certstorelocation cert:\LocalMachine\My -dnsname $CertificateCN, *.$CertificateCN
 }
 else {
+  Write-Host "Generating normal cert for $CertificateCN."
   $ssc = New-SelfSignedCertificate -certstorelocation cert:\LocalMachine\My -dnsname $CertificateCN
 }
 
