@@ -117,8 +117,7 @@ function New-StorageAccount (
                                                        -ErrorVariable storageAccountExistError
     $ErrorActionPreference = "Continue"; #Turning errors back on
     if ($storageAccountExistError) {
-        Write-Host "Storage account does not exist."
-        Write-Host "Creating a new storage account ($StorageAccountName) under resource group ($ResourceGroupName)." 
+        Write-Host "Storage account does not exist. Creating a new storage account ($StorageAccountName) under resource group ($ResourceGroupName)." 
         $ErrorActionPreference = "SilentlyContinue";
         New-AzureRmStorageAccount -ResourceGroupName $ResourceGroupName `
                                   -AccountName $StorageAccountName `
@@ -181,7 +180,7 @@ function New-StorageAccountContainer (
     $ErrorActionPreference = "Continue"; #Turning errors back on
     if ($storageContainerExistError) {
         # Create container under storage account
-        Write-Host "Creating blob container ($StorageAccountBlobContainer) under storage account ($StorageAccountName)."
+        Write-Host "Blob container does not exist. Creating blob container ($StorageAccountBlobContainer) under storage account ($StorageAccountName)."
         New-AzureStorageContainer -Name $StorageAccountBlobContainer | Out-Null
         $ErrorActionPreference = "SilentlyContinue";
         Get-AzureStorageContainer -Name $StorageAccountBlobContainer -ErrorVariable storageContainerExistError | Out-Null
