@@ -43,7 +43,7 @@ function New-ResourceGroup (
     [string] $ResourceGroupName
 )
 {
-    Write-Host "Check if resource group($ResourceGroupName) already exist" 
+    Write-Host "Check if resource group ($ResourceGroupName) already exist" 
     $ErrorActionPreference = "SilentlyContinue";
     Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorVariable resourceGroupExistError | Out-Null
     $ErrorActionPreference = "Continue"; #Turning errors back on
@@ -53,13 +53,13 @@ function New-ResourceGroup (
         New-AzureRmResourceGroup -Name $ResourceGroupName -Location $Location | Out-Null
         Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorVariable resourceGroupExistError
         if ($resourceGroupExistError) {
-            throw "Creation of resource group($ResourceGroupName) failed."
+            throw "Creation of resource group ($ResourceGroupName) failed."
         }
 
-        Write-Host "Resource group($ResourceGroupName) created successfully." 
+        Write-Host "Resource group ($ResourceGroupName) created successfully." 
     }
     else {        
-        Write-Host "Resource group($ResourceGroupName) already exist. Skipping creation."
+        Write-Host "Resource group ($ResourceGroupName) already exist. Skipping creation."
     }
 }
 
@@ -73,7 +73,7 @@ function New-ResourceGroup (
     Return storage account details.
 
 .Parameter ResourceGroupName
-    Name of the resource group under which stroage account to be created.
+    Name of the resource group under which storage account to be created.
 
 .Parameter Location
     Location of Azure Stack.
@@ -95,7 +95,7 @@ function New-ResourceGroup (
                       -EnableHttpsTrafficOnly 1
 #>
 function New-StorageAccount (
-    [Parameter(Mandatory = $true, HelpMessage = "Name of the resource group under which stroage account to be created.")]
+    [Parameter(Mandatory = $true, HelpMessage = "Name of the resource group under which storage account to be created.")]
     [string] $ResourceGroupName,
     [Parameter(Mandatory = $true, HelpMessage = "Location of Azure Stack.")]
     [string] $Location,
@@ -108,7 +108,7 @@ function New-StorageAccount (
 )
 {
     # Create storage account
-    Write-Host "Check if storage account($StorageAccountName) already exist"
+    Write-Host "Check if storage account ($StorageAccountName) already exist"
     $ErrorActionPreference = "SilentlyContinue";
     $storageAccountDetails = Get-AzureRmStorageAccount -ResourceGroupName $ResourceGroupName `
                                                        -Name $StorageAccountName `
@@ -116,7 +116,7 @@ function New-StorageAccount (
     $ErrorActionPreference = "Continue"; #Turning errors back on
     if ($storageAccountExistError) {
         Write-Host "Storage account does not exist."
-        Write-Host "Creating a new storage account($StorageAccountName) under resource group($ResourceGroupName)." 
+        Write-Host "Creating a new storage account ($StorageAccountName) under resource group ($ResourceGroupName)." 
         New-AzureRmStorageAccount -ResourceGroupName $ResourceGroupName `
                                   -AccountName $StorageAccountName `
                                   -Location $Location `
@@ -126,12 +126,12 @@ function New-StorageAccount (
                                                            -Name $StorageAccountName `
                                                            -ErrorVariable storageAccountExistError
         if ($storageAccountExistError) {
-            throw "Creation a new storage account($StorageAccountName) under resource group($ResourceGroupName) failed." 
+            throw "Creation a new storage account ($StorageAccountName) under resource group ($ResourceGroupName) failed. Check if specified storage account already exist under a subscription." 
         }
-        Write-Host "Storage account($StorageAccountName) created successfully." 
+        Write-Host "Storage account ($StorageAccountName) created successfully." 
     }
     else {        
-        Write-Host "Storage account($StorageAccountName) already exist. Skipping creation."
+        Write-Host "Storage account ($StorageAccountName) already exist. Skipping creation."
     }
 
     return $storageAccountDetails
@@ -146,10 +146,10 @@ function New-StorageAccount (
     It will skip creation of storage account blob container if already present.
 
 .Parameter ResourceGroupName
-    Name of the resource group under which stroage account to be created.
+    Name of the resource group under which storage blob to be created.
 
 .Parameter StorageAccountName
-    Storage account name under which storage account needs to be created.
+    Storage account name under which storage blob needs to be created.
 
 .Parameter StorageAccountBlobContainer
     Storage account blob container name which needs to be created.
@@ -160,9 +160,9 @@ function New-StorageAccount (
                     -StorageAccountBlobContainer "images"
 #>
 function New-StorageAccountContainer (
-    [Parameter(Mandatory = $true, HelpMessage = "Name of the resource group under which stroage account to be created.")]
+    [Parameter(Mandatory = $true, HelpMessage = "Name of the resource group under which storage blob to be created.")]
     [string] $ResourceGroupName,
-    [Parameter(Mandatory = $true, HelpMessage = "Storage account name under which storage account needs to be created.")]
+    [Parameter(Mandatory = $true, HelpMessage = "Storage account name under which storage blob needs to be created.")]
     [string] $StorageAccountName,
     [Parameter(Mandatory = $true, HelpMessage = "Storage account blob container name which needs to be created.")]
     [string] $StorageAccountBlobContainer
@@ -170,21 +170,21 @@ function New-StorageAccountContainer (
 {
     # Storage Account Container
     # =============================================
-    Write-Host "Check if storage account blob container($StorageAccountBlobContainer) already exist."
+    Write-Host "Check if storage account blob container ($StorageAccountBlobContainer) already exist."
     $ErrorActionPreference = "SilentlyContinue";
     Get-AzureStorageContainer -Name $StorageAccountBlobContainer -ErrorVariable storageContainerExistError | Out-Null
     $ErrorActionPreference = "Continue"; #Turning errors back on
     if ($storageContainerExistError) {
         # Create container under storage account
-        Write-Host "Creating blob container($StorageAccountBlobContainer) under storage account($StorageAccountName)."
+        Write-Host "Creating blob container ($StorageAccountBlobContainer) under storage account ($StorageAccountName)."
         New-AzureStorageContainer -Name $StorageAccountBlobContainer | Out-Null
         Get-AzureStorageContainer -Name $StorageAccountBlobContainer -ErrorVariable storageContainerExistError | Out-Null
         if ($storageContainerExistError) {
-            throw "Creation of storage blob container($StorageAccountBlobContainer) failed."
+            throw "Creation of storage blob container ($StorageAccountBlobContainer) failed."
         }
     }
     else {        
-        Write-Host "Storage blob container($StorageAccountBlobContainer) already exist. Skipping creation."
+        Write-Host "Storage blob container ($StorageAccountBlobContainer) already exist. Skipping creation."
     }
 }
 
@@ -198,7 +198,7 @@ function New-StorageAccountContainer (
     Return key vault details.
 
 .Parameter ResourceGroupName
-    Name of the resource group under which stroage account to be created.
+    Name of the resource group under which key vault to be created.
 
 .Parameter Location
     Location of Azure Stack.
@@ -215,7 +215,7 @@ function New-StorageAccountContainer (
                 -KeyVaultName "keyvault"
 #>
 function New-KeyVault (
-    [Parameter(Mandatory = $true, HelpMessage = "Name of the resource group under which stroage account to be created.")]
+    [Parameter(Mandatory = $true, HelpMessage = "Name of the resource group under which key vault to be created.")]
     [string] $ResourceGroupName,
     [Parameter(Mandatory = $true, HelpMessage = "Location of Azure Stack.")]
     [string] $Location,
@@ -227,19 +227,22 @@ function New-KeyVault (
 {
     Write-Host "Check if key vault($KeyVaultName) exist."
     $ErrorActionPreference = "SilentlyContinue";
-    $keyVaultDetails = Get-AzureRmKeyVault -Name $KeyVaultName
+    $keyVaultDetails = Get-AzureRmKeyVault -Name $KeyVaultName -ResourceGroupName $ResourceGroupName 
     $ErrorActionPreference = "Continue"; #Turning errors back on
     if (-not $keyVaultDetails)
     {
-        Write-Host "Creating key vault($KeyVaultName) as it does not exist."
+        Write-Host "Creating key vault ($KeyVaultName) as it does not exist."
         $keyVaultDetails = New-AzureRmKeyVault -ResourceGroupName $ResourceGroupName `
                                                -VaultName $KeyVaultName `
                                                -Location $Location `
                                                -Sku $Sku `
                                                -EnabledForDeployment
+        if (-not $keyVaultDetails){
+            throw "Creation of KeyVault ($KeyVaultName) failed."
+        }
     }
     else {        
-        Write-Host "Key-vault($KeyVaultName) already exist. Skipping creation."
+        Write-Host "Key-vault ($KeyVaultName) already exist. Skipping creation."
     }
 
     return $keyVaultDetails
@@ -302,9 +305,13 @@ function New-KeyVaultSecret (
                                 -Name $SecretName `
                                 -SecretValue $secureSecret `
                                 -ContentType $ContentType | Out-Null
+        $keyVaultSecretDetails = Get-AzureKeyVaultSecret -VaultName $KeyVaultName -Name $SecretName                            
+        if (-not $keyVaultSecretDetails){
+            throw "Creation of KeyVault secret ($SecretName) failed. Check if specified key vault already exist under a subscription."
+        }
     }
     else {
-        throw "Key vault with given secret name($SecretName) already exist."
+        throw "Key vault with given secret name ($SecretName) already exist."
     }
 }
 
@@ -415,8 +422,7 @@ function Set-CertificateSecret (
     
     $mypwd = ConvertTo-SecureString -String $CertificatePassword -Force -AsPlainText
     $pfxData = Get-PfxData -FilePath $CertificateFilePath -Password $mypwd
-    
-    
+
     Write-Host "----------------------------------------------------------------"
     Write-Host "PFX KeyVaultResourceId       : $($keyVaultDetails.ResourceId)"
     Write-Host "PFX KeyVaultSecretUrl        : $($keyVaultSecretDetails.Id)"
@@ -562,20 +568,20 @@ function Set-ContainerRegistryPrerequisites
                                 -StorageAccountName $StorageAccountName `
                                 -StorageAccountBlobContainer $StorageAccountBlobContainer
 
-    Write-Host "Checking if on storage account($StorageAccountName), ServicePrincipleId($ServicePrincipleId) already has access."
+    Write-Host "Checking if on storage account ($StorageAccountName), ServicePrincipleId ($ServicePrincipleId) already has access."
     $ErrorActionPreference = "SilentlyContinue";
     Get-AzureRMRoleAssignment -ServicePrincipalName $ServicePrincipleId `
                               -Scope $storageAccountDetails.Id `
                               -ErrorVariable accessExistError | Out-Null
     $ErrorActionPreference = "Continue"; #Turning errors back on
     if ($accessExistError) {
-        Write-Host "Assigning servicePrincipleId($ServicePrincipleId) contributor role on storage account($StorageAccountName)"
+        Write-Host "Assigning servicePrincipleId ($ServicePrincipleId) contributor role on storage account ($StorageAccountName)"
         New-AzureRMRoleAssignment -ApplicationId $ServicePrincipleId `
                                   -RoleDefinitionName "Contributor" `
                                   -Scope $storageAccountDetails.Id
     }
     else {
-        Write-Host "ServicePrincipleId($ServicePrincipleId) already has access on Storage account($StorageAccountName) "
+        Write-Host "ServicePrincipleId ($ServicePrincipleId) already has access on Storage account ($StorageAccountName) "
     }
 
     # Create key vault enabled for deployment
@@ -583,7 +589,7 @@ function Set-ContainerRegistryPrerequisites
                  -Location $Location `
                  -KeyVaultName $KeyVaultName `
                  -Sku standard | Out-Null
-    Write-Host "Set access policy on keyvault($KeyVaultName) for client($ServicePrincipleId)" 
+    Write-Host "Set access policy on keyvault ($KeyVaultName) for client ($ServicePrincipleId)" 
     Set-AzureRmKeyVaultAccessPolicy -VaultName $KeyVaultName `
                                     -ServicePrincipalName $ServicePrincipleId `
                                     -PermissionsToSecrets GET,LIST
@@ -645,6 +651,6 @@ function Get-VMImageSku (
         $skuDetails | Select-Object Skus
     }
     else {
-        Write-Host "No image sku install with Publisher as $PublisherName and offer as $Offer)."
+        Write-Host "No image sku install with Publisher ($PublisherName) and offer ($Offer)."
     }
 }
