@@ -51,7 +51,9 @@ function New-ResourceGroup (
         # Create resource group
         Write-Host "Resource group ($ResourceGroupName) does not exist. Creating a new resource group." 
         New-AzureRmResourceGroup -Name $ResourceGroupName -Location $Location | Out-Null
+        $ErrorActionPreference = "SilentlyContinue";
         Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorVariable resourceGroupExistError
+        $ErrorActionPreference = "Continue"; #Turning errors back on
         if ($resourceGroupExistError) {
             throw "Creation of resource group ($ResourceGroupName) failed."
         }
@@ -117,14 +119,17 @@ function New-StorageAccount (
     if ($storageAccountExistError) {
         Write-Host "Storage account does not exist."
         Write-Host "Creating a new storage account ($StorageAccountName) under resource group ($ResourceGroupName)." 
+        $ErrorActionPreference = "SilentlyContinue";
         New-AzureRmStorageAccount -ResourceGroupName $ResourceGroupName `
                                   -AccountName $StorageAccountName `
                                   -Location $Location `
                                   -SkuName $SkuName `
                                   -EnableHttpsTrafficOnly $EnableHttpsTrafficOnly | Out-Null
+        
         $storageAccountDetails = Get-AzureRmStorageAccount -ResourceGroupName $ResourceGroupName `
                                                            -Name $StorageAccountName `
                                                            -ErrorVariable storageAccountExistError
+        $ErrorActionPreference = "Continue"; #Turning errors back on
         if ($storageAccountExistError) {
             throw "Creation a new storage account ($StorageAccountName) under resource group ($ResourceGroupName) failed. Check if specified storage account already exist under a subscription." 
         }
@@ -178,7 +183,9 @@ function New-StorageAccountContainer (
         # Create container under storage account
         Write-Host "Creating blob container ($StorageAccountBlobContainer) under storage account ($StorageAccountName)."
         New-AzureStorageContainer -Name $StorageAccountBlobContainer | Out-Null
+        $ErrorActionPreference = "SilentlyContinue";
         Get-AzureStorageContainer -Name $StorageAccountBlobContainer -ErrorVariable storageContainerExistError | Out-Null
+        $ErrorActionPreference = "Continue"; #Turning errors back on
         if ($storageContainerExistError) {
             throw "Creation of storage blob container ($StorageAccountBlobContainer) failed."
         }
@@ -232,11 +239,13 @@ function New-KeyVault (
     if (-not $keyVaultDetails)
     {
         Write-Host "Creating key vault ($KeyVaultName) as it does not exist."
+        $ErrorActionPreference = "SilentlyContinue";
         $keyVaultDetails = New-AzureRmKeyVault -ResourceGroupName $ResourceGroupName `
                                                -VaultName $KeyVaultName `
                                                -Location $Location `
                                                -Sku $Sku `
                                                -EnabledForDeployment
+        $ErrorActionPreference = "Continue"; #Turning errors back on
         if (-not $keyVaultDetails){
             throw "Creation of KeyVault ($KeyVaultName) failed."
         }
@@ -305,7 +314,9 @@ function New-KeyVaultSecret (
                                 -Name $SecretName `
                                 -SecretValue $secureSecret `
                                 -ContentType $ContentType | Out-Null
-        $keyVaultSecretDetails = Get-AzureKeyVaultSecret -VaultName $KeyVaultName -Name $SecretName                            
+        $ErrorActionPreference = "SilentlyContinue";
+        $keyVaultSecretDetails = Get-AzureKeyVaultSecret -VaultName $KeyVaultName -Name $SecretName
+        $ErrorActionPreference = "Continue"; #Turning errors back on
         if (-not $keyVaultSecretDetails){
             throw "Creation of KeyVault secret ($SecretName) failed. Check if specified key vault already exist under a subscription."
         }
@@ -646,9 +657,15 @@ function Get-VMImageSku (
     # best case check if tenant is loged in. Currently subscription selected status is not checked.
     Get-AzureStackLoginStatus
 
+    $ErrorActionPreference = "SilentlyContinue";
     $skuDetails = Get-AzureRmVMImageSku -Location $Location -PublisherName $PublisherName -Offer $Offer
+    $ErrorActionPreference = "Continue"; #Turning errors back on
     if ($skuDetails) {
-        $skuDetails | Select-Object Skus
+        Write-Host "Available Skus:"
+        $skuDetails | ForEach-Object {
+            '{0}' -f $_.Skus
+          }
+        #$skuDetails | Select-Object Skus
     }
     else {
         Write-Host "No image sku install with Publisher ($PublisherName) and offer ($Offer)."
