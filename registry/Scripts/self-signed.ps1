@@ -15,8 +15,8 @@
 .Parameter CertificateFileExportPath
   Certificate file export path including certificate filename.
 
-.Parameter GenerateWildCardCert
-  Flag to generate wild card cert.
+.Parameter GenerateWildcardCert
+  Flag to generate wildcard cert.
 
 .Example
    Self-Signed.ps1 -CertificateCN "registry.local.microsoft.com" 
@@ -31,8 +31,8 @@ Param
     [string] $CertificatePassword,
     [Parameter(Mandatory = $true, HelpMessage = "Certificate file export path including certificate filename.")]
     [string] $CertificateFileExportPath,
-    [Parameter(Mandatory = $false, HelpMessage = "Flag to generate wild card cert.")]
-    [bool] $GenerateWildCardCert = $false
+    [Parameter(Mandatory = $false, HelpMessage = "Flag to generate wildcard cert.")]
+    [bool] $GenerateWildcardCert = $false
 )
 
 if (-not (Test-Path -Path $CertificateFileExportPath -IsValid))
@@ -46,7 +46,7 @@ if (Test-Path -Path $CertificateFileExportPath)
 }
 
 # Create a self-signed certificate
-if ($GenerateWildCardCert){
+if ($GenerateWildcardCert){
   Write-Host "Generating wildcard cert for $CertificateCN."
   $ssc = New-SelfSignedCertificate -Subject *.$CertificateCN -certstorelocation cert:\LocalMachine\My -dnsname $CertificateCN, *.$CertificateCN
 }
