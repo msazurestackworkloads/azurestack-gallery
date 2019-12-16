@@ -23,12 +23,6 @@
         "virtualMachineVersion": {
             "value": ""
         },
-        "pipName": {
-            "value": ""
-        },
-        "pipDomainNameLabel": {
-            "value": ""
-        },
         "pipAllocationMethod": {
             "value": ""
         },

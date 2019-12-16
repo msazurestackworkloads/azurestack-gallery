@@ -23,14 +23,8 @@
         "virtualMachineVersion": {
             "value": "latest"
         },
-        "pipName": {
-            "value": "registry"
-        },
-        "pipDomainNameLabel": {
-            "value": "registry"
-        },
         "pipAllocationMethod": {
-            "value": "dynamic"
+            "value": "Static"
         },
         "storageAccountResourceId": {
             "value": "/subscriptions/{SUBSCRIPTION}/resourceGroups/{RESOURCE-GROUP}/providers/Microsoft.Storage/storageaccounts/{SA-NAME}"
