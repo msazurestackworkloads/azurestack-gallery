@@ -130,7 +130,11 @@ fetchCredentials() {
         SECRET_NAME=$(echo ${SECRET_NAME_VERSION} | cut -d '/' -f 2)
         SECRET_VALUE=$(curl -s --retry 5 --retry-delay 10 --max-time 60 -f \
             "${secret}?api-version=2016-10-01" -H "Authorization: Bearer ${TOKEN}" | jq -r .value)
-        htpasswd -Bb .htpasswd ${SECRET_NAME} ${SECRET_VALUE}
+        if [ ${#SECRET_VALUE} -le 255 ]; then
+            htpasswd -Bb .htpasswd ${SECRET_NAME} ${SECRET_VALUE}
+        else
+            echo "Skipping ${SECRET_NAME} as secret value length is more than 255"
+        fi
     done
 
     if [ ! -s .htpasswd ]; then
