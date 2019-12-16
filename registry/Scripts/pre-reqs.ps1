@@ -105,12 +105,12 @@ function New-DnsZone (
     if (-not $dnsZoneDetails) {
         Write-Host "DNS zone does not exist. Creating a new DNS zone ($Name) under resource group ($ResourceGroupName)." 
         New-AzureRmDnsZone -Name $Name -ResourceGroupName $ResourceGroupName | Out-Null
-        #$ErrorActionPreference = "SilentlyContinue";
+        $ErrorActionPreference = "SilentlyContinue";
         $newDNSZoneDetails = Get-AzureRmDnsZone -Name $Name -ResourceGroupName $ResourceGroupName `
                                                        -ErrorVariable newDNSZoneCreateError
-        #$ErrorActionPreference = "Continue"; #Turning errors back on
+        $ErrorActionPreference = "Continue"; #Turning errors back on
         if  (-not $newDNSZoneDetails) {
-            throw "Creation of new DNS zone ($Name) under resource group ($ResourceGroupName) failed. Check if specified DNS zone with same name already exists under the selected subscription." 
+            throw "Creation of new DNS zone ($Name) under resource group ($ResourceGroupName) failed. Check if specified DNS zone with same name already exists." 
         }
         Write-Host "DNS zone ($Name) created successfully." 
     }
@@ -300,7 +300,7 @@ function New-StorageAccount (
                                                            -ErrorVariable storageAccountExistError
         $ErrorActionPreference = "Continue"; #Turning errors back on
         if ($newstorageAccountDetails) {
-            throw "Creation a new storage account ($StorageAccountName) under resource group ($ResourceGroupName) failed. Check if specified storage account name already exists under selected subscription." 
+            throw "Creation a new storage account ($StorageAccountName) under resource group ($ResourceGroupName) failed. Check if specified storage account name already exists." 
         }
         $storageAccountDetails = $newstorageAccountDetails
         Write-Host "Storage account ($StorageAccountName) created successfully." 
@@ -490,7 +490,7 @@ function New-KeyVaultSecret (
         $keyVaultSecretDetails = Get-AzureKeyVaultSecret -VaultName $KeyVaultName -Name $SecretName
         $ErrorActionPreference = "Continue"; #Turning errors back on
         if (-not $keyVaultSecretDetails){
-            throw "Creation of key vault secret ($SecretName) failed. Check if the specified key vault name already exists under selected subscription."
+            throw "Creation of key vault secret ($SecretName) failed. Check if the specified key vault name already exists."
         }
     }
     else {
