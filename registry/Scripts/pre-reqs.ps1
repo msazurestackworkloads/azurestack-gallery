@@ -299,7 +299,7 @@ function New-StorageAccount (
                                                            -Name $StorageAccountName `
                                                            -ErrorVariable storageAccountExistError
         $ErrorActionPreference = "Continue"; #Turning errors back on
-        if ($newstorageAccountDetails) {
+        if (-not $newstorageAccountDetails) {
             throw "Creation a new storage account ($StorageAccountName) under resource group ($ResourceGroupName) failed. Check if specified storage account name already exists." 
         }
         $storageAccountDetails = $newstorageAccountDetails
