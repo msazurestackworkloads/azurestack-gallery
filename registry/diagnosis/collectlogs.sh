@@ -38,24 +38,7 @@ done
 mkdir -p ${LOGDIRECTORY}/containers
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Collecting registry container logs."
 
-i=0
-for cid in $(sudo docker ps -a -q --no-trunc)
-do
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Getting container name of ${cid}."
-    cname=$(sudo docker inspect --format='{{ index .Config.Labels "com.docker.swarm.task.name" }}' ${cid})
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Getting log path of ${cid}."
-    clog=$(sudo docker inspect --format='{{ .LogPath }}' ${cid})
-
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Copying metadata of container (${cname}) to ${LOGDIRECTORY}/containers/${cname}.log."    
-    sudo docker inspect ${cid} &> ${LOGDIRECTORY}/containers/${cname}.json
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Copying container log file (${clog}) to ${LOGDIRECTORY}/containers/${cname}.log."
-    sudo cat $clog >> ${LOGDIRECTORY}/containers/${cname}.log
-
-    if [ $i -ge 99 ]; then
-        echo "[$(date +%Y%m%d%H%M%S)][Warning] Exiting log collection as containers count exceeded 99."
-        break
-    fi
-    let i=i+1
-done
+sudo docker ps -a -q --no-trunc >> ${LOGDIRECTORY}/containers/containernames.log
+cp /var/lib/docker/containers/*/*.log ${LOGDIRECTORY}/containers/
 
 compressLogsDirectory
