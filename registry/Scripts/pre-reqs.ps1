@@ -50,7 +50,7 @@ function New-ResourceGroup (
     $ErrorActionPreference = "Continue"; #Turning errors back on
     if (-not $resourceGroupDetails) {
         # Create resource group
-        Write-Host "Resource group ($ResourceGroupName) does not exists. Creating a new resource group." 
+        Write-Host "Resource group ($ResourceGroupName) does not exist. Creating a new resource group." 
         New-AzureRmResourceGroup -Name $ResourceGroupName `
                                  -Location $Location | Out-Null
         $ErrorActionPreference = "SilentlyContinue";
@@ -103,14 +103,14 @@ function New-DnsZone (
                                          -ErrorVariable dnsZoneExistError
     $ErrorActionPreference = "Continue"; #Turning errors back on
     if (-not $dnsZoneDetails) {
-        Write-Host "DNS zone does not exists. Creating a new DNS zone ($Name) under resource group ($ResourceGroupName)." 
+        Write-Host "DNS zone does not exist. Creating a new DNS zone ($Name) under resource group ($ResourceGroupName)." 
         New-AzureRmDnsZone -Name $Name -ResourceGroupName $ResourceGroupName | Out-Null
         #$ErrorActionPreference = "SilentlyContinue";
         $newDNSZoneDetails = Get-AzureRmDnsZone -Name $Name -ResourceGroupName $ResourceGroupName `
                                                        -ErrorVariable newDNSZoneCreateError
         #$ErrorActionPreference = "Continue"; #Turning errors back on
         if  (-not $newDNSZoneDetails) {
-            throw "Creation a new DNS zone ($Name) under resource group ($ResourceGroupName) failed. Check if specified DNS zone already exists under a subscription." 
+            throw "Creation of new DNS zone ($Name) under resource group ($ResourceGroupName) failed. Check if specified DNS zone with same name already exists under the selected subscription." 
         }
         Write-Host "DNS zone ($Name) created successfully." 
     }
@@ -144,8 +144,8 @@ function New-DnsZone (
 .Parameter DnsRecordConfigValue
     Record value.
 
-.Parameter Ttl
-    Ttl value.
+.Parameter TTL
+    TTL value.
 
 .Example
    Set-DnsRecordSet -ResourceGroupName "resourcegroupname"
@@ -166,7 +166,7 @@ function Set-DnsRecordSet (
     [Parameter(Mandatory = $true, HelpMessage = "Record value.")]
     [string] $DnsRecordConfigValue,
     [Parameter(Mandatory = $false, HelpMessage = "Ttl value.")]
-    [int] $Ttl = 3600
+    [int] $TTL = 3600
 )
 {
     # Create storage account
@@ -195,14 +195,14 @@ function Set-DnsRecordSet (
             }
         }
         else {
-            Write-Host "DNS record does not exists. Creating DNS record of type ($RecordType) with name ($Name) under DNS zone ($ZoneName)."
+            Write-Host "DNS record does not exist. Creating DNS record of type ($RecordType) with name ($Name) under DNS zone ($ZoneName)."
             switch ($RecordType) {
                 "A" {
                         New-AzureRmDnsRecordSet -Name $Name `
                                             -RecordType $RecordType `
                                             -ZoneName $ZoneName `
                                             -ResourceGroupName $ResourceGroupName `
-                                            -Ttl $Ttl `
+                                            -Ttl $TTL `
                                             -DnsRecords (New-AzureRmDnsRecordConfig -IPv4Address $DnsRecordConfigValue) | Out-Null
                     break
                 }
@@ -211,7 +211,7 @@ function Set-DnsRecordSet (
                                         -RecordType $RecordType `
                                         -ZoneName $ZoneName `
                                         -ResourceGroupName $ResourceGroupName `
-                                        -Ttl $Ttl `
+                                        -Ttl $TTL `
                                         -DnsRecords (New-AzureRmDnsRecordConfig -Cname $DnsRecordConfigValue) | Out-Null
                         break
                 }
@@ -287,7 +287,7 @@ function New-StorageAccount (
                                                        -ErrorVariable storageAccountExistError
     $ErrorActionPreference = "Continue"; #Turning errors back on
     if ($storageAccountExistError) {
-        Write-Host "Storage account does not exists. Creating a new storage account ($StorageAccountName) under resource group ($ResourceGroupName)." 
+        Write-Host "Storage account does not exist. Creating a new storage account ($StorageAccountName) under resource group ($ResourceGroupName)." 
         $ErrorActionPreference = "SilentlyContinue";
         New-AzureRmStorageAccount -ResourceGroupName $ResourceGroupName `
                                   -AccountName $StorageAccountName `
@@ -300,7 +300,7 @@ function New-StorageAccount (
                                                            -ErrorVariable storageAccountExistError
         $ErrorActionPreference = "Continue"; #Turning errors back on
         if ($newstorageAccountDetails) {
-            throw "Creation a new storage account ($StorageAccountName) under resource group ($ResourceGroupName) failed. Check if specified storage account already exists under a subscription." 
+            throw "Creation a new storage account ($StorageAccountName) under resource group ($ResourceGroupName) failed. Check if specified storage account name already exists under selected subscription." 
         }
         $storageAccountDetails = $newstorageAccountDetails
         Write-Host "Storage account ($StorageAccountName) created successfully." 
@@ -352,7 +352,7 @@ function New-StorageAccountContainer (
     $ErrorActionPreference = "Continue"; #Turning errors back on
     if (-not $storageContainerDetails) {
         # Create container under storage account
-        Write-Host "Blob container does not exists. Creating blob container ($StorageAccountBlobContainer) under storage account ($StorageAccountName)."
+        Write-Host "Blob container does not exist. Creating blob container ($StorageAccountBlobContainer) under storage account ($StorageAccountName)."
         New-AzureStorageContainer -Name $StorageAccountBlobContainer | Out-Null
         $ErrorActionPreference = "SilentlyContinue";
         $newstorageContainerDetails = Get-AzureStorageContainer -Name $StorageAccountBlobContainer `
@@ -410,7 +410,7 @@ function New-KeyVault (
     $ErrorActionPreference = "Continue"; #Turning errors back on
     if (-not $keyVaultDetails)
     {
-        Write-Host "Creating key vault ($KeyVaultName) as it does not exists."
+        Write-Host "Creating key vault ($KeyVaultName) as it does not exist."
         $ErrorActionPreference = "SilentlyContinue";
         $keyVaultDetails = New-AzureRmKeyVault -ResourceGroupName $ResourceGroupName `
                                                -VaultName $KeyVaultName `
@@ -480,7 +480,7 @@ function New-KeyVaultSecret (
     $ErrorActionPreference = "Continue"; #Turning errors back on
     if ((-not $keyVaultSecretDetails) -or $SkipExistCheck)
     {
-        Write-Host "Creating key vault secret name ($SecretName) as it does not exists."
+        Write-Host "Creating key vault secret name ($SecretName) as it does not exist."
         $secureSecret = ConvertTo-SecureString -String $SecretValue -AsPlainText -Force
         Set-AzureKeyVaultSecret -VaultName $KeyVaultName `
                                 -Name $SecretName `
@@ -490,7 +490,7 @@ function New-KeyVaultSecret (
         $keyVaultSecretDetails = Get-AzureKeyVaultSecret -VaultName $KeyVaultName -Name $SecretName
         $ErrorActionPreference = "Continue"; #Turning errors back on
         if (-not $keyVaultSecretDetails){
-            throw "Creation of key vault secret ($SecretName) failed. Check if the specified key vault already exists under a subscription."
+            throw "Creation of key vault secret ($SecretName) failed. Check if the specified key vault name already exists under selected subscription."
         }
     }
     else {

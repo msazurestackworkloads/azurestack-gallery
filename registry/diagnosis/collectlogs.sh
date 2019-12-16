@@ -41,7 +41,7 @@ echo "[$(date +%Y%m%d%H%M%S)][INFO] Collecting registry container logs."
 i=0
 for cid in $(sudo docker ps -a -q --no-trunc)
 do
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Getting cname of ${cid}."
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Getting container name of ${cid}."
     cname=$(sudo docker inspect --format='{{ index .Config.Labels "com.docker.swarm.task.name" }}' ${cid})
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Getting log path of ${cid}."
     clog=$(sudo docker inspect --format='{{ .LogPath }}' ${cid})
