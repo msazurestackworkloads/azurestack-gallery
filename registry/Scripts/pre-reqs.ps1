@@ -580,11 +580,11 @@ function Set-ContainerRegistryPrerequisites
 
     Write-Host "Checking if ServicePrincipleId ($ServicePrincipleId) already has access on storage account ($StorageAccountName), ."
     $ErrorActionPreference = "SilentlyContinue";
-    Get-AzureRMRoleAssignment -ServicePrincipalName $ServicePrincipleId `
+    $roleAssignment = Get-AzureRMRoleAssignment -ServicePrincipalName $ServicePrincipleId `
                               -Scope $storageAccountDetails.Id `
                               -ErrorVariable accessExistError | Out-Null
     $ErrorActionPreference = "Continue"; #Turning errors back on
-    if ($accessExistError) {
+    if (($accessExistError) -or (-not $roleAssignment)) {
         Write-Host "Assigning servicePrincipleId ($ServicePrincipleId) contributor role on storage account ($StorageAccountName)"
         New-AzureRMRoleAssignment -ApplicationId $ServicePrincipleId `
                                   -RoleDefinitionName "Contributor" `
