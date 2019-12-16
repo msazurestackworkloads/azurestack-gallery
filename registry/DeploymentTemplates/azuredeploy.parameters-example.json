@@ -23,9 +23,6 @@
         "virtualMachineVersion": {
             "value": "latest"
         },
-        "pipAllocationMethod": {
-            "value": "Static"
-        },
         "storageAccountResourceId": {
             "value": "/subscriptions/{SUBSCRIPTION}/resourceGroups/{RESOURCE-GROUP}/providers/Microsoft.Storage/storageaccounts/{SA-NAME}"
         },

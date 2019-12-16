@@ -50,25 +50,6 @@
                 "description": "The guest OS image version."
             }
         },
-        "pipName": {
-            "type": "string",
-            "metadata": {
-                "description": "The public IP resource name."
-            }
-        },
-        "pipDomainNameLabel": {
-            "type": "string",
-            "metadata": {
-                "description": "The public IP DNS label."
-            }
-        },
-        "pipAllocationMethod": {
-            "type": "string",
-            "defaultValue": "dynamic",
-            "metadata": {
-                "description": "The public IP allocation method."
-            }
-        },
         "storageAccountResourceId": {
             "type": "string",
             "metadata": {
@@ -137,8 +118,11 @@
         "location": "[resourceGroup().location]",
         "marketplaceVersion": "1.0.0",
         "registryTag": "2.7.1",
+        "pipName": "[concat(variables('rgname'), '-ip')]",
+        "pipDomainNameLabel": "[concat(variables('rgname'), 'ip')]",
+        "pipAllocationMethod": "Static",
         "containerStatusWaitTimeInSeconds": "900",
-        "provisionScriptParameters": "[concat('MARKETPLACE_VERSION=', variables('marketplaceVersion'),' CONTAINER_STATUS_WAIT_TIME=', variables('containerStatusWaitTimeInSeconds'),' ADMIN_USER_NAME=', parameters('adminUsername'),' SA_RESOURCE_ID=', parameters('storageAccountResourceId'),' SA_CONTAINER=', parameters('storageAccountContainer'),' KV_RESOURCE_ID=', parameters('pfxKeyVaultResourceId'),' CERT_THUMBPRINT=', parameters('pfxThumbprint'),' PIP_LABEL=', parameters('pipDomainNameLabel'),' REGISTRY_TAG=', variables('registryTag'),' SPN_CLIENT_ID=',parameters('servicePrincipalClientId'),' SPN_CLIENT_SECRET=',parameters('servicePrincipalClientSecret'),' ENABLE_VALIDATIONS=',parameters('enableValidations'),' REGISTRY_REPLICAS=', parameters('registryReplicas'))]"
+        "provisionScriptParameters": "[concat('MARKETPLACE_VERSION=', variables('marketplaceVersion'),' CONTAINER_STATUS_WAIT_TIME=', variables('containerStatusWaitTimeInSeconds'),' ADMIN_USER_NAME=', parameters('adminUsername'),' SA_RESOURCE_ID=', parameters('storageAccountResourceId'),' SA_CONTAINER=', parameters('storageAccountContainer'),' KV_RESOURCE_ID=', parameters('pfxKeyVaultResourceId'),' CERT_THUMBPRINT=', parameters('pfxThumbprint'),' PIP_LABEL=', variables('pipDomainNameLabel'),' REGISTRY_TAG=', variables('registryTag'),' SPN_CLIENT_ID=',parameters('servicePrincipalClientId'),' SPN_CLIENT_SECRET=',parameters('servicePrincipalClientSecret'),' ENABLE_VALIDATIONS=',parameters('enableValidations'),' REGISTRY_REPLICAS=', parameters('registryReplicas'))]"
     },
     "resources": [
         {
@@ -215,7 +199,7 @@
             "name": "[concat(variables('rgname'),'-vm/cse')]",
             "properties": {
                 "protectedSettings": {
-                    "commandToExecute": "[concat(variables('provisionScriptParameters'),' LOCATION=',variables('location'),' TENANT_ID=',variables('tenantId'),' PIP_FQDN=', '\"', reference(resourceId('Microsoft.Network/publicIPAddresses',parameters('pipName')),'2017-10-01').dnsSettings.fqdn,'\"',' /opt/azure/containers/script.sh >> /var/log/azure/docker-registry.log 2>&1')]"
+                    "commandToExecute": "[concat(variables('provisionScriptParameters'),' LOCATION=',variables('location'),' TENANT_ID=',variables('tenantId'),' PIP_FQDN=', '\"', reference(resourceId('Microsoft.Network/publicIPAddresses',variables('pipName')),'2017-10-01').dnsSettings.fqdn,'\"',' /opt/azure/containers/script.sh >> /var/log/azure/docker-registry.log 2>&1')]"
                 },
                 "publisher": "Microsoft.Azure.Extensions",
                 "settings": {},
@@ -261,7 +245,7 @@
                             },
                             "privateIPAllocationMethod": "Dynamic",
                             "publicIpAddress": {
-                                "id": "[resourceId('Microsoft.Network/publicIpAddresses',parameters('pipName'))]"
+                                "id": "[resourceId('Microsoft.Network/publicIpAddresses',variables('pipName'))]"
                             }
                         }
                     }
@@ -272,7 +256,7 @@
             },
             "dependsOn": [
                 "[concat('Microsoft.Network/virtualNetworks/',variables('rgname'),'-vnet')]",
-                "[concat('Microsoft.Network/publicIpAddresses/',parameters('pipName'))]",
+                "[concat('Microsoft.Network/publicIpAddresses/',variables('pipName'))]",
                 "[concat('Microsoft.Network/networkSecurityGroups/',variables('nsgName'))]"
             ]
         },
@@ -281,13 +265,13 @@
             "sku": {
                 "name": "Basic"
             },
-            "name": "[parameters('pipName')]",
+            "name": "[variables('pipName')]",
             "apiVersion": "2017-10-01",
             "location": "[resourceGroup().location]",
             "properties": {
-                "publicIpAllocationMethod": "[parameters('pipAllocationMethod')]",
+                "publicIpAllocationMethod": "[variables('pipAllocationMethod')]",
                 "dnsSettings": {
-                    "domainNameLabel": "[parameters('pipDomainNameLabel')]"
+                    "domainNameLabel": "[variables('pipDomainNameLabel')]"
                 }
             }
         },

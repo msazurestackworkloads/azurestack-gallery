@@ -23,9 +23,6 @@
         "virtualMachineVersion": {
             "value": ""
         },
-        "pipAllocationMethod": {
-            "value": ""
-        },
         "storageAccountResourceId": {
             "value": ""
         },

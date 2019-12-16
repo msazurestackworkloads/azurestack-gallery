@@ -156,7 +156,6 @@
             "adminUsername": "[steps('VirtualMachineStep').adminUsername]",
             "adminPublicKey": "[steps('VirtualMachineStep').adminPublicKey.sshPublicKey]",
             "virtualMachineSize": "[steps('VirtualMachineStep').virtualMachineSize]",
-            "pipAllocationMethod": "Static",
             "storageAccountResourceId": "[steps('StoragePfxStep').storageAccountResourceId]",
             "storageAccountContainer": "[steps('StoragePfxStep').storageAccountContainer]",
             "pfxKeyVaultResourceId": "[steps('StoragePfxStep').keyVaultResourceId]",
