@@ -38,7 +38,7 @@ done
 mkdir -p ${LOGDIRECTORY}/containers
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Collecting registry container logs."
 
-sudo docker ps -a -q --no-trunc >> ${LOGDIRECTORY}/containers/containernames.log
+sudo docker ps -a --no-trunc >> ${LOGDIRECTORY}/containers/containernames.log
 sudo sh -c "cp /var/lib/docker/containers/*/*.log ${LOGDIRECTORY}/containers/"
 
 compressLogsDirectory
