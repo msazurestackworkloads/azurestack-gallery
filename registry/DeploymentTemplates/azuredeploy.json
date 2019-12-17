@@ -103,7 +103,7 @@
             "type": "string",
             "defaultValue": "20",
             "metadata": {
-                "description": "Docker registry replicas."
+                "description": "Registry replicas."
             }
         },
         "servicePrincipalClientId": {
@@ -122,7 +122,7 @@
             "type": "string",
             "defaultValue": "false",
             "metadata": {
-                "description": "Docker registry validation flag."
+                "description": "Registry validation flag."
             }
         }
     },

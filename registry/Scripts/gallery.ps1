@@ -30,7 +30,7 @@
                -AdminUserName admin@localazurestack.onmicrosoft.com 
                -AdminPassword <Login Password> 
                -TenantId 00000000-0000-0000-0000-000000000000 
-               -MarketplaceUri https://local.blob.core.windows.net/marketplaceblob/Microsoft.AzureStackDockerContainerRegistry.1.0.0.azpkg
+               -MarketplaceUri https://local.blob.core.windows.net/marketplaceblob/Microsoft.AzureStackContainerRegistry.1.0.0.azpkg
 #>
 Param
 (
@@ -67,9 +67,9 @@ Login-AzureRmAccount -Credential $mycreds -EnvironmentName $EnvironmentName -Ten
 #$PKG_SA_NAME=""
 #$PKG_SA_CONTAINER=""
 #$PKG_VERSION=""
-#"https://$PKG_SA_NAME.blob.$AzureStackDomainName/$PKG_SA_CONTAINER/Microsoft.AzureStackDockerContainerRegistry.$PKG_VERSION.azpkg"
+#"https://$PKG_SA_NAME.blob.$AzureStackDomainName/$PKG_SA_CONTAINER/Microsoft.AzureStackContainerRegistry.$PKG_VERSION.azpkg"
 
 Add-AzsGalleryItem -Force -GalleryItemUri $MarketplaceUri
 
 # Remove package
-# Remove-AzsGalleryItem -Force -Name "Microsoft.AzureStackDockerContainerRegistry.$PKG_VERSION"
+# Remove-AzsGalleryItem -Force -Name "Microsoft.AzureStackContainerRegistry.$PKG_VERSION"
