@@ -1,6 +1,6 @@
 {
   "$schema": "https://gallery.azure.com/schemas/2015-10-01/manifest.json#",
-  "name": "AzureStackDockerContainerRegistry",
+  "name": "AzureStackContainerRegistry",
   "publisher": "Microsoft",
   "version": "1.0.1",
   "displayName": "ms-resource:displayName",
