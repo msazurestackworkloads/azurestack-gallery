@@ -75,7 +75,7 @@
                         "type": "Microsoft.Common.TextBox",
                         "label": "Replicas",
                         "defaultValue": "20",
-                        "toolTip": "Docker registry replica count",
+                        "toolTip": "Registry replica count",
                         "constraints": {
                             "required": true,
                             "regex": "^[0-9]{1,2}$"

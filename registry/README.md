@@ -1,10 +1,10 @@
-# Docker Container Registry Marketplace Item
+# Container Registry Marketplace Item
 
 ## Install Gallery Item
 
 ### Prepare Package
 
-Use `make release` to create an Azure Gallery Package (.azpkg) for the Docker Container Registry solution template. The package will be placed in the `_out` directory. Upload the package to a BLOB container in an Azure Storage Account with anonymous access enabled.
+Use `make release` to create an Azure Gallery Package (.azpkg) for the Container Registry solution template. The package will be placed in the `_out` directory. Upload the package to a BLOB container in an Azure Storage Account with anonymous access enabled.
 
 ### Side-load Package
 
@@ -24,7 +24,7 @@ Update the certificate information in `self-signed.ps1`, and run it to create a 
 Scripts\self-signed.ps1
 ```
 
-This certificate will be uploaded to a Key Vault instance in a subsequent step, and then consumed by the private docker registry.
+This certificate will be uploaded to a Key Vault instance in a subsequent step, and then consumed by the private container registry.
 
 ### Create Backend Storage Account and Key Vault
 
@@ -34,7 +34,7 @@ Update the tenant information in `connect.ps1` and run it to connect to the tena
 Scripts\connect.ps1
 ```
 
-Set your environment information in `pre-reqs.ps1` and run it to create and populate the required backend Storage Account and Key Vault instance. Take note of the script output as it will be used later to deploy the private docker registry.
+Set your environment information in `pre-reqs.ps1` and run it to create and populate the required backend Storage Account and Key Vault instance. Take note of the script output as it will be used later to deploy the private container registry.
 
 ```powershell
 Scripts\pre-reqs.ps1
@@ -45,7 +45,7 @@ Scripts\pre-reqs.ps1
 From the tenant portal, go to:
 
 ```
-Create a resource -> Compute -> Docker Container Registry
+Create a resource -> Compute -> Container Registry
 ```
 
 ## Logs
