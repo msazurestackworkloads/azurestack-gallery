@@ -66,8 +66,8 @@
                         "toolTip": "The domain name is invalid. It can contain only lowercase letters, numbers and hyphens. The first character must be a letter. The last character must be letter or number. The value must be between 3 and 63 characters long.",
                         "constraints": {
                             "required": true,
-                            "regex": "^[a-z][a-z0-9-]{1,16}[a-z0-9]$",
-                            "validationMessage": "DNS prefix is invalid. The prefix must conform to the following regular expression: ^[a-z][a-z0-9-]{1,16}[a-z0-9]$."
+                            "regex": "^[a-z][a-z0-9-]{1,63}[a-z0-9]$",
+                            "validationMessage": "DNS prefix is invalid. The prefix must conform to the following regular expression: ^[a-z][a-z0-9-]{1,63}[a-z0-9]$."
                         }
                     },
                     {

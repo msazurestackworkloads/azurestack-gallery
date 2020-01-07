@@ -98,7 +98,7 @@
             "metadata": {
                 "description": "The certificate thumbprint."
             }
-        },        
+        },
         "registryReplicas": {
             "type": "string",
             "defaultValue": "20",
@@ -135,7 +135,7 @@
         "subnetRef": "[concat(variables('vnetId'), '/subnets/default')]",
         "tenantId": "[subscription().tenantId]",
         "location": "[resourceGroup().location]",
-        "marketplaceVersion": "1.0.1",
+        "marketplaceVersion": "1.0.2",
         "registryTag": "2.7.1",
         "containerStatusWaitTimeInSeconds": "900",
         "provisionScriptParameters": "[concat('MARKETPLACE_VERSION=', variables('marketplaceVersion'),' CONTAINER_STATUS_WAIT_TIME=', variables('containerStatusWaitTimeInSeconds'),' ADMIN_USER_NAME=', parameters('adminUsername'),' SA_RESOURCE_ID=', parameters('storageAccountResourceId'),' SA_CONTAINER=', parameters('storageAccountContainer'),' KV_RESOURCE_ID=', parameters('pfxKeyVaultResourceId'),' CERT_THUMBPRINT=', parameters('pfxThumbprint'),' PIP_LABEL=', parameters('pipDomainNameLabel'),' REGISTRY_TAG=', variables('registryTag'),' SPN_CLIENT_ID=',parameters('servicePrincipalClientId'),' SPN_CLIENT_SECRET=',parameters('servicePrincipalClientSecret'),' ENABLE_VALIDATIONS=',parameters('enableValidations'),' REGISTRY_REPLICAS=', parameters('registryReplicas'))]"
@@ -192,7 +192,8 @@
                             "storageAccountType": "Premium_LRS"
                         }
                     },
-                    "dataDisks": []
+                    "dataDisks": [
+                    ]
                 },
                 "networkProfile": {
                     "networkInterfaces": [
@@ -218,7 +219,8 @@
                     "commandToExecute": "[concat(variables('provisionScriptParameters'),' LOCATION=',variables('location'),' TENANT_ID=',variables('tenantId'),' PIP_FQDN=', '\"', reference(resourceId('Microsoft.Network/publicIPAddresses',parameters('pipName')),'2017-10-01').dnsSettings.fqdn,'\"',' /opt/azure/containers/script.sh >> /var/log/azure/docker-registry.log 2>&1')]"
                 },
                 "publisher": "Microsoft.Azure.Extensions",
-                "settings": {},
+                "settings": {
+                },
                 "type": "CustomScript",
                 "typeHandlerVersion": "2.0",
                 "autoUpgradeMinorVersion": true
@@ -305,8 +307,10 @@
                             "protocol": "Tcp",
                             "access": "Allow",
                             "direction": "Inbound",
-                            "sourceApplicationSecurityGroups": [],
-                            "destinationApplicationSecurityGroups": [],
+                            "sourceApplicationSecurityGroups": [
+                            ],
+                            "destinationApplicationSecurityGroups": [
+                            ],
                             "sourceAddressPrefix": "*",
                             "sourcePortRange": "*",
                             "destinationAddressPrefix": "*",
