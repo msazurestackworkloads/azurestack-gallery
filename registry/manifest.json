@@ -26,11 +26,7 @@
   "links": [
     {
       "displayName": "ms-resource:link1",
-      "uri": "https://aka.ms/azscrinstallguide"
-    },
-    {
-      "displayName": "ms-resource:link2",
-      "uri": "https://aka.ms/azscrpushimage"
+      "uri": "https://aka.ms/azscrlegalterms"
     }
   ],
   "products": [
