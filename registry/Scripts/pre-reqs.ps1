@@ -491,7 +491,7 @@ function Set-RegistryAccessSecret (
 .Parameter Location
     Location of Azure Stack.
 
-.Parameter ServicePrincipalID
+.Parameter ServicePrincipalId
     Service principal ID which will be added to provide contributor access
 
 .Parameter ResourceGroupName
