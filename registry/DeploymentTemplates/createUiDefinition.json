@@ -63,11 +63,11 @@
                         "type": "Microsoft.Common.TextBox",
                         "label": "Domain name label",
                         "defaultValue": "registry",
-                        "toolTip": "This must be a region-unique name, for example, registry-12345. A best practice is to use the same prefix for the DNS and region name.",
+                        "toolTip": "The domain name is invalid. It can contain only lowercase letters, numbers and hyphens. The first character must be a letter. The last character must be letter or number. The value must be between 3 and 16 characters long.",
                         "constraints": {
-                          "required": true,
-                          "regex": "^[a-z][a-z0-9-]{1,16}[a-z0-9]$",
-                          "validationMessage": "DNS prefix is invalid. The prefix must conform to the following regular expression: ^[a-z][a-z0-9-]{1,16}[a-z0-9]$."
+                            "required": true,
+                            "regex": "^[a-z][a-z0-9-]{1,16}[a-z0-9]$",
+                            "validationMessage": "DNS prefix is invalid. The prefix must conform to the following regular expression: ^[a-z][a-z0-9-]{1,16}[a-z0-9]$."
                         }
                     },
                     {
