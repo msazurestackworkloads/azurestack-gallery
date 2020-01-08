@@ -493,7 +493,7 @@ log_level -i "SUBSCRIPTION_ID: $SUBSCRIPTION_ID"
 log_level -i "TENANT_ID: $TENANT_ID"
 log_level -i "------------------------------------------------------------------------"
 
-make test-kubernetes > deploy_test_results
+make test-kubernetes &> deploy_test_results
 
 RESULT=$?
 
