@@ -184,7 +184,7 @@ fi
 --upgrade-version $UPGRADE_VERSION \
 --client-secret $CLIENT_SECRET \
 --identity-system $IDENTITY_SYSTEM \
---force || exit 1
+--force &> upgrade_cluster || exit 1
 
 
 log_level -i "Upgrading of kubernetes cluster completed.Running E2E test..."
@@ -265,7 +265,7 @@ make bootstrap
 eval `ssh-agent`
 
 set +e
-make test-kubernetes > upgrade_test_results
+make test-kubernetes &> upgrade_test_results
 set -e
 
 RESULT=$?

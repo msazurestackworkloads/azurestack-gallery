@@ -186,7 +186,7 @@ fi
 --auth-method $AUTH_METHOD \
 --client-id $CLIENT_ID \
 --client-secret $CLIENT_SECRET \
---identity-system $IDENTITY_SYSTEM || exit 1
+--identity-system $IDENTITY_SYSTEM &> scale_cluster_$NODE_COUNT || exit 1
 
 # Scale up and down windows node if present.
 WINDOWS_AGENT_POOL=$(cat $ROOT_PATH/_output/$RESOURCE_GROUP/apimodel.json | jq '.properties.agentPoolProfiles | .[] | select (.osType == "Windows" ) | .name' | tr -d '"')
@@ -205,7 +205,7 @@ else
     --auth-method $AUTH_METHOD \
     --client-id $CLIENT_ID \
     --client-secret $CLIENT_SECRET \
-    --identity-system $IDENTITY_SYSTEM || exit 1
+    --identity-system $IDENTITY_SYSTEM &> scale_windows_cluster_$NODE_COUNT || exit 1
 fi
 
 log_level -i "Scaling of kubernetes cluster completed.Running E2E test..."
@@ -285,7 +285,7 @@ cd $ROOT_PATH
 make bootstrap
 eval `ssh-agent`
 set +e
-make test-kubernetes > scale_test_results
+make test-kubernetes &> scale_test_results
 set -e
 
 RESULT=$?
