@@ -178,8 +178,8 @@ then
     ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}  "cd /home/azureuser/src/github.com/Azure/aks-engine; sudo cp _output/*-ssh /home/azureuser/aksMasterIdentityFile; sudo chmod 744 /home/azureuser/aksMasterIdentityFile "
     scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:/home/${USER}/aksMasterIdentityFile ${LOGFILEFOLDER}/aksMasterIdentityFile
     scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:/home/${USER}/src/github.com/Azure/aks-engine/deploy_test_results ${LOGFILEFOLDER}/deploy_test_results
-    scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:/home/${USER}/src/github.com/Azure/aks-engine/scale_test_results ${LOGFILEFOLDER}/scale_test_results
-    scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:/home/${USER}/src/github.com/Azure/aks-engine/upgrade_test_results ${LOGFILEFOLDER}/upgrade_test_results
+    scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:/home/${USER}/src/github.com/Azure/aks-engine/scale_* ${LOGFILEFOLDER}/
+    scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:/home/${USER}/src/github.com/Azure/aks-engine/upgrade_* ${LOGFILEFOLDER}/
     
     if [ ! -f ${LOGFILEFOLDER}/aksMasterIdentityFile ]
     then
