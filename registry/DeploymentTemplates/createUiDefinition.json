@@ -85,7 +85,7 @@
                         "name": "virtualMachineSku",
                         "type": "Microsoft.Common.TextBox",
                         "label": "Image SKU",
-                        "defaultValue": "aks-ubuntu-1604-201909",
+                        "defaultValue": "aks-ubuntu-1604-201910",
                         "toolTip": "OS image SKU",
                         "constraints": {
                             "required": true

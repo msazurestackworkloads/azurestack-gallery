@@ -18,7 +18,7 @@
             "value": "aks"
         },
         "virtualMachineSku": {
-            "value": "aks-ubuntu-1604-201909"
+            "value": "aks-ubuntu-1604-201910"
         },
         "virtualMachineVersion": {
             "value": "latest"
