@@ -285,7 +285,7 @@ cd $ROOT_PATH
 make bootstrap
 eval `ssh-agent`
 set +e
-make test-kubernetes &> scale_test_results
+make test-kubernetes &> scale_test_result_$NODE_COUNT
 set -e
 
 RESULT=$?
