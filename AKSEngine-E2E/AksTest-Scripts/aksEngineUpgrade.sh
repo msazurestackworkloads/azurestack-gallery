@@ -213,7 +213,7 @@ export RESOURCE_MANAGER_VM_DNS_SUFFIX=$FQDN_ENDPOINT_SUFFIX
 export SSH_KEY_NAME="id_rsa"
 export PORTAL_ENDPOINT=$ENDPOINT_PORTAL
 #time sync is a known flake at present w/ 18.04-LTS - should have healthy time synchronization
-export GINKGO_SKIP="should be able to produce working LoadBalancers|should have healthy time synchronization"
+export GINKGO_SKIP="should be able to produce working LoadBalancers|should have healthy time synchronization|should have the correct storage classes deployed"
 
 if [ $IDENTITY_SYSTEM == "adfs" ] ; then
     export ACTIVE_DIRECTORY_ENDPOINT=${ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT}adfs
