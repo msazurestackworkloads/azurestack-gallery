@@ -261,16 +261,8 @@ export PATH=$GOPATH:$GOROOT/bin:$PATH
 #####################################################################################
 
 #Section to install kubectl
-KUBECTL_VERSION=1.11.7
-
-echo "==> Downloading kubectl version ${KUBECTL_VERSION} <=="
-
-sudo curl -L https://storage.googleapis.com/kubernetes-release/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl
-
-sudo chmod +x /usr/local/bin/kubectl
-
-sudo cp /usr/local/bin/kubectl /usr/local/bin/k
-
+sudo cp $ROOT_PATH/src/github.com/Azure/aks-engine/scripts/k /usr/local/bin/k
+sudo chmod +x /usr/local/bin/k
 export PATH=/usr/local/bin:$PATH
 
 
