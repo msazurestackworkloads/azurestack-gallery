@@ -261,7 +261,7 @@ export PATH=$GOPATH:$GOROOT/bin:$PATH
 #####################################################################################
 
 #Section to install kubectl
-sudo cp $ROOT_PATH/src/github.com/Azure/aks-engine/scripts/k /usr/local/bin/k
+sudo cp $ROOT_PATH/scripts/k /usr/local/bin/k
 sudo chmod +x /usr/local/bin/k
 export PATH=/usr/local/bin:$PATH
 
