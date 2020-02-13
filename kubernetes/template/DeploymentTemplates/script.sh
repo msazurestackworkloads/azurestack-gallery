@@ -240,6 +240,7 @@ log_level -i "MASTER_DNS_PREFIX:                        $MASTER_DNS_PREFIX"
 log_level -i "MASTER_SIZE:                              $MASTER_SIZE"
 log_level -i "MASTER_SUBNET_NAME:                       $MASTER_SUBNET_NAME"
 log_level -i "NETWORK_PLUGIN:                           $NETWORK_PLUGIN"
+log_level -i "NETWORK_POLICY:                           $NETWORK_POLICY"
 log_level -i "NODE_DISTRO:                              $NODE_DISTRO"
 log_level -i "PUBLICIP_DNS:                             $PUBLICIP_DNS"
 log_level -i "PUBLICIP_FQDN:                            $PUBLICIP_FQDN"
@@ -463,6 +464,7 @@ jq --arg IDENTITY_SYSTEM_LOWER $IDENTITY_SYSTEM_LOWER '.properties.customCloudPr
 jq --arg K8S_VERSION $K8S_AZURE_CLOUDPROVIDER_VERSION '.properties.orchestratorProfile.orchestratorRelease=$K8S_VERSION' | \
 jq --arg K8S_IMAGE_BASE $K8S_IMAGE_BASE '.properties.orchestratorProfile.kubernetesConfig.kubernetesImageBase=$K8S_IMAGE_BASE' | \
 jq --arg NETWORK_PLUGIN $NETWORK_PLUGIN '.properties.orchestratorProfile.kubernetesConfig.networkPlugin=$NETWORK_PLUGIN' | \
+jq --arg NETWORK_POLICY $NETWORK_POLICY '.properties.orchestratorProfile.kubernetesConfig.networkPolicy=$NETWORK_POLICY' | \
 jq --arg CONTAINER_RUNTIME $CONTAINER_RUNTIME '.properties.orchestratorProfile.kubernetesConfig.containerRuntime=$CONTAINER_RUNTIME' | \
 jq --arg ENABLE_TILLER $ENABLE_TILLER '.properties.orchestratorProfile.kubernetesConfig.addons[0].enabled= ($ENABLE_TILLER | test("true"))' \
 > $AZURESTACK_CONFIGURATION_TEMP

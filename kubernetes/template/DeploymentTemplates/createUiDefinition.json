@@ -536,6 +536,26 @@
             "visible": false
           },
           {
+            "name": "networkPolicy",
+            "type": "Microsoft.Common.DropDown",
+            "label": "Network Policy name",
+            "defaultValue": "",
+            "toolTip": "Network policy which will deployed in Kubernetes cluster",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "default",
+                  "value": ""
+                },
+                {
+                  "label": "Azure CNI",
+                  "value": "azure"
+                }
+              ]
+            },
+            "visible": false
+          },
+          {
             "name": "availabilityProfile",
             "type": "Microsoft.Common.DropDown",
             "label": "Availability profile name",
@@ -753,6 +773,7 @@
       "galleryBranch": "[steps('KubernetesClusterSettings').galleryBranch]",
       "clusterDefinitionFileName": "[steps('KubernetesClusterSettings').clusterDefinitionFileName]",
       "networkPlugin": "[steps('KubernetesClusterSettings').networkPlugin]",
+      "networkPolicy": "[steps('KubernetesClusterSettings').networkPolicy]",
       "enableTillerAddOn": "[steps('KubernetesClusterSettings').enableTillerAddOn]",
       "containerRuntime": "[steps('KubernetesClusterSettings').containerRuntime]",
       "availabilityProfile": "[steps('KubernetesClusterSettings').availabilityProfile]",
