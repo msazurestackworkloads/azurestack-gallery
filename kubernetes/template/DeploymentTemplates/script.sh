@@ -444,6 +444,16 @@ if [ "$CUSTOM_VNET_NAME" != "" ]; then
 fi
 
 #####################################################################################
+#custom network policy config
+if [ "$NETWORK_POLICY" != "" ]; then
+    log_level -i "Setting network policy property."
+    cat $AZURESTACK_CONFIGURATION | jq --arg NETWORK_POLICY $NETWORK_POLICY '.properties.orchestratorProfile.kubernetesConfig.networkPolicy=$NETWORK_POLICY' \
+    > $AZURESTACK_CONFIGURATION_TEMP
+
+    log_level -i "Done setting network policy property."
+fi
+
+#####################################################################################
 # apimodel gen
 
 log_level -i "Setting general cluster definition properties."
@@ -464,7 +474,6 @@ jq --arg IDENTITY_SYSTEM_LOWER $IDENTITY_SYSTEM_LOWER '.properties.customCloudPr
 jq --arg K8S_VERSION $K8S_AZURE_CLOUDPROVIDER_VERSION '.properties.orchestratorProfile.orchestratorRelease=$K8S_VERSION' | \
 jq --arg K8S_IMAGE_BASE $K8S_IMAGE_BASE '.properties.orchestratorProfile.kubernetesConfig.kubernetesImageBase=$K8S_IMAGE_BASE' | \
 jq --arg NETWORK_PLUGIN $NETWORK_PLUGIN '.properties.orchestratorProfile.kubernetesConfig.networkPlugin=$NETWORK_PLUGIN' | \
-jq --arg NETWORK_POLICY $NETWORK_POLICY '.properties.orchestratorProfile.kubernetesConfig.networkPolicy=$NETWORK_POLICY' | \
 jq --arg CONTAINER_RUNTIME $CONTAINER_RUNTIME '.properties.orchestratorProfile.kubernetesConfig.containerRuntime=$CONTAINER_RUNTIME' | \
 jq --arg ENABLE_TILLER $ENABLE_TILLER '.properties.orchestratorProfile.kubernetesConfig.addons[0].enabled= ($ENABLE_TILLER | test("true"))' \
 > $AZURESTACK_CONFIGURATION_TEMP
