@@ -240,6 +240,7 @@ log_level -i "MASTER_DNS_PREFIX:                        $MASTER_DNS_PREFIX"
 log_level -i "MASTER_SIZE:                              $MASTER_SIZE"
 log_level -i "MASTER_SUBNET_NAME:                       $MASTER_SUBNET_NAME"
 log_level -i "NETWORK_PLUGIN:                           $NETWORK_PLUGIN"
+log_level -i "NETWORK_POLICY:                           $NETWORK_POLICY"
 log_level -i "NODE_DISTRO:                              $NODE_DISTRO"
 log_level -i "PUBLICIP_DNS:                             $PUBLICIP_DNS"
 log_level -i "PUBLICIP_FQDN:                            $PUBLICIP_FQDN"
@@ -440,6 +441,16 @@ if [ "$CUSTOM_VNET_NAME" != "" ]; then
     fi
 
     log_level -i "Done building custom vnet  definition."
+fi
+
+#####################################################################################
+#custom network policy config
+if [ "$NETWORK_POLICY" != "" ]; then
+    log_level -i "Setting network policy property."
+    cat $AZURESTACK_CONFIGURATION | jq --arg NETWORK_POLICY $NETWORK_POLICY '.properties.orchestratorProfile.kubernetesConfig.networkPolicy=$NETWORK_POLICY' \
+    > $AZURESTACK_CONFIGURATION_TEMP
+
+    log_level -i "Done setting network policy property."
 fi
 
 #####################################################################################
