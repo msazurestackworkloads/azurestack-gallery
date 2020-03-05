@@ -71,6 +71,9 @@
     "networkPlugin": {
       "value": "kubenet"
     },
+    "networkPolicy": {
+      "value": ""
+    },
     "availabilityProfile": {
       "value": "AvailabilitySet"
     },
