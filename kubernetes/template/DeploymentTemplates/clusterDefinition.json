@@ -27,6 +27,7 @@
             "dnsPrefix": "",
             "distro": "ubuntu",
             "osDiskSizeGB": 200,
+            "availabilityProfile": "AvailabilitySet",
             "count": 3,
             "vmSize": "Standard_D2_v2"
         },
