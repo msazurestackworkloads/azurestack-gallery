@@ -88,6 +88,21 @@ compressLogsDirectory()
     sudo chown ${CURRENTUSER} ~/${LOGFILENAME}
 }
 
+collectCloudProviderJson() {
+    if [ -f /etc/kubernetes/azure.json ]; then
+        sudo jq . /etc/kubernetes/azure.json | sudo grep -v aadClient > ${LOGDIRECTORY}/etc/kubernetes/azure.json
+    fi
+    if [ -f /etc/kubernetes/azurestackcloud.json ]; then
+        sudo jq . /etc/kubernetes/azurestackcloud.json > ${LOGDIRECTORY}/etc/kubernetes/azurestackcloud.json
+    fi
+}
+
+checkNetworking() {
+    local DIR=${LOGDIRECTORY}/network
+    mkdir -p ${DIR}
+    ping ${HOSTNAME} -c 3 &> ${DIR}/ping.txt
+}
+
 TMP=$(mktemp -d)
 LOGDIRECTORY=${TMP}/${HOSTNAME}
 mkdir -p ${LOGDIRECTORY}
@@ -174,5 +189,10 @@ if systemctl list-units | grep -q docker.service; then
     collectMobyMetadata
     sudo journalctl -n 10000 --utc -o short-iso -u docker &>> ${LOGDIRECTORY}/daemons/k8s-docker.log
 fi
+
+collectCloudProviderJson
+
+test -n "${NAMESPACES}" && echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Basic networking test"
+checkNetworking
 
 compressLogsDirectory
