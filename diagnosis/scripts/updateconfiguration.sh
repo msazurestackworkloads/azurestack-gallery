@@ -1,9 +1,5 @@
 #!/bin/bash -e
 
-
-
-
-
 agentScript() {
     cat <<EOF > agent.sh
 #!/bin/bash -e
@@ -21,7 +17,7 @@ sudo systemctl daemon-reload
 sudo systemctl restart kubelet
 
 echo "=> azure.json updates"
-sudo grep -E 'cloudProviderRatelimit"|cloudProviderRateLimitQPS"|cloudProviderRateLimitBucket"' /etc/kubernetes/azure.json
+sudo grep -E 'cloudProviderRatelimit"|cloudProviderRateLimitQPS"|cloudProviderRateLimitBucket"|cloudProviderBackoffRetries"|cloudProviderBackoffDuration"' /etc/kubernetes/azure.json
 echo "=> kubelet restarted"
 systemctl status kubelet --no-pager -l
 EOF
@@ -56,8 +52,9 @@ sudo systemctl restart kubelet
 echo "=> controller-manager updates"
 grep -o -E 'route-reconciliation-period=[0-9a-zA-Z]*' /etc/kubernetes/manifests/kube-controller-manager.yaml
 grep -o -E 'node-monitor-grace-period=[0-9a-zA-Z]*' /etc/kubernetes/manifests/kube-controller-manager.yaml
+grep -o -E 'pod-eviction-timeout=[0-9a-zA-Z]*' /etc/kubernetes/manifests/kube-controller-manager.yaml
 echo "=> azure.json updates"
-sudo grep -E 'cloudProviderRatelimit"|cloudProviderRateLimitQPS"|cloudProviderRateLimitBucket"' /etc/kubernetes/azure.json
+sudo grep -E 'cloudProviderRatelimit"|cloudProviderRateLimitQPS"|cloudProviderRateLimitBucket"|cloudProviderBackoffRetries"|cloudProviderBackoffDuration"' /etc/kubernetes/azure.json
 echo "=> kubelet restarted"
 systemctl status kubelet --no-pager -l
 EOF
@@ -101,12 +98,6 @@ printUsage()
     echo "  $0 --masters --agents"
     exit 1
 }
-
-
-if [ $# -eq 0 ]; then
-    
-fi
-
 
 if [ "$#" -eq 0 ]
 then
