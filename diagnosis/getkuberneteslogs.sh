@@ -37,6 +37,7 @@ copyLogsToSADirectory()
     cp ${LOGFILEFOLDER}/k8s-*.zip ${SA_DIR}
     cp ${LOGFILEFOLDER}/vmd-*.zip ${SA_DIR}
     cp ${LOGFILEFOLDER}/cluster-snapshot.zip ${SA_DIR}
+    cp ${LOGFILEFOLDER}/resources/* ${SA_DIR}
     
     if [ -n "$API_MODEL" ]
     then
@@ -312,6 +313,9 @@ then
         processHost ${host}
     done
 fi
+
+mkdir -p $LOGFILEFOLDER/resources
+az network vnet list -g ${RESOURCE_GROUP} > ${LOGFILEFOLDER}/resources/vnets.json
 
 # UPLOAD
 if [ "$UPLOAD_LOGS" == "true" ]; then
