@@ -141,9 +141,7 @@ printUsage()
     echo "  -u, --user                        The administrator username for the cluster VMs"
     echo "  -i, --identity-file               RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')"
     echo "  -g, --resource-group              Kubernetes cluster resource group"
-    echo "  -n, --user-namespace              Collect logs from containers in the specified namespaces (kube-system logs are always collected)"
     echo "      --api-model                   AKS Engine Kubernetes cluster definition json file"
-    echo "      --all-namespaces              Collect logs from containers in all namespaces. It overrides --user-namespace"
     echo "      --upload-logs                 Persists retrieved logs in an Azure Stack storage account"
     echo "      --disable-host-key-checking   Sets SSH's StrictHostKeyChecking option to \"no\" while the script executes. Only use in a safe environment."
     echo "  -h, --help                        Print script usage"
@@ -163,7 +161,6 @@ then
 fi
 
 NAMESPACES="kube-system"
-ALLNAMESPACES=1
 UPLOAD_LOGS="false"
 
 # Handle named parameters
@@ -182,17 +179,9 @@ do
             RESOURCE_GROUP="$2"
             shift 2
         ;;
-        -n|--user-namespace)
-            NAMESPACES="$NAMESPACES $2"
-            shift 2
-        ;;
         --api-model)
             API_MODEL="$2"
             shift 2
-        ;;
-        --all-namespaces)
-            ALLNAMESPACES=0
-            shift
         ;;
         --upload-logs)
             UPLOAD_LOGS="true"
@@ -256,15 +245,12 @@ then
     fi
 fi
 
-test $ALLNAMESPACES -eq 0 && unset NAMESPACES
-
 # Print user input
 echo ""
 echo "user:                    $USER"
 echo "identity-file:           $IDENTITYFILE"
 echo "resource-group:          $RESOURCE_GROUP"
 echo "upload-logs:             $UPLOAD_LOGS"
-echo "namespaces:              ${NAMESPACES:-all}"
 echo ""
 
 NOW=`date +%Y%m%d%H%M%S`
