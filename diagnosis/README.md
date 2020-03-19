@@ -29,10 +29,6 @@ The logs retrieved by `getkuberneteslogs.sh` are the following:
 
 ## Optional Parameters
 
-`-n, --user-namespace`         - Collect logs from containers in the specified namespaces (`kube-system` logs are always collected)
-
-`--all-namespaces`             - Collect logs from containers in all namespaces. It overrides --user-namespace
-
 `--disable-host-key-checking`  - Sets SSH's `StrictHostKeyChecking` option to `no` while the script executes. Only use in a safe environment.
 
 `--upload-logs`                - Persists retrieved logs in an Azure Stack storage account. Logs can be found in `KubernetesLogs` resource group.
