@@ -749,6 +749,17 @@
               "required": true
             },
             "visible": false
+          },
+          {
+            "name": "disconnectedAKSeURL",
+            "type": "Microsoft.Common.TextBox",
+            "label": "AKS Engine Base url (Disconnected)",
+            "defaultValue": "",
+            "toolTip": "The blob URL AKS Engine",
+            "constraints": {
+              "required": false
+            },
+            "visible": true
           }
         ]
       }
@@ -782,7 +793,8 @@
       "windowsAdminUsername": "[steps('KubernetesClusterSettings').windowsAdminUsername]",
       "windowsAdminPassword": "[steps('KubernetesClusterSettings').windowsAdminPassword]",
       "customWindowsPackageURL": "[steps('KubernetesClusterSettings').customWindowsPackageURL]",
-      "kubernetesImageBase": "[steps('KubernetesClusterSettings').kubernetesImageBase]"
+      "kubernetesImageBase": "[steps('KubernetesClusterSettings').kubernetesImageBase]",
+      "disconnectedAKSeURL": "[steps('KubernetesClusterSettings').disconnectedAKSeURL]"
     }
   }
 }

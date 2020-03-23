@@ -4,7 +4,7 @@ ERR_APT_INSTALL_TIMEOUT=9 # Timeout installing required apt packages
 ERR_AKSE_DOWNLOAD=10 # Failure downloading AKS-Engine binaries
 ERR_AKSE_DEPLOY=12 # Failure calling AKS-Engine's deploy operation
 ERR_TEMPLATE_DOWNLOAD=13 # Failure downloading AKS-Engine template
-ERR_INVALID_AGENT_COUNT_VALUE=14 # Both Windows and Linux agent value is zero 
+ERR_INVALID_AGENT_COUNT_VALUE=14 # Both Windows and Linux agent value is zero
 ERR_CACERT_INSTALL=20 # Failure moving CA certificate
 ERR_METADATA_ENDPOINT=30 # Failure calling the metadata endpoint
 ERR_API_MODEL=40 # Failure building API model using user input
@@ -110,13 +110,27 @@ ensure_certificates()
 # Download msazurestackworkloads' AKSe fork and move relevant files to the working directory
 download_akse()
 {
-    AKSE_ZIP_NAME="aks-engine-$AKSE_RELEASE_VERSION-linux-amd64"
-    AKSE_ZIP_URL="$AKSE_BASE_URL/$AKSE_RELEASE_VERSION/$AKSE_ZIP_NAME.tar.gz"
-    curl --retry 5 --retry-delay 10 --max-time 60 -L -s -f -O $AKSE_ZIP_URL || exit $ERR_AKSE_DOWNLOAD
-    
-    mkdir -p ./bin
-    tar -xf $AKSE_ZIP_NAME.tar.gz
-    cp ./$AKSE_ZIP_NAME/aks-engine ./bin
+    if [ ! $DISCONNECTED_AKS_ENGINE_URL ]
+    then
+        log_level -i "Downloading AKS engine binary online"
+        AKSE_ZIP_NAME="aks-engine-$AKSE_RELEASE_VERSION-linux-amd64"
+        AKSE_ZIP_URL="$AKSE_BASE_URL/$AKSE_RELEASE_VERSION/$AKSE_ZIP_NAME.tar.gz"
+        curl --retry 5 --retry-delay 10 --max-time 60 -L -s -f -O $AKSE_ZIP_URL || exit $ERR_AKSE_DOWNLOAD
+
+        mkdir -p ./bin
+        tar -xf $AKSE_ZIP_NAME.tar.gz
+        cp ./$AKSE_ZIP_NAME/aks-engine ./bin
+    else
+        log_level -i "Downloading AKS engine binary from blob"
+        curl --retry 5 --retry-delay 10 --max-time 60 -L -s -f -O $DISCONNECTED_AKS_ENGINE_URL || exit $ERR_AKSE_DOWNLOAD
+
+        mkdir -p ./bin
+        AKSE_LOCAL_ZIP_NAME=${DISCONNECTED_AKS_ENGINE_URL##*/}
+        tar -xf $AKSE_LOCAL_ZIP_NAME
+        AKSE_LOCAL_FILENAME="${AKSE_LOCAL_ZIP_NAME%%.*}"
+        cp ./$AKSE_LOCAL_FILENAME/aks-engine ./bin
+    fi
+
     
     AKSE_LOCATION=./bin/aks-engine
     if [ ! -f $AKSE_LOCATION ]; then
@@ -125,9 +139,14 @@ download_akse()
         exit 1
     fi
     
-    TEMPLATE_URL="https://raw.githubusercontent.com/$GALLERY_REPO/$GALLERY_BRANCH/kubernetes/template/DeploymentTemplates/$DEFINITION_TEMPLATE_NAME"
-    curl --retry 5 --retry-delay 10 --max-time 60 -s -f -O $TEMPLATE_URL || exit $ERR_TEMPLATE_DOWNLOAD
-
+    if [ ! $DISCONNECTED_AKS_ENGINE_URL ]
+    then
+        TEMPLATE_URL="https://raw.githubusercontent.com/$GALLERY_REPO/$GALLERY_BRANCH/kubernetes/template/DeploymentTemplates/$DEFINITION_TEMPLATE_NAME"
+        curl --retry 5 --retry-delay 10 --max-time 60 -s -f -O $TEMPLATE_URL || exit $ERR_TEMPLATE_DOWNLOAD
+    else
+        generate_api_model || exit $ERR_TEMPLATE_DOWNLOAD
+    fi
+    
     DEFINITION_TEMPLATE="./$DEFINITION_TEMPLATE_NAME"
     if [ ! -f $DEFINITION_TEMPLATE ]; then
         log_level -e "API model template for Kubernetes not found in expected location"
@@ -208,6 +227,68 @@ apt_get_install()
     wait_for_apt_locks
 }
 
+generate_api_model()
+{
+    touch $DEFINITION_TEMPLATE_NAME
+    cat > $DEFINITION_TEMPLATE_NAME <<EOL
+    {
+    "apiVersion": "vlabs",
+    "location": "",
+    "properties": {
+        "orchestratorProfile": {
+            "orchestratorType": "Kubernetes",
+            "orchestratorRelease": "",
+            "kubernetesConfig": {
+                "kubernetesImageBase": "",
+                "useInstanceMetadata": false,
+                "networkPlugin": "kubenet",
+                "containerRuntime": "docker",
+                "cloudProviderRateLimitBucket": 0,
+                "cloudProviderRateLimitBucketWrite": 0,
+                "addons": [
+                    {
+                        "name": "tiller",
+                        "enabled": false
+                    }
+                ]
+            }
+        },
+        "customCloudProfile": {
+            "portalURL": ""
+        },
+        "masterProfile": {
+            "dnsPrefix": "",
+            "distro": "ubuntu",
+            "osDiskSizeGB": 200,
+            "count": 3,
+            "vmSize": "Standard_D2_v2"
+        },
+        "agentPoolProfiles": [],
+        "linuxProfile": {
+            "adminUsername": "azureuser",
+            "ssh": {
+                "publicKeys": [
+                    {
+                        "keyData": ""
+                    }
+                ]
+            }
+        },
+        "windowsProfile": {
+            "adminUsername": "azureuser",
+            "adminPassword": "",
+            "sshEnabled": true
+        },
+        "servicePrincipalProfile": {
+            "clientId": "",
+            "secret": ""
+        }
+    }
+}
+EOL
+
+}
+
 #####################################################################################
 # start
 
@@ -227,6 +308,7 @@ log_level -i "AKSE_RELEASE_VERSION                      $AKSE_RELEASE_VERSION"
 log_level -i "AVAILABILITY_PROFILE                      $AVAILABILITY_PROFILE"
 log_level -i "CUSTOM_VNET_NAME:                         $CUSTOM_VNET_NAME"
 log_level -i "DEFINITION_TEMPLATE_NAME:                 $DEFINITION_TEMPLATE_NAME"
+log_level -i "DISCONNECTED_AKS_ENGINE_URL:              $DISCONNECTED_AKS_ENGINE_URL"
 log_level -i "ENABLE_TILLER:                            $ENABLE_TILLER"
 log_level -i "CONTAINER_RUNTIME:                        $CONTAINER_RUNTIME"
 log_level -i "FIRST_CONSECUTIVE_STATIC_IP:              $FIRST_CONSECUTIVE_STATIC_IP"
@@ -295,20 +377,31 @@ sleep $WAIT_TIME_SECONDS
 
 #####################################################################################
 # apt packages
+# leaving this part connected until the modules are added to vhd
 
-log_level -i "Updating apt cache."
-apt_get_update || exit $ERR_APT_UPDATE_TIMEOUT
+if [ ! $DISCONNECTED_AKS_ENGINE_URL ]
+then
+    log_level -i "Updating apt cache."
+    apt_get_update || exit $ERR_APT_UPDATE_TIMEOUT
 
-log_level -i "Installing azure-cli and dependencies."
-apt_get_install 30 1 600  \
-pax \
-jq \
-curl \
-apt-transport-https \
-lsb-release \
-software-properties-common \
-dirmngr \
-|| exit $ERR_APT_INSTALL_TIMEOUT
+    log_level -i "Installing azure-cli and dependencies."
+    apt_get_install 30 1 600  \
+    pax \
+    jq \
+    curl \
+    apt-transport-https \
+    lsb-release \
+    software-properties-common \
+    dirmngr \
+    || exit $ERR_APT_INSTALL_TIMEOUT
+fi
+
+#####################################################################################
+# certificates
+
+log_level -i "Moving certificates to the expected locations as required by AKSe"
+ensure_certificates || exit $ERR_CACERT_INSTALL
+
 
 #####################################################################################
 # aks-engine
@@ -321,12 +414,6 @@ AZURESTACK_CONFIGURATION=$PWD/bin/azurestack.json
 AZURESTACK_CONFIGURATION_TEMP=$PWD/bin/azurestack.tmp
 
 download_akse || exit $ERR_AKSE_DOWNLOAD
-
-#####################################################################################
-# certificates
-
-log_level -i "Moving certificates to the expected locations as required by AKSe"
-ensure_certificates || exit $ERR_CACERT_INSTALL
 
 #####################################################################################
 # apimodel values
@@ -353,10 +440,10 @@ fi
 log_level -i "ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT: $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT"
 
 #####################################################################################
-#Linux agent 
+#Linux agent
 if [ "$AGENT_COUNT" != "0" ]; then
     log_level -i "Update cluster definition with Linux agent node details."
-
+    
     cat $AZURESTACK_CONFIGURATION | \
     jq --arg linuxAgentCount $AGENT_COUNT \
     --arg linuxAgentSize $AGENT_SIZE \
@@ -364,9 +451,9 @@ if [ "$AGENT_COUNT" != "0" ]; then
     --arg NODE_DISTRO $NODE_DISTRO \
     '.properties.agentPoolProfiles += [{"name": "linuxpool", "osDiskSizeGB": 200, "AcceleratedNetworkingEnabled": false, "distro": $NODE_DISTRO, "count": $linuxAgentCount | tonumber, "vmSize": $linuxAgentSize, "availabilityProfile": $linuxAvailabilityProfile}]' \
     > $AZURESTACK_CONFIGURATION_TEMP
-
+    
     validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
-
+    
     log_level -i "Updating cluster definition done with Linux agent node details."
 fi
 
@@ -374,23 +461,23 @@ fi
 #Windows Agent
 if [ "$WINDOWS_AGENT_COUNT" != "0" ]; then
     log_level -i "Update cluster definition with Windows profile details."
-
+    
     cat $AZURESTACK_CONFIGURATION | \
     jq --arg WINDOWS_ADMIN_USERNAME $WINDOWS_ADMIN_USERNAME '.properties.windowsProfile.adminUsername=$WINDOWS_ADMIN_USERNAME' | \
     jq --arg WINDOWS_ADMIN_PASSWORD $WINDOWS_ADMIN_PASSWORD '.properties.windowsProfile.adminPassword=$WINDOWS_ADMIN_PASSWORD' \
     > $AZURESTACK_CONFIGURATION_TEMP
-
+    
     validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
-
+    
     log_level -i "Update Windows agent node details."
-
+    
     cat $AZURESTACK_CONFIGURATION | \
     jq --arg winAgentCount $WINDOWS_AGENT_COUNT --arg winAgentSize $WINDOWS_AGENT_SIZE --arg winAvailabilityProfile $AVAILABILITY_PROFILE \
     '.properties.agentPoolProfiles += [{"name": "windowspool", "osDiskSizeGB": 128, "AcceleratedNetworkingEnabled": false, "osType": "Windows", "count": $winAgentCount | tonumber, "vmSize": $winAgentSize, "availabilityProfile": $winAvailabilityProfile}]' \
     > $AZURESTACK_CONFIGURATION_TEMP
-
+    
     validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
-
+    
     log_level -i "Updating cluster definition done with Windows agent node details."
 fi
 
@@ -398,35 +485,35 @@ fi
 # custom windows package URL
 if [ "$WINDOWS_CUSTOM_PACKAGE" != "" ]; then
     log_level -i "Adding Windows custom package URL details."
-
+    
     cat $AZURESTACK_CONFIGURATION | \
     jq --arg CUSTOM_PACKAGE $WINDOWS_CUSTOM_PACKAGE '.properties.orchestratorProfile.kubernetesConfig += {"customWindowsPackageURL": $CUSTOM_PACKAGE } '  \
     > $AZURESTACK_CONFIGURATION_TEMP
-
+    
     validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
-
+    
     log_level -i "Done updating Windows custom package URL details."
 fi
 
 #####################################################################################
-#custom vnet config 
+#custom vnet config
 if [ "$CUSTOM_VNET_NAME" != "" ]; then
     log_level -i "Setting general custom vnet properties."
     MASTER_VNET_ID="/subscriptions/$TENANT_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP_NAME/providers/Microsoft.Network/virtualNetworks/$CUSTOM_VNET_NAME/subnets/$MASTER_SUBNET_NAME"
     AGENT_VNET_ID="/subscriptions/$TENANT_SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP_NAME/providers/Microsoft.Network/virtualNetworks/$CUSTOM_VNET_NAME/subnets/$AGENT_SUBNET_NAME"
-
+    
     cat $AZURESTACK_CONFIGURATION | \
     jq --arg MASTER_VNET_ID $MASTER_VNET_ID  '.properties.masterProfile += {"vnetSubnetId": $MASTER_VNET_ID } '| \
     jq --arg FIRST_CONSECUTIVE_STATIC_IP $FIRST_CONSECUTIVE_STATIC_IP  '.properties.masterProfile += {"firstConsecutiveStaticIP": $FIRST_CONSECUTIVE_STATIC_IP } ' | \
     jq --arg AGENT_VNET_ID $AGENT_VNET_ID '.properties.agentPoolProfiles[0] += {"vnetSubnetId": $AGENT_VNET_ID } '  \
     > $AZURESTACK_CONFIGURATION_TEMP
-
+    
     validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
-
+    
     if [ "$WINDOWS_AGENT_COUNT" != "0" ]; then
-
+        
         log_level -i "Updating custom vnet properties for Windows nodes."
-        if [ "$AGENT_COUNT" != "0" ]; then        
+        if [ "$AGENT_COUNT" != "0" ]; then
             cat $AZURESTACK_CONFIGURATION | \
             jq --arg AGENT_VNET_ID $AGENT_VNET_ID '.properties.agentPoolProfiles[1] += {"vnetSubnetId": $AGENT_VNET_ID } '  \
             > $AZURESTACK_CONFIGURATION_TEMP
@@ -435,11 +522,11 @@ if [ "$CUSTOM_VNET_NAME" != "" ]; then
             jq --arg AGENT_VNET_ID $AGENT_VNET_ID '.properties.agentPoolProfiles[0] += {"vnetSubnetId": $AGENT_VNET_ID } '  \
             > $AZURESTACK_CONFIGURATION_TEMP
         fi
-
+        
         validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
         log_level -i "Custom vnet properties update for Windows nodes done ."
     fi
-
+    
     log_level -i "Done building custom vnet  definition."
 fi
 
@@ -449,7 +536,7 @@ if [ "$NETWORK_POLICY" != "" ]; then
     log_level -i "Setting network policy property."
     cat $AZURESTACK_CONFIGURATION | jq --arg NETWORK_POLICY $NETWORK_POLICY '.properties.orchestratorProfile.kubernetesConfig.networkPolicy=$NETWORK_POLICY' \
     > $AZURESTACK_CONFIGURATION_TEMP
-
+    
     log_level -i "Done setting network policy property."
 fi
 
@@ -479,9 +566,6 @@ jq --arg ENABLE_TILLER $ENABLE_TILLER '.properties.orchestratorProfile.kubernete
 > $AZURESTACK_CONFIGURATION_TEMP
 
 validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
-
-
-
 
 
 log_level -i "Done building cluster definition."

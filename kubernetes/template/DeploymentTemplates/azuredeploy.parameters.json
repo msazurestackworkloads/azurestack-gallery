@@ -100,6 +100,9 @@
     },
     "containerRuntime": {
       "value": "docker"
+    },
+    "disconnectedAKSeURL": {
+      "value": ""
     }
   }
 }
