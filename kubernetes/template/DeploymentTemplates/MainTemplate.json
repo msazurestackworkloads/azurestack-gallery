@@ -262,11 +262,11 @@
       },
       "type": "string"
     },
-    "disconnectedAKSeURL": {
+    "localAKSeBinaryURL": {
       "type": "string",
       "defaultValue": "",
       "metadata": {
-        "description": "Azure Stack blob url to download AKS engine from a blob store in disconnected environment "
+        "description": "Azure Stack blob url to download AKS engine from a blob store in disconnected environment."
       }
     },
     "dvmImagePublisher": {
@@ -425,8 +425,8 @@
           "containerRuntime": {
             "value": "[parameters('containerRuntime')]"
           },
-          "disconnectedAKSeURL": {
-            "value": "[parameters('disconnectedAKSeURL')]"
+          "localAKSeBinaryURL": {
+            "value": "[parameters('localAKSeBinaryURL')]"
           },
           "dvmImagePublisher": {
             "value": "[parameters('dvmImagePublisher')]"

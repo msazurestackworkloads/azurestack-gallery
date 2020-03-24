@@ -101,7 +101,7 @@
     "containerRuntime": {
       "value": "docker"
     },
-    "disconnectedAKSeURL": {
+    "localAKSeBinaryURL": {
       "value": ""
     }
   }

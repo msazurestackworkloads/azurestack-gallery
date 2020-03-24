@@ -751,11 +751,11 @@
             "visible": false
           },
           {
-            "name": "disconnectedAKSeURL",
+            "name": "localAKSeBinaryURL",
             "type": "Microsoft.Common.TextBox",
             "label": "AKS Engine Base URL (Disconnected)",
             "defaultValue": "",
-            "toolTip": "The blob URL AKS Engine",
+            "toolTip": "The local blob URL AKS Engine. See list of supported AKS Engine on Azure Stack here. https://github.com/Azure/aks-engine/blob/master/docs/topics/azure-stack.md",
             "constraints": {
               "required": false
             },
@@ -794,7 +794,7 @@
       "windowsAdminPassword": "[steps('KubernetesClusterSettings').windowsAdminPassword]",
       "customWindowsPackageURL": "[steps('KubernetesClusterSettings').customWindowsPackageURL]",
       "kubernetesImageBase": "[steps('KubernetesClusterSettings').kubernetesImageBase]",
-      "disconnectedAKSeURL": "[steps('KubernetesClusterSettings').disconnectedAKSeURL]"
+      "localAKSeBinaryURL": "[steps('KubernetesClusterSettings').localAKSeBinaryURL]"
     }
   }
 }
