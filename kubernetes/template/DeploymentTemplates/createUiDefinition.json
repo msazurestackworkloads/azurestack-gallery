@@ -753,7 +753,7 @@
           {
             "name": "disconnectedAKSeURL",
             "type": "Microsoft.Common.TextBox",
-            "label": "AKS Engine Base url (Disconnected)",
+            "label": "AKS Engine Base URL (Disconnected)",
             "defaultValue": "",
             "toolTip": "The blob URL AKS Engine",
             "constraints": {

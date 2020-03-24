@@ -268,6 +268,34 @@
       "metadata": {
         "description": "Azure Stack blob url to download AKS engine from a blob store in disconnected environment "
       }
+    },
+    "dvmImagePublisher": {
+      "type": "string",
+      "defaultValue": "microsoft-aks",
+      "metadata": {
+        "description": "Azure VM image publisher to be used for the DVM"
+      }
+    },
+    "dvmImageOffer": {
+      "type": "string",
+      "defaultValue": "aks",
+      "metadata": {
+        "description": "Azure VM image offer to be used for the DVM"
+      }
+    },
+    "dvmImageSku": {
+      "type": "string",
+      "defaultValue": "aks-ubuntu-1604-201910",
+      "metadata": {
+        "description": "Azure VM image sku to be used for the DVM"
+      }
+    },
+    "dvmImageVersion": {
+      "type": "string",
+      "defaultValue": "2019.10.24",
+      "metadata": {
+        "description": "Azure VM image version to be used for the DVM"
+      }
     }
   },
   "variables": {
@@ -399,6 +427,18 @@
           },
           "disconnectedAKSeURL": {
             "value": "[parameters('disconnectedAKSeURL')]"
+          },
+          "dvmImagePublisher": {
+            "value": "[parameters('dvmImagePublisher')]"
+          },
+          "dvmImageOffer": {
+            "value": "[parameters('dvmImageOffer')]"
+          },
+          "dvmImageSku": {
+            "value": "[parameters('dvmImageSku')]"
+          },
+          "dvmImageVersion": {
+            "value": "[parameters('dvmImageVersion')]"
           }
         }
       }

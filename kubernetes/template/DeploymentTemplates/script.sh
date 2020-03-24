@@ -3,7 +3,7 @@
 ERR_APT_INSTALL_TIMEOUT=9 # Timeout installing required apt packages
 ERR_AKSE_DOWNLOAD=10 # Failure downloading AKS-Engine binaries
 ERR_AKSE_DEPLOY=12 # Failure calling AKS-Engine's deploy operation
-ERR_TEMPLATE_DOWNLOAD=13 # Failure downloading AKS-Engine template
+ERR_TEMPLATE_GENERATION=13 # Failure downloading AKS-Engine template
 ERR_INVALID_AGENT_COUNT_VALUE=14 # Both Windows and Linux agent value is zero
 ERR_CACERT_INSTALL=20 # Failure moving CA certificate
 ERR_METADATA_ENDPOINT=30 # Failure calling the metadata endpoint
@@ -139,13 +139,8 @@ download_akse()
         exit 1
     fi
     
-    if [ ! $DISCONNECTED_AKS_ENGINE_URL ]
-    then
-        TEMPLATE_URL="https://raw.githubusercontent.com/$GALLERY_REPO/$GALLERY_BRANCH/kubernetes/template/DeploymentTemplates/$DEFINITION_TEMPLATE_NAME"
-        curl --retry 5 --retry-delay 10 --max-time 60 -s -f -O $TEMPLATE_URL || exit $ERR_TEMPLATE_DOWNLOAD
-    else
-        generate_api_model || exit $ERR_TEMPLATE_DOWNLOAD
-    fi
+    generate_api_model || exit $ERR_TEMPLATE_GENERATION
+
     
     DEFINITION_TEMPLATE="./$DEFINITION_TEMPLATE_NAME"
     if [ ! -f $DEFINITION_TEMPLATE ]; then
