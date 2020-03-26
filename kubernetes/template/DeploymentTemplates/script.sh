@@ -112,24 +112,19 @@ download_akse()
 {
     if [ ! $DISCONNECTED_AKS_ENGINE_URL ]
     then
-        log_level -i "Downloading AKS engine binary online"
         AKSE_ZIP_NAME="aks-engine-$AKSE_RELEASE_VERSION-linux-amd64"
         AKSE_ZIP_URL="$AKSE_BASE_URL/$AKSE_RELEASE_VERSION/$AKSE_ZIP_NAME.tar.gz"
-        curl --retry 5 --retry-delay 10 --max-time 60 -L -s -f -O $AKSE_ZIP_URL || exit $ERR_AKSE_DOWNLOAD
-
-        mkdir -p ./bin
-        tar -xf $AKSE_ZIP_NAME.tar.gz
-        cp ./$AKSE_ZIP_NAME/aks-engine ./bin
     else
-        log_level -i "Downloading AKS engine binary from blob"
-        curl --retry 5 --retry-delay 10 --max-time 60 -L -s -f -O $DISCONNECTED_AKS_ENGINE_URL || exit $ERR_AKSE_DOWNLOAD
-
-        mkdir -p ./bin
-        AKSE_LOCAL_ZIP_NAME=${DISCONNECTED_AKS_ENGINE_URL##*/}
-        tar -xf $AKSE_LOCAL_ZIP_NAME
-        AKSE_LOCAL_FILENAME="${AKSE_LOCAL_ZIP_NAME%%.*}"
-        cp ./$AKSE_LOCAL_FILENAME/aks-engine ./bin
+        AKSE_ZIP_URL=$DISCONNECTED_AKS_ENGINE_URL
     fi
+
+    curl --retry 5 --retry-delay 10 --max-time 60 -L -s -f -O $AKSE_ZIP_URL || exit $ERR_AKSE_DOWNLOAD
+
+    mkdir -p ./bin
+    AKSE_LOCAL_ZIP_NAME=${AKSE_ZIP_URL##*/}
+    tar -xf $AKSE_LOCAL_ZIP_NAME
+    AKSE_LOCAL_FILENAME="${AKSE_LOCAL_ZIP_NAME%%.*}"
+    cp ./$AKSE_LOCAL_FILENAME/aks-engine ./bin
 
     
     AKSE_LOCATION=./bin/aks-engine
@@ -233,19 +228,11 @@ generate_api_model()
         "orchestratorProfile": {
             "orchestratorType": "Kubernetes",
             "orchestratorRelease": "",
+            "orchestratorVersion":"",
             "kubernetesConfig": {
-                "kubernetesImageBase": "",
                 "useInstanceMetadata": false,
                 "networkPlugin": "kubenet",
-                "containerRuntime": "docker",
-                "cloudProviderRateLimitBucket": 0,
-                "cloudProviderRateLimitBucketWrite": 0,
-                "addons": [
-                    {
-                        "name": "tiller",
-                        "enabled": false
-                    }
-                ]
+                "containerRuntime": "docker"
             }
         },
         "customCloudProfile": {
@@ -253,7 +240,7 @@ generate_api_model()
         },
         "masterProfile": {
             "dnsPrefix": "",
-            "distro": "ubuntu",
+            "distro": "",
             "osDiskSizeGB": 200,
             "count": 3,
             "vmSize": "Standard_D2_v2"
@@ -347,6 +334,7 @@ log_level -i "------------------------------------------------------------------
 ENVIRONMENT_NAME=AzureStackCloud
 AUTH_METHOD="client_secret"
 IDENTITY_SYSTEM_LOWER="azure_ad"
+K8S_AZURE_CLOUDPROVIDER_RELEASE="${K8S_AZURE_CLOUDPROVIDER_VERSION%.*}"
 
 log_level -i "ENVIRONMENT_NAME: $ENVIRONMENT_NAME"
 
@@ -363,6 +351,7 @@ log_level -i "ENVIRONMENT_NAME:                         $ENVIRONMENT_NAME"
 log_level -i "EXTERNAL_FQDN:                            $EXTERNAL_FQDN"
 log_level -i "STORAGE_PROFILE:                          $STORAGE_PROFILE"
 log_level -i "TENANT_ENDPOINT:                          $TENANT_ENDPOINT"
+log_level -i "K8S_AZURE_CLOUDPROVIDER_RELEASE:          $K8S_AZURE_CLOUDPROVIDER_RELEASE"
 
 log_level -i "------------------------------------------------------------------------"
 
@@ -553,7 +542,8 @@ jq --arg AUTH_METHOD $AUTH_METHOD '.properties.customCloudProfile.authentication
 jq --arg SPN_CLIENT_ID $SPN_CLIENT_ID '.properties.servicePrincipalProfile.clientId = $SPN_CLIENT_ID' | \
 jq --arg SPN_CLIENT_SECRET $SPN_CLIENT_SECRET '.properties.servicePrincipalProfile.secret = $SPN_CLIENT_SECRET' | \
 jq --arg IDENTITY_SYSTEM_LOWER $IDENTITY_SYSTEM_LOWER '.properties.customCloudProfile.identitySystem=$IDENTITY_SYSTEM_LOWER' | \
-jq --arg K8S_VERSION $K8S_AZURE_CLOUDPROVIDER_VERSION '.properties.orchestratorProfile.orchestratorRelease=$K8S_VERSION' | \
+jq --arg K8S_RELEASE $K8S_AZURE_CLOUDPROVIDER_RELEASE '.properties.orchestratorProfile.orchestratorRelease=$K8S_RELEASE' | \
+jq --arg K8S_VERSION $K8S_AZURE_CLOUDPROVIDER_VERSION '.properties.orchestratorProfile.orchestratorVersion=$K8S_VERSION' | \
 jq --arg K8S_IMAGE_BASE $K8S_IMAGE_BASE '.properties.orchestratorProfile.kubernetesConfig.kubernetesImageBase=$K8S_IMAGE_BASE' | \
 jq --arg NETWORK_PLUGIN $NETWORK_PLUGIN '.properties.orchestratorProfile.kubernetesConfig.networkPlugin=$NETWORK_PLUGIN' | \
 jq --arg CONTAINER_RUNTIME $CONTAINER_RUNTIME '.properties.orchestratorProfile.kubernetesConfig.containerRuntime=$CONTAINER_RUNTIME' | \
