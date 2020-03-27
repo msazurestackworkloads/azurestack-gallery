@@ -89,9 +89,6 @@
     "windowsAdminPassword": {
       "value": ""
     },
-    "kubernetesImageBase": {
-      "value": ""
-    },
     "customWindowsPackageURL": {
       "value": ""
     },

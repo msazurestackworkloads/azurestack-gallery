@@ -221,7 +221,7 @@ generate_api_model()
 {
     touch $DEFINITION_TEMPLATE_NAME
     cat > $DEFINITION_TEMPLATE_NAME <<EOL
-    {
+{
     "apiVersion": "vlabs",
     "location": "",
     "properties": {
@@ -231,8 +231,17 @@ generate_api_model()
             "orchestratorVersion":"",
             "kubernetesConfig": {
                 "useInstanceMetadata": false,
-                "networkPlugin": "kubenet",
-                "containerRuntime": "docker"
+                "networkPlugin": "",
+                "containerRuntime": "",
+                "kubeletConfig": {
+                    "--node-status-update-frequency": "1m"
+                },
+                "controllerManagerConfig": {
+                    "--node-monitor-grace-period": "5m",
+                    "--pod-eviction-timeout": "5m",
+                    "--route-reconciliation-period": "1m"
+                },
+                "addons": []
             }
         },
         "customCloudProfile": {
@@ -242,12 +251,13 @@ generate_api_model()
             "dnsPrefix": "",
             "distro": "",
             "osDiskSizeGB": 200,
+            "availabilityProfile": "",
             "count": 3,
-            "vmSize": "Standard_D2_v2"
+            "vmSize": ""
         },
         "agentPoolProfiles": [],
         "linuxProfile": {
-            "adminUsername": "azureuser",
+            "adminUsername": "",
             "ssh": {
                 "publicKeys": [
                     {
@@ -257,7 +267,7 @@ generate_api_model()
             }
         },
         "windowsProfile": {
-            "adminUsername": "azureuser",
+            "adminUsername": "",
             "adminPassword": "",
             "sshEnabled": true
         },
@@ -298,7 +308,6 @@ log_level -i "GALLERY_BRANCH:                           $GALLERY_BRANCH"
 log_level -i "GALLERY_REPO:                             $GALLERY_REPO"
 log_level -i "IDENTITY_SYSTEM:                          $IDENTITY_SYSTEM"
 log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:          $K8S_AZURE_CLOUDPROVIDER_VERSION"
-log_level -i "K8S_IMAGE_BASE                            $K8S_IMAGE_BASE"
 log_level -i "MASTER_COUNT:                             $MASTER_COUNT"
 log_level -i "MASTER_DNS_PREFIX:                        $MASTER_DNS_PREFIX"
 log_level -i "MASTER_SIZE:                              $MASTER_SIZE"
@@ -525,6 +534,19 @@ if [ "$NETWORK_POLICY" != "" ]; then
 fi
 
 #####################################################################################
+#tiller
+
+if [ "$ENABLE_TILLER" == "true" ]; then
+    log_level -i "Enabling Tiller Addon"
+    cat $AZURESTACK_CONFIGURATION | \
+    jq --arg enableTiller $ENABLE_TILLER \
+    '.properties.orchestratorProfile.kubernetesConfig.addons += [{"name": "tiller", "enabled": true}]' \
+    > $AZURESTACK_CONFIGURATION_TEMP
+    
+    validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
+fi
+
+#####################################################################################
 # apimodel gen
 
 log_level -i "Setting general cluster definition properties."
@@ -544,10 +566,8 @@ jq --arg SPN_CLIENT_SECRET $SPN_CLIENT_SECRET '.properties.servicePrincipalProfi
 jq --arg IDENTITY_SYSTEM_LOWER $IDENTITY_SYSTEM_LOWER '.properties.customCloudProfile.identitySystem=$IDENTITY_SYSTEM_LOWER' | \
 jq --arg K8S_RELEASE $K8S_AZURE_CLOUDPROVIDER_RELEASE '.properties.orchestratorProfile.orchestratorRelease=$K8S_RELEASE' | \
 jq --arg K8S_VERSION $K8S_AZURE_CLOUDPROVIDER_VERSION '.properties.orchestratorProfile.orchestratorVersion=$K8S_VERSION' | \
-jq --arg K8S_IMAGE_BASE $K8S_IMAGE_BASE '.properties.orchestratorProfile.kubernetesConfig.kubernetesImageBase=$K8S_IMAGE_BASE' | \
 jq --arg NETWORK_PLUGIN $NETWORK_PLUGIN '.properties.orchestratorProfile.kubernetesConfig.networkPlugin=$NETWORK_PLUGIN' | \
-jq --arg CONTAINER_RUNTIME $CONTAINER_RUNTIME '.properties.orchestratorProfile.kubernetesConfig.containerRuntime=$CONTAINER_RUNTIME' | \
-jq --arg ENABLE_TILLER $ENABLE_TILLER '.properties.orchestratorProfile.kubernetesConfig.addons[0].enabled= ($ENABLE_TILLER | test("true"))' \
+jq --arg CONTAINER_RUNTIME $CONTAINER_RUNTIME '.properties.orchestratorProfile.kubernetesConfig.containerRuntime=$CONTAINER_RUNTIME' \
 > $AZURESTACK_CONFIGURATION_TEMP
 
 validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL

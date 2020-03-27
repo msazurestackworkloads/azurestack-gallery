@@ -740,17 +740,6 @@
             "visible": false
           },
           {
-            "name": "kubernetesImageBase",
-            "type": "Microsoft.Common.TextBox",
-            "label": "Kubernetes Image Base",
-            "defaultValue": "mcr.microsoft.com/k8s/azurestack/core/",
-            "toolTip": "The base for Kubernetes images",
-            "constraints": {
-              "required": true
-            },
-            "visible": false
-          },
-          {
             "name": "localAKSeBinaryURL",
             "type": "Microsoft.Common.TextBox",
             "label": "AKS Engine Base URL (Disconnected)",
@@ -793,7 +782,6 @@
       "windowsAdminUsername": "[steps('KubernetesClusterSettings').windowsAdminUsername]",
       "windowsAdminPassword": "[steps('KubernetesClusterSettings').windowsAdminPassword]",
       "customWindowsPackageURL": "[steps('KubernetesClusterSettings').customWindowsPackageURL]",
-      "kubernetesImageBase": "[steps('KubernetesClusterSettings').kubernetesImageBase]",
       "localAKSeBinaryURL": "[steps('KubernetesClusterSettings').localAKSeBinaryURL]"
     }
   }

@@ -227,7 +227,7 @@
       }
     },
     "nodeDistro": {
-      "defaultValue": "ubuntu",
+      "defaultValue": "aks-ubuntu-16.04",
       "allowedValues": [
         "ubuntu",
         "aks-ubuntu-16.04"
@@ -236,13 +236,6 @@
         "description": "Node distro to be used to deploy Kubernetes on Azure Stack."
       },
       "type": "string"
-    },
-    "kubernetesImageBase": {
-      "type": "string",
-      "defaultValue": "mcr.microsoft.com/k8s/azurestack/core/",
-      "metadata": {
-        "description": "The base for Kubernetes images"
-      }
     },
     "enableTillerAddOn": {
       "type": "string",
@@ -415,9 +408,6 @@
           },
           "customWindowsPackageURL": {
             "value": "[parameters('customWindowsPackageURL')]"
-          },
-          "kubernetesImageBase": {
-            "value": "[parameters('kubernetesImageBase')]"
           },
           "enableTillerAddOn": {
             "value": "[parameters('enableTillerAddOn')]"
