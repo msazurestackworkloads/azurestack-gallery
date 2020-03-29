@@ -248,6 +248,9 @@ generate_api_model()
         "customCloudProfile": {
             "portalURL": ""
         },
+        "featureFlags": {
+            "blockOutboundInternet": false
+        },
         "masterProfile": {
             "dnsPrefix": "",
             "distro": "",
@@ -545,6 +548,22 @@ if [ "$ENABLE_TILLER" == "true" ]; then
     > $AZURESTACK_CONFIGURATION_TEMP
     
     validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
+fi
+
+
+
+#####################################################################################
+#disconnecte deployment
+
+if [ ! $DISCONNECTED_AKS_ENGINE_URL ]
+then
+    log_level -i "Blocking Outbound Connectivity"
+    cat $AZURESTACK_CONFIGURATION | \
+    jq '.properties.featureFlags.blockOutboundInternet = true' \
+    > $AZURESTACK_CONFIGURATION_TEMP
+    
+    validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
+
 fi
 
 #####################################################################################
