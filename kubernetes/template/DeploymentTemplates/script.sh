@@ -117,6 +117,7 @@ download_akse()
     else
         AKSE_ZIP_URL=$DISCONNECTED_AKS_ENGINE_URL
     fi
+    log_level -i "AKSE_ZIP_URL:$AKSE_ZIP_URL"
 
     curl --retry 5 --retry-delay 10 --max-time 60 -L -s -f -O $AKSE_ZIP_URL || exit $ERR_AKSE_DOWNLOAD
 
