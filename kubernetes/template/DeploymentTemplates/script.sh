@@ -124,7 +124,7 @@ download_akse()
     mkdir -p ./bin
     AKSE_LOCAL_ZIP_NAME=${AKSE_ZIP_URL##*/}
     tar -xf $AKSE_LOCAL_ZIP_NAME
-    AKSE_LOCAL_FILENAME="${AKSE_LOCAL_ZIP_NAME%%.*}"
+    AKSE_LOCAL_FILENAME=`basename -s .tar.gz $AKSE_LOCAL_ZIP_NAME`
     cp ./$AKSE_LOCAL_FILENAME/aks-engine ./bin
 
     
