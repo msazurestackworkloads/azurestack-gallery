@@ -228,8 +228,7 @@ generate_api_model()
     "properties": {
         "orchestratorProfile": {
             "orchestratorType": "Kubernetes",
-            "orchestratorRelease": "",
-            "orchestratorVersion":"",
+            "orchestratorRelease": ""
             "kubernetesConfig": {
                 "useInstanceMetadata": false,
                 "networkPlugin": "",
@@ -344,7 +343,6 @@ log_level -i "------------------------------------------------------------------
 ENVIRONMENT_NAME=AzureStackCloud
 AUTH_METHOD="client_secret"
 IDENTITY_SYSTEM_LOWER="azure_ad"
-K8S_AZURE_CLOUDPROVIDER_RELEASE="${K8S_AZURE_CLOUDPROVIDER_VERSION%.*}"
 
 log_level -i "ENVIRONMENT_NAME: $ENVIRONMENT_NAME"
 
@@ -361,7 +359,6 @@ log_level -i "ENVIRONMENT_NAME:                         $ENVIRONMENT_NAME"
 log_level -i "EXTERNAL_FQDN:                            $EXTERNAL_FQDN"
 log_level -i "STORAGE_PROFILE:                          $STORAGE_PROFILE"
 log_level -i "TENANT_ENDPOINT:                          $TENANT_ENDPOINT"
-log_level -i "K8S_AZURE_CLOUDPROVIDER_RELEASE:          $K8S_AZURE_CLOUDPROVIDER_RELEASE"
 
 log_level -i "------------------------------------------------------------------------"
 
@@ -565,8 +562,7 @@ jq --arg AUTH_METHOD $AUTH_METHOD '.properties.customCloudProfile.authentication
 jq --arg SPN_CLIENT_ID $SPN_CLIENT_ID '.properties.servicePrincipalProfile.clientId = $SPN_CLIENT_ID' | \
 jq --arg SPN_CLIENT_SECRET $SPN_CLIENT_SECRET '.properties.servicePrincipalProfile.secret = $SPN_CLIENT_SECRET' | \
 jq --arg IDENTITY_SYSTEM_LOWER $IDENTITY_SYSTEM_LOWER '.properties.customCloudProfile.identitySystem=$IDENTITY_SYSTEM_LOWER' | \
-jq --arg K8S_RELEASE $K8S_AZURE_CLOUDPROVIDER_RELEASE '.properties.orchestratorProfile.orchestratorRelease=$K8S_RELEASE' | \
-jq --arg K8S_VERSION $K8S_AZURE_CLOUDPROVIDER_VERSION '.properties.orchestratorProfile.orchestratorVersion=$K8S_VERSION' | \
+jq --arg K8S_VERSION $K8S_AZURE_CLOUDPROVIDER_VERSION '.properties.orchestratorProfile.orchestratorRelease=$K8S_VERSION' | \
 jq --arg NETWORK_PLUGIN $NETWORK_PLUGIN '.properties.orchestratorProfile.kubernetesConfig.networkPlugin=$NETWORK_PLUGIN' | \
 jq --arg CONTAINER_RUNTIME $CONTAINER_RUNTIME '.properties.orchestratorProfile.kubernetesConfig.containerRuntime=$CONTAINER_RUNTIME' \
 > $AZURESTACK_CONFIGURATION_TEMP

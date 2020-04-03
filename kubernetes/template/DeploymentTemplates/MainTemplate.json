@@ -82,7 +82,7 @@
     },
     "kubernetesAzureCloudProviderVersion": {
       "type": "string",
-      "defaultValue": "1.14.7",
+      "defaultValue": "1.14",
       "metadata": {
         "description": "This is the version for the Kubernetes Azure cloud provider. We would use a custom Kubernetes build specifically for Azure Stack for each version."
       }
@@ -96,14 +96,14 @@
     },
     "aksEngineBaseURL": {
       "type": "string",
-      "defaultValue": "https://github.com/Azure/aks-engine/releases/download",
+      "defaultValue": "https://github.com/jadarsie/aks-engine/releases/download",
       "metadata": {
         "description": "The beginning of the URL for downloading the AKS Engine binary"
       }
     },
     "aksEngineReleaseVersion": {
       "type": "string",
-      "defaultValue": "v0.48.0",
+      "defaultValue": "44a35c0",
       "metadata": {
         "description": "The version of AKS Engine to download"
       }

@@ -418,11 +418,11 @@
               "allowedValues": [
                 {
                   "label": "1.14",
-                  "value": "1.14.7"
+                  "value": "1.14"
                 },
                 {
                   "label": "1.15",
-                  "value": "1.15.10"
+                  "value": "1.15"
                 }
               ]
             },
@@ -432,7 +432,7 @@
             "name": "aksEngineBaseURL",
             "type": "Microsoft.Common.TextBox",
             "label": "AKS Engine URL base",
-            "defaultValue": "https://github.com/Azure/aks-engine/releases/download",
+            "defaultValue": "https://github.com/jadarsie/aks-engine/releases/download",
             "toolTip": "The beginning of the URL for downloading the AKS Engine binary",
             "constraints": {
               "required": true
@@ -443,7 +443,7 @@
             "name": "aksEngineReleaseVersion",
             "type": "Microsoft.Common.TextBox",
             "label": "AKS Engine release version",
-            "defaultValue": "v0.48.0",
+            "defaultValue": "44a35c0",
             "toolTip": "The version of AKS Engine to download",
             "constraints": {
               "required": true
