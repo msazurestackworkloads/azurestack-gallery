@@ -3,8 +3,9 @@
 ERR_APT_INSTALL_TIMEOUT=9 # Timeout installing required apt packages
 ERR_AKSE_DOWNLOAD=10 # Failure downloading AKS-Engine binaries
 ERR_AKSE_DEPLOY=12 # Failure calling AKS-Engine's deploy operation
-ERR_TEMPLATE_GENERATION=13 # Failure downloading AKS-Engine template
-ERR_INVALID_AGENT_COUNT_VALUE=14 # Both Windows and Linux agent value is zero
+ERR_TEMPLATE_DOWNLOAD=13 # Failure downloading AKS-Engine template
+ERR_INVALID_AGENT_COUNT_VALUE=14 # Both Windows and Linux agent value is zero 
+ERR_TEMPLATE_GENERATION=15 # The default api model could not be generated
 ERR_CACERT_INSTALL=20 # Failure moving CA certificate
 ERR_METADATA_ENDPOINT=30 # Failure calling the metadata endpoint
 ERR_API_MODEL=40 # Failure building API model using user input
@@ -228,7 +229,8 @@ generate_api_model()
     "properties": {
         "orchestratorProfile": {
             "orchestratorType": "Kubernetes",
-            "orchestratorRelease": ""
+            "orchestratorRelease": "",
+            "orchestratorVersion":"",
             "kubernetesConfig": {
                 "useInstanceMetadata": false,
                 "networkPlugin": "",
@@ -308,6 +310,7 @@ log_level -i "GALLERY_BRANCH:                           $GALLERY_BRANCH"
 log_level -i "GALLERY_REPO:                             $GALLERY_REPO"
 log_level -i "IDENTITY_SYSTEM:                          $IDENTITY_SYSTEM"
 log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:          $K8S_AZURE_CLOUDPROVIDER_VERSION"
+log_level -i "K8S_AZURE_CLOUDPROVIDER_RELEASE:          $K8S_AZURE_CLOUDPROVIDER_RELEASE"
 log_level -i "MASTER_COUNT:                             $MASTER_COUNT"
 log_level -i "MASTER_DNS_PREFIX:                        $MASTER_DNS_PREFIX"
 log_level -i "MASTER_SIZE:                              $MASTER_SIZE"
@@ -336,6 +339,14 @@ if [[ "$WINDOWS_AGENT_COUNT" == "0" ]] && [[ "$AGENT_COUNT" == "0" ]]; then
     exit $ERR_INVALID_AGENT_COUNT_VALUE
 fi
 
+if [[ "$K8S_AZURE_CLOUDPROVIDER_VERSION" == "" ]]; then 
+    if [[ "$K8S_AZURE_CLOUDPROVIDER_RELEASE" == "1.14" ]]; then
+        K8S_AZURE_CLOUDPROVIDER_VERSION="1.14.8"
+    else
+        K8S_AZURE_CLOUDPROVIDER_VERSION="1.15.10"
+    fi
+fi
+
 log_level -i "------------------------------------------------------------------------"
 log_level -i "Constants"
 log_level -i "------------------------------------------------------------------------"
@@ -359,6 +370,7 @@ log_level -i "ENVIRONMENT_NAME:                         $ENVIRONMENT_NAME"
 log_level -i "EXTERNAL_FQDN:                            $EXTERNAL_FQDN"
 log_level -i "STORAGE_PROFILE:                          $STORAGE_PROFILE"
 log_level -i "TENANT_ENDPOINT:                          $TENANT_ENDPOINT"
+log_level -i "K8S_AZURE_CLOUDPROVIDER_RELEASE:          $K8S_AZURE_CLOUDPROVIDER_RELEASE"
 
 log_level -i "------------------------------------------------------------------------"
 
@@ -562,7 +574,8 @@ jq --arg AUTH_METHOD $AUTH_METHOD '.properties.customCloudProfile.authentication
 jq --arg SPN_CLIENT_ID $SPN_CLIENT_ID '.properties.servicePrincipalProfile.clientId = $SPN_CLIENT_ID' | \
 jq --arg SPN_CLIENT_SECRET $SPN_CLIENT_SECRET '.properties.servicePrincipalProfile.secret = $SPN_CLIENT_SECRET' | \
 jq --arg IDENTITY_SYSTEM_LOWER $IDENTITY_SYSTEM_LOWER '.properties.customCloudProfile.identitySystem=$IDENTITY_SYSTEM_LOWER' | \
-jq --arg K8S_VERSION $K8S_AZURE_CLOUDPROVIDER_VERSION '.properties.orchestratorProfile.orchestratorRelease=$K8S_VERSION' | \
+jq --arg K8S_RELEASE $K8S_AZURE_CLOUDPROVIDER_RELEASE '.properties.orchestratorProfile.orchestratorRelease=$K8S_RELEASE' | \
+jq --arg K8S_VERSION $K8S_AZURE_CLOUDPROVIDER_VERSION '.properties.orchestratorProfile.orchestratorVersion=$K8S_VERSION' | \
 jq --arg NETWORK_PLUGIN $NETWORK_PLUGIN '.properties.orchestratorProfile.kubernetesConfig.networkPlugin=$NETWORK_PLUGIN' | \
 jq --arg CONTAINER_RUNTIME $CONTAINER_RUNTIME '.properties.orchestratorProfile.kubernetesConfig.containerRuntime=$CONTAINER_RUNTIME' \
 > $AZURESTACK_CONFIGURATION_TEMP

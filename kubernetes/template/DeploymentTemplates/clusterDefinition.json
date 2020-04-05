@@ -6,6 +6,7 @@
             "orchestratorType": "Kubernetes",
             "orchestratorRelease": "",
             "kubernetesConfig": {
+                "kubernetesImageBase": "",
                 "useInstanceMetadata": false,
                 "networkPlugin": "kubenet",
                 "containerRuntime": "docker",
