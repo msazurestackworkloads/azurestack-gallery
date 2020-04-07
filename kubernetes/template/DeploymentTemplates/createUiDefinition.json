@@ -409,11 +409,11 @@
             }
           },
           {
-            "name": "kubernetesAzureCloudProviderVersion",
+            "name": "kubernetesAzureCloudProviderRelease",
             "type": "Microsoft.Common.DropDown",
-            "label": "Kubernetes version",
+            "label": "Kubernetes Release",
             "defaultValue": "1.14",
-            "toolTip": "This is the version for the Kubernetes Azure cloud provider.",
+            "toolTip": "This is the release for the Kubernetes Azure cloud provider.",
             "constraints": {
               "allowedValues": [
                 {
@@ -443,7 +443,7 @@
             "name": "aksEngineReleaseVersion",
             "type": "Microsoft.Common.TextBox",
             "label": "AKS Engine release version",
-            "defaultValue": "v0.37.4",
+            "defaultValue": "v0.48.0",
             "toolTip": "The version of AKS Engine to download",
             "constraints": {
               "required": true
@@ -740,15 +740,15 @@
             "visible": false
           },
           {
-            "name": "kubernetesImageBase",
+            "name": "localAKSeBinaryURL",
             "type": "Microsoft.Common.TextBox",
-            "label": "Kubernetes Image Base",
-            "defaultValue": "mcr.microsoft.com/k8s/azurestack/core/",
-            "toolTip": "The base for Kubernetes images",
+            "label": "AKS Engine Base URL (Disconnected)",
+            "defaultValue": "",
+            "toolTip": "The local blob URL AKS Engine. See list of supported AKS Engine on Azure Stack here. https://github.com/Azure/aks-engine/blob/master/docs/topics/azure-stack.md",
             "constraints": {
-              "required": true
+              "required": false
             },
-            "visible": false
+            "visible": true
           }
         ]
       }
@@ -766,7 +766,7 @@
       "identitySystem": "[steps('KubernetesClusterSettings').identitySystem]",
       "nodeDistro": "[steps('KubernetesClusterSettings').nodeDistro]",
       "servicePrincipalClientSecret": "[steps('KubernetesClusterSettings').servicePrincipalClientSecret]",
-      "kubernetesAzureCloudProviderVersion": "[steps('KubernetesClusterSettings').kubernetesAzureCloudProviderVersion]",
+      "kubernetesAzureCloudProviderRelease": "[steps('KubernetesClusterSettings').kubernetesAzureCloudProviderRelease]",
       "aksEngineBaseURL": "[steps('KubernetesClusterSettings').aksEngineBaseURL]",
       "aksEngineReleaseVersion": "[steps('KubernetesClusterSettings').aksEngineReleaseVersion]",
       "galleryRepository": "[steps('KubernetesClusterSettings').galleryRepository]",
@@ -782,7 +782,7 @@
       "windowsAdminUsername": "[steps('KubernetesClusterSettings').windowsAdminUsername]",
       "windowsAdminPassword": "[steps('KubernetesClusterSettings').windowsAdminPassword]",
       "customWindowsPackageURL": "[steps('KubernetesClusterSettings').customWindowsPackageURL]",
-      "kubernetesImageBase": "[steps('KubernetesClusterSettings').kubernetesImageBase]"
+      "localAKSeBinaryURL": "[steps('KubernetesClusterSettings').localAKSeBinaryURL]"
     }
   }
 }

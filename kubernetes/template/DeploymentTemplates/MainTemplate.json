@@ -82,9 +82,16 @@
     },
     "kubernetesAzureCloudProviderVersion": {
       "type": "string",
-      "defaultValue": "1.14",
+      "defaultValue": "",
       "metadata": {
         "description": "This is the version for the Kubernetes Azure cloud provider. We would use a custom Kubernetes build specifically for Azure Stack for each version."
+      }
+    },
+    "kubernetesAzureCloudProviderRelease": {
+      "type": "string",
+      "defaultValue": "1.14",
+      "metadata": {
+        "description": "This is the release for the Kubernetes Azure cloud provider. We would use a custom Kubernetes build specifically for Azure Stack for each version."
       }
     },
     "_artifactsLocation": {
@@ -103,7 +110,7 @@
     },
     "aksEngineReleaseVersion": {
       "type": "string",
-      "defaultValue": "v0.43.0",
+      "defaultValue": "v0.48.0",
       "metadata": {
         "description": "The version of AKS Engine to download"
       }
@@ -227,7 +234,7 @@
       }
     },
     "nodeDistro": {
-      "defaultValue": "ubuntu",
+      "defaultValue": "aks-ubuntu-16.04",
       "allowedValues": [
         "ubuntu",
         "aks-ubuntu-16.04"
@@ -236,13 +243,6 @@
         "description": "Node distro to be used to deploy Kubernetes on Azure Stack."
       },
       "type": "string"
-    },
-    "kubernetesImageBase": {
-      "type": "string",
-      "defaultValue": "mcr.microsoft.com/k8s/azurestack/core/",
-      "metadata": {
-        "description": "The base for Kubernetes images"
-      }
     },
     "enableTillerAddOn": {
       "type": "string",
@@ -261,38 +261,45 @@
         "description": "Container runtime to deploy on each cluster node."
       },
       "type": "string"
+    },
+    "localAKSeBinaryURL": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Azure Stack blob url to download AKS engine from a blob store in disconnected environment."
+      }
+    },
+    "dvmImagePublisher": {
+      "type": "string",
+      "defaultValue": "microsoft-aks",
+      "metadata": {
+        "description": "Azure VM image publisher to be used for the DVM"
+      }
+    },
+    "dvmImageOffer": {
+      "type": "string",
+      "defaultValue": "aks",
+      "metadata": {
+        "description": "Azure VM image offer to be used for the DVM"
+      }
+    },
+    "dvmImageSku": {
+      "type": "string",
+      "defaultValue": "aks-engine-ubuntu-1604-202003",
+      "metadata": {
+        "description": "Azure VM image sku to be used for the DVM"
+      }
+    },
+    "dvmImageVersion": {
+      "type": "string",
+      "defaultValue": "2020.03.19",
+      "metadata": {
+        "description": "Azure VM image version to be used for the DVM"
+      }
     }
   },
   "variables": {
-    "apiVersionDeployments": "2015-11-01",
-    "resourceGroupName": "[resourceGroup().name]",
-    "dnsNameForPublicIP": "[toLower(concat('vmd-dns', parameters('masterProfileDnsPrefix')))]",
-    "location": "[resourceGroup().location]",
-    "imagePublisher": "Canonical",
-    "imageOffer": "UbuntuServer",
-    "imageSku": "16.04-LTS",
-    "imageVersion": "latest",
-    "vmSize": "Standard_D2_v2",
-    "OSDiskName": "osdisk",
-    "nicName": "[concat('vmd-vnic', uniqueString(resourceGroup().id))]",
-    "addressPrefix": "10.0.0.0/24",
-    "subnetName": "mySubnet",
-    "subnetPrefix": "10.0.0.0/24",
-    "storageAccountName": "[concat('vmdsa', uniquestring(resourceGroup().id))]",
-    "storageAccountType": "Standard_LRS",
-    "publicIPAddressName": "[concat('vmd-publicIP', uniqueString(resourceGroup().id))]",
-    "publicIPAddressType": "Static",
-    "vmStorageAccountContainerName": "vhds",
-    "vmName": "[concat('vmd-', uniqueString(resourceGroup().id))]",
-    "virtualNetworkName": "[concat('vmd-vnet-', uniqueString(resourceGroup().id))]",
-    "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
-    "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
-    "networkSecurityGroupName": "[tolower(concat('vmd-nsg',uniquestring(resourceGroup().id)))]",
-    "sshKeyPath": "[concat('/home/',parameters('linuxAdminUsername'),'/.ssh/authorized_keys')]",
-    "tenantSubscriptionId": "[subscription().subscriptionId]",
-    "scriptName": "script",
-    "singleQuote": "'",
-    "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' ENABLE_TILLER=','\"',parameters('enableTillerAddOn'),'\"' ,' CONTAINER_RUNTIME=','\"',parameters('containerRuntime'),'\"' ,' WINDOWS_CUSTOM_PACKAGE=','\"',parameters('customWindowsPackageURL'),'\"' ,' WINDOWS_AGENT_COUNT=','\"',parameters('windowsAgentPoolProfileCount'),'\"' ,' WINDOWS_AGENT_SIZE=','\"',parameters('windowsAgentPoolProfileVMSize'),'\"',' WINDOWS_ADMIN_USERNAME=','\"',parameters('windowsAdminUsername'),'\"',' WINDOWS_ADMIN_PASSWORD=','\"',parameters('windowsAdminPassword'),'\"',' NETWORK_PLUGIN=','\"',parameters('networkPlugin'),'\"',' NETWORK_POLICY=','\"',parameters('networkPolicy'),'\"',' AVAILABILITY_PROFILE=','\"',parameters('availabilityProfile'),'\"',' FIRST_CONSECUTIVE_STATIC_IP=','\"',parameters('firstConsecutiveStaticIP'),'\"',' AGENT_SUBNET_NAME=','\"',parameters('agentSubnetName'),'\"',' MASTER_SUBNET_NAME=','\"',parameters('masterSubnetName'),'\"',' CUSTOM_VNET_NAME=','\"',parameters('customVnetName'),'\"',' NODE_DISTRO=','\"',parameters('nodeDistro'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"')]"
+    "apiVersionDeployments": "2015-11-01"
   },
   "resources": [
     {
@@ -352,6 +359,9 @@
           "kubernetesAzureCloudProviderVersion": {
             "value": "[parameters('kubernetesAzureCloudProviderVersion')]"
           },
+          "kubernetesAzureCloudProviderRelease": {
+            "value": "[parameters('kubernetesAzureCloudProviderRelease')]"
+          },
           "identitySystem": {
             "value": "[parameters('identitySystem')]"
           },
@@ -409,14 +419,26 @@
           "customWindowsPackageURL": {
             "value": "[parameters('customWindowsPackageURL')]"
           },
-          "kubernetesImageBase": {
-            "value": "[parameters('kubernetesImageBase')]"
-          },
           "enableTillerAddOn": {
             "value": "[parameters('enableTillerAddOn')]"
           },
           "containerRuntime": {
             "value": "[parameters('containerRuntime')]"
+          },
+          "localAKSeBinaryURL": {
+            "value": "[parameters('localAKSeBinaryURL')]"
+          },
+          "dvmImagePublisher": {
+            "value": "[parameters('dvmImagePublisher')]"
+          },
+          "dvmImageOffer": {
+            "value": "[parameters('dvmImageOffer')]"
+          },
+          "dvmImageSku": {
+            "value": "[parameters('dvmImageSku')]"
+          },
+          "dvmImageVersion": {
+            "value": "[parameters('dvmImageVersion')]"
           }
         }
       }
