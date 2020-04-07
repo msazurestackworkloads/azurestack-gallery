@@ -103,7 +103,7 @@
     },
     "aksEngineBaseURL": {
       "type": "string",
-      "defaultValue": "https://github.com/Azure/aks-engine/releases/download/",
+      "defaultValue": "https://github.com/Azure/aks-engine/releases/download",
       "metadata": {
         "description": "The beginning of the URL for downloading the AKS Engine binary"
       }
