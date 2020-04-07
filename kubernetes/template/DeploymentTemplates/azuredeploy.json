@@ -81,9 +81,16 @@
     },
     "kubernetesAzureCloudProviderVersion": {
       "type": "string",
-      "defaultValue": "1.14",
+      "defaultValue": "",
       "metadata": {
         "description": "This is the version for the Kubernetes Azure cloud provider. We would use a custom Kubernetes build specifically for Azure Stack for each version."
+      }
+    },
+    "kubernetesAzureCloudProviderRelease": {
+      "type": "string",
+      "defaultValue": "1.14",
+      "metadata": {
+        "description": "This is the release for the Kubernetes Azure cloud provider. We would use a custom Kubernetes build specifically for Azure Stack for each version."
       }
     },
     "aksEngineBaseURL": {
@@ -95,7 +102,7 @@
     },
     "aksEngineReleaseVersion": {
       "type": "string",
-      "defaultValue": "v0.43.0",
+      "defaultValue": "v0.48.0",
       "metadata": {
         "description": "The version of AKS Engine to download"
       }
@@ -119,13 +126,6 @@
       "defaultValue": "clusterDefinition.json",
       "metadata": {
         "description": "The name of the file containing the cluster definition"
-      }
-    },
-    "kubernetesImageBase": {
-      "type": "string",
-      "defaultValue": "mcr.microsoft.com/k8s/azurestack/core/",
-      "metadata": {
-        "description": "The base for Kubernetes images"
       }
     },
     "customVnetName": {
@@ -191,7 +191,7 @@
       "type": "string"
     },
     "windowsAgentPoolProfileCount": {
-      "defaultValue": "0",      
+      "defaultValue": "0",
       "metadata": {
         "description": "Kubernetes Windows node pool profile count"
       },
@@ -226,7 +226,7 @@
       "type": "string"
     },
     "nodeDistro": {
-      "defaultValue": "ubuntu",
+      "defaultValue": "aks-ubuntu-16.04",
       "allowedValues": [
         "ubuntu",
         "aks-ubuntu-16.04"
@@ -253,16 +253,47 @@
       "metadata": {
         "description": "Container runtime to deploy on each cluster node."
       }
+    },
+    "localAKSeBinaryURL": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Azure Stack blob url to download AKS engine from a blob store in disconnected environment "
+      }
+    },
+    "dvmImagePublisher": {
+      "type": "string",
+      "defaultValue": "microsoft-aks",
+      "metadata": {
+        "description": "Azure VM image publisher to be used for the DVM"
+      }
+    },
+    "dvmImageOffer": {
+      "type": "string",
+      "defaultValue": "aks",
+      "metadata": {
+        "description": "Azure VM image offer to be used for the DVM"
+      }
+    },
+    "dvmImageSku": {
+      "type": "string",
+      "defaultValue": "aks-engine-ubuntu-1604-202003",
+      "metadata": {
+        "description": "Azure VM image sku to be used for the DVM"
+      }
+    },
+    "dvmImageVersion": {
+      "type": "string",
+      "defaultValue": "2020.03.19",
+      "metadata": {
+        "description": "Azure VM image version to be used for the DVM"
+      }
     }
   },
   "variables": {
     "resourceGroupName": "[resourceGroup().name]",
     "dnsNameForPublicIP": "[toLower(concat('vmd-dns', parameters('masterProfileDnsPrefix')))]",
     "location": "[resourceGroup().location]",
-    "imagePublisher": "Canonical",
-    "imageOffer": "UbuntuServer",
-    "imageSku": "16.04-LTS",
-    "imageVersion": "latest",
     "vmSize": "Standard_D2_v2",
     "OSDiskName": "osdisk",
     "nicName": "[concat('vmd-vnic', uniqueString(resourceGroup().id))]",
@@ -283,7 +314,7 @@
     "tenantSubscriptionId": "[subscription().subscriptionId]",
     "scriptName": "script",
     "singleQuote": "'",
-    "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' ENABLE_TILLER=','\"',parameters('enableTillerAddOn'),'\"' ,' CONTAINER_RUNTIME=','\"',parameters('containerRuntime'),'\"' ,' WINDOWS_CUSTOM_PACKAGE=','\"',parameters('customWindowsPackageURL'),'\"' ,' WINDOWS_AGENT_COUNT=','\"',parameters('windowsAgentPoolProfileCount'),'\"' ,' WINDOWS_AGENT_SIZE=','\"',parameters('windowsAgentPoolProfileVMSize'),'\"',' WINDOWS_ADMIN_USERNAME=','\"',parameters('windowsAdminUsername'),'\"',' WINDOWS_ADMIN_PASSWORD=','\"',parameters('windowsAdminPassword'),'\"',' NETWORK_PLUGIN=','\"',parameters('networkPlugin'),'\"',' NETWORK_POLICY=','\"',parameters('networkPolicy'),'\"',' AVAILABILITY_PROFILE=','\"',parameters('availabilityProfile'),'\"',' FIRST_CONSECUTIVE_STATIC_IP=','\"',parameters('firstConsecutiveStaticIP'),'\"',' AGENT_SUBNET_NAME=','\"',parameters('agentSubnetName'),'\"',' MASTER_SUBNET_NAME=','\"',parameters('masterSubnetName'),'\"',' CUSTOM_VNET_NAME=','\"',parameters('customVnetName'),'\"',' NODE_DISTRO=','\"',parameters('nodeDistro'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"',' AKSE_BASE_URL=','\"',parameters('aksEngineBaseURL'), '\"', ' AKSE_RELEASE_VERSION=','\"',parameters('aksEngineReleaseVersion'),'\"',' GALLERY_REPO=','\"',parameters('galleryRepository'),'\"',' GALLERY_BRANCH=','\"',parameters('galleryBranch'),'\"',' DEFINITION_TEMPLATE_NAME=','\"',parameters('clusterDefinitionFileName'),'\"',' K8S_IMAGE_BASE=','\"',parameters('kubernetesImageBase'),'\"')]"
+    "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' ENABLE_TILLER=','\"',parameters('enableTillerAddOn'),'\"' ,' CONTAINER_RUNTIME=','\"',parameters('containerRuntime'),'\"' ,' WINDOWS_CUSTOM_PACKAGE=','\"',parameters('customWindowsPackageURL'),'\"' ,' WINDOWS_AGENT_COUNT=','\"',parameters('windowsAgentPoolProfileCount'),'\"' ,' WINDOWS_AGENT_SIZE=','\"',parameters('windowsAgentPoolProfileVMSize'),'\"',' WINDOWS_ADMIN_USERNAME=','\"',parameters('windowsAdminUsername'),'\"',' WINDOWS_ADMIN_PASSWORD=','\"',parameters('windowsAdminPassword'),'\"',' NETWORK_PLUGIN=','\"',parameters('networkPlugin'),'\"',' NETWORK_POLICY=','\"',parameters('networkPolicy'),'\"',' AVAILABILITY_PROFILE=','\"',parameters('availabilityProfile'),'\"',' FIRST_CONSECUTIVE_STATIC_IP=','\"',parameters('firstConsecutiveStaticIP'),'\"',' AGENT_SUBNET_NAME=','\"',parameters('agentSubnetName'),'\"',' MASTER_SUBNET_NAME=','\"',parameters('masterSubnetName'),'\"',' CUSTOM_VNET_NAME=','\"',parameters('customVnetName'),'\"',' NODE_DISTRO=','\"',parameters('nodeDistro'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_RELEASE=','\"',parameters('kubernetesAzureCloudProviderRelease'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"',' AKSE_BASE_URL=','\"',parameters('aksEngineBaseURL'), '\"', ' AKSE_RELEASE_VERSION=','\"',parameters('aksEngineReleaseVersion'),'\"',' GALLERY_REPO=','\"',parameters('galleryRepository'),'\"',' GALLERY_BRANCH=','\"',parameters('galleryBranch'),'\"',' DEFINITION_TEMPLATE_NAME=','\"',parameters('clusterDefinitionFileName'),'\"',' DISCONNECTED_AKS_ENGINE_URL=','\"',parameters('localAKSeBinaryURL'),'\"')]"
   },
   "resources": [
     {
@@ -396,7 +427,7 @@
           "vmSize": "[variables('vmSize')]"
         },
         "osProfile": {
-          "customData": "[base64(concat('#cloud-config\n\nwrite_files:\n- path: \"/opt/azure/containers/script.sh\"\n  permissions: \"0744\"\n  encoding: gzip\n  owner: \"root\"\n  content: !!binary |\n    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'))]",
+         "customData": "[base64(concat('#cloud-config\n\nwrite_files:\n- path: \"/opt/azure/containers/script.sh\"\n  permissions: \"0744\"\n  encoding: gzip\n  owner: \"root\"\n  content: !!binary |\n    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'))]",
           "computerName": "[variables('vmName')]",
           "adminUsername": "[parameters('linuxAdminUsername')]",
           "linuxConfiguration": {
@@ -413,10 +444,10 @@
         },
         "storageProfile": {
           "imageReference": {
-            "publisher": "[variables('imagePublisher')]",
-            "offer": "[variables('imageOffer')]",
-            "sku": "[variables('imageSku')]",
-            "version": "[variables('imageVersion')]"
+            "publisher": "[parameters('dvmImagePublisher')]",
+            "offer": "[parameters('dvmImageOffer')]",
+            "sku": "[parameters('dvmImageSku')]",
+            "version": "[parameters('dvmImageVersion')]"
           },
           "osDisk": {
             "name": "osdisk",

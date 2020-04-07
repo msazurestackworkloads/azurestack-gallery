@@ -35,6 +35,9 @@
     "kubernetesAzureCloudProviderVersion": {
       "value": ""
     },
+    "kubernetesAzureCloudProviderRelease": {
+      "value": ""
+    },
     "identitySystem": {
       "value": ""
     },
@@ -89,9 +92,6 @@
     "windowsAdminPassword": {
       "value": ""
     },
-    "kubernetesImageBase": {
-      "value": ""
-    },
     "customWindowsPackageURL": {
       "value": ""
     },
@@ -100,6 +100,9 @@
     },
     "containerRuntime": {
       "value": "docker"
+    },
+    "localAKSeBinaryURL": {
+      "value": ""
     }
   }
 }
