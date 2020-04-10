@@ -186,25 +186,15 @@ retrycmd_if_failure 5 10 sudo apt-get install ${PACKAGES} -y
 #https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-version-profiles-azurecli2#connect-to-azure-stack
 #https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-apt?view=azure-cli-latest
 
-AZ_REPO=$(lsb_release -cs)
-
-#Download and install  Microsoft signing key
-log_level -i "Download and install  Microsoft signing key."
-curl -sL https://packages.microsoft.com/keys/microsoft.asc | \
-gpg --dearmor | \
-sudo tee /etc/apt/trusted.gpg.d/microsoft.asc.gpg > /dev/null
-
-# Modify your sources list
-echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" | \
-sudo tee /etc/apt/sources.list.d/azure-cli.list
-
-log_level -i "Update system again to latest."
-retrycmd_if_failure 5 10 sudo apt-get update
-
-log_level -i "Installing azure cli...."
-retrycmd_if_failure 5 10 sudo apt-get install azure-cli
-
-log_level -i "Azure CLI version : $(az --version)"
+#Install-azure-cli
+retrycmd_if_failure 5 10 curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+az --version
+if [ $? -eq 0 ]; then
+    log_level -i "Installation of Azure CLI done.Azure CLI version : $(az --version)"
+else
+    log_level -e "Failed to install Azure CLI"
+    exit 1
+fi
 
 #####################################################################################
 #Section to install Go.
