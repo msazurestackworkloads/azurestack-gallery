@@ -178,7 +178,7 @@ log_level -i "WINDOWS_AGENT_SIZE:                       $WINDOWS_AGENT_SIZE"
 # Install pre-requisites
 
 retrycmd_if_failure 5 10 sudo apt-get update -y
-PACKAGES="make pax jq curl apt-transport-https lsb-release software-properties-common dirmngr"
+PACKAGES="make pax jq curl apt-transport-https lsb-release software-properties-common dirmngr gnupg"
 retrycmd_if_failure 5 10 sudo apt-get install ${PACKAGES} -y
 
 ####################################################################################
@@ -187,15 +187,16 @@ retrycmd_if_failure 5 10 sudo apt-get install ${PACKAGES} -y
 #https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-apt?view=azure-cli-latest
 
 AZ_REPO=$(lsb_release -cs)
-RECV_KEY=BC528686B50D79E339D3721CEB3E94ADBE1229CF
+
+#Download and install  Microsoft signing key
+log_level -i "Download and install  Microsoft signing key."
+curl -sL https://packages.microsoft.com/keys/microsoft.asc | \
+gpg --dearmor | \
+sudo tee /etc/apt/trusted.gpg.d/microsoft.asc.gpg > /dev/null
 
 # Modify your sources list
 echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" | \
 sudo tee /etc/apt/sources.list.d/azure-cli.list
-
-#Get Microsoft signing key
-log_level -i "Get the Microsoft signing key."
-retrycmd_if_failure 5 10 sudo apt-key --keyring /etc/apt/trusted.gpg.d/Microsoft.gpg adv --keyserver packages.microsoft.com --recv-keys $RECV_KEY
 
 log_level -i "Update system again to latest."
 retrycmd_if_failure 5 10 sudo apt-get update
@@ -500,7 +501,7 @@ RESULT=$?
 chown -R azureuser /home/azureuser
 chmod -R u=rwx /home/azureuser
 
-# Below condition is to make the deployment success even if the test cases fail, 
+# Below condition is to make the deployment success even if the test cases fail,
 # if the deployment of kubernetes fails it exits with the failure code
 log_level -i "Result: $RESULT"
 if [ $RESULT -gt 3 ] ; then
