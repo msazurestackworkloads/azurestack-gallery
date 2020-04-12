@@ -144,6 +144,7 @@ printUsage()
     echo "      --api-model                   AKS Engine Kubernetes cluster definition json file"
     echo "      --upload-logs                 Persists retrieved logs in an Azure Stack storage account"
     echo "      --disable-host-key-checking   Sets SSH's StrictHostKeyChecking option to \"no\" while the script executes. Only use in a safe environment."
+    echo "      --windows-nodes-password      Password of Windows Nodes if logs on Windows Nodes need to be collected"
     echo "  -h, --help                        Print script usage"
     echo ""
     echo "Examples:"
@@ -190,6 +191,10 @@ do
         --disable-host-key-checking)
             KNOWN_HOSTS_OPTIONS='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR'
             shift
+        ;;
+        -w|--windows-nodes-password)
+            WINDOWS_NODES_PASSWORD="$2"
+            shift 2
         ;;
         -h|--help)
             printUsage
@@ -293,11 +298,18 @@ then
     
     CLUSTER_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep 'k8s-' | cut -f 1)
     PROXY_CMD="ssh -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS} ${USER}@${MASTER_IP} -W %h:%p"
-    
+
     for host in ${CLUSTER_NODES}
     do
         processHost ${host}
     done
+
+    # WINDOWS NODES
+    if [ -n "$WINDOWS_NODES_PASSWORD" ]
+    then
+        WINDOWS_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep 'k8s-\|vmd-' | cut -f 1)
+    fi
+
 fi
 
 mkdir -p $LOGFILEFOLDER/resources
