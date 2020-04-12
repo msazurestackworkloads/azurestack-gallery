@@ -137,7 +137,7 @@ processWindowsHost()
 
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing windows-host ${host}"
     scp ${SCP_FLAGS} collect-windows-logs.ps1 ${USER}@${host}:/home/${USER}/collect-windows-logs.ps1
-    ssh ${SSH_FLAGS} ${USER}@${host} "sudo apt-get install sshpass -y; "
+    ssh ${SSH_FLAGS} ${USER}@${host} "sudo apt-get install sshpass -y; sshpass -p '${pass}' scp ${KNOWN_HOSTS_OPTIONS} azureuser@10.240.0.4"
     
 
     ssh ${SSH_FLAGS} ${USER}@${host} "sudo chmod 744 collectlogs.sh; ./collectlogs.sh ${NAMESPACES};"
@@ -326,21 +326,13 @@ then
 
         if [ -z "$WINDOWS_NODES" ]
         then
-            echo "[INFO] Failed to find windows nodes, skipping windows nodes log collection."
+            echo "[INFO] Failed to find windows nodes, skipping windows nodes log collection..."
         else
-            #Install sshpass
-            ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo apt-get install sshpass -y"
-
             for winhost in ${WINDOWS_NODES}
             do
-                processWindowsHost ${winhost} ${WINDOWS_NODES_PASSWORD}
+                processWindowsHost ${MASTER_IP} ${winhost} ${WINDOWS_NODES_PASSWORD}
             done
         fi
-
-        #Install sshpass
-        ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo apt-get install sshpass -y"
-
-
     fi
 
 fi
