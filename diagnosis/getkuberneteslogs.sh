@@ -130,6 +130,20 @@ processDvmHost()
     ssh ${SSH_FLAGS} ${USER}@${host} "rm -f collectlogs.sh ${DVM_NAME}.zip"
 }
 
+processWindowsHost()
+{
+    host=$1
+    pass=$2
+
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing windows-host ${host}"
+    scp ${SCP_FLAGS} collect-windows-logs.ps1 ${USER}@${host}:/home/${USER}/collect-windows-logs.ps1
+    ssh ${SSH_FLAGS} ${USER}@${host} "sudo apt-get install sshpass -y; "
+    
+
+    ssh ${SSH_FLAGS} ${USER}@${host} "sudo chmod 744 collectlogs.sh; ./collectlogs.sh ${NAMESPACES};"
+
+}
+
 printUsage()
 {
     echo "$0 collects diagnostics from Kubernetes clusters provisioned by AKS Engine"
@@ -307,7 +321,26 @@ then
     # WINDOWS NODES
     if [ -n "$WINDOWS_NODES_PASSWORD" ]
     then
+        #Get Windoews nodes
         WINDOWS_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep 'k8s-\|vmd-' | cut -f 1)
+
+        if [ -z "$WINDOWS_NODES" ]
+        then
+            echo "[INFO] Failed to find windows nodes, skipping windows nodes log collection."
+        else
+            #Install sshpass
+            ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo apt-get install sshpass -y"
+
+            for winhost in ${WINDOWS_NODES}
+            do
+                processWindowsHost ${winhost} ${WINDOWS_NODES_PASSWORD}
+            done
+        fi
+
+        #Install sshpass
+        ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo apt-get install sshpass -y"
+
+
     fi
 
 fi
