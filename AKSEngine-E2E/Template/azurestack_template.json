@@ -5,6 +5,7 @@
         "orchestratorProfile": {
             "orchestratorType": "Kubernetes",
             "orchestratorRelease": "1.11",
+            "orchestratorVersion": "",
             "kubernetesConfig": {
                 "kubernetesImageBase": "mcr.microsoft.com/k8s/azurestack/core/",
                 "useInstanceMetadata": false,
