@@ -18,6 +18,12 @@ ERR_REGISTRY_BUILD_FAILED=53        # Failed to build image locally
 ERR_REGISTRY_REMOVE_FAILED=54       # Failed to remove image locally
 ERR_APT_UPDATE_TIMEOUT=99           # Timeout waiting for apt-get update to complete
 
+cleanUpGPUDrivers() {
+  rm -Rf $GPU_DEST
+  rm -f /etc/apt/sources.list.d/nvidia-docker.list
+  apt-key del $(apt-key list | grep NVIDIA -B 1 | head -n 1 | cut -d "/" -f 2 | cut -d " " -f 1)
+}
+
 retrycmd_if_failure() {
     retries=$1; wait_sleep=$2; timeout=$3; 
     shift && shift && shift
@@ -198,7 +204,7 @@ echo SA_RESOURCE_ID:              ${SA_RESOURCE_ID}
 echo SPN_CLIENT_ID:               ${SPN_CLIENT_ID}
 echo TENANT_ID:                   ${TENANT_ID}
 
-
+cleanUpGPUDrivers
 SA_NAME=$(echo ${SA_RESOURCE_ID} | awk -F"/" '{print $NF}')
 KV_NAME=$(echo ${KV_RESOURCE_ID} | awk -F"/" '{print $NF}')
 
