@@ -5,11 +5,19 @@ ERR_AKSE_DOWNLOAD=10                # Failure downloading AKS-Engine binaries
 ERR_AKSE_DEPLOY=12                  # Failure calling AKS-Engine's deploy operation
 ERR_TEMPLATE_DOWNLOAD=13            # Failure downloading AKS-Engine template
 ERR_INVALID_AGENT_COUNT_VALUE=14    # Both Windows and Linux agent value is zero
+ERR_TEMPLATE_GENERATION=15          # The default api model could not be generated
 ERR_CACERT_INSTALL=20               # Failure moving CA certificate
 ERR_METADATA_ENDPOINT=30            # Failure calling the metadata endpoint
 ERR_API_MODEL=40                    # Failure building API model using user input
 ERR_AZS_CLOUD_REGISTER=50           # Failure calling az cloud register
 ERR_APT_UPDATE_TIMEOUT=99           # Timeout waiting for apt-get update to complete
+#ERR_AKSE_GENERATE=11 # Failure calling AKS-Engine's generate operation
+#ERR_MS_GPG_KEY_DOWNLOAD_TIMEOUT=26 # Timeout waiting for Microsoft's GPG key download
+#ERR_AZS_CLOUD_ENVIRONMENT=51 # Failure setting az cloud environment
+#ERR_AZS_CLOUD_PROFILE=52 # Failure setting az cloud profile
+#ERR_AZS_LOGIN_AAD=53 # Failure to log in to AAD environment
+#ERR_AZS_LOGIN_ADFS=54 # Failure to log in to ADFS environment
+#ERR_AZS_ACCOUNT_SUB=55 # Failure setting account default subscription
 
 ###
 #   <summary>
@@ -156,6 +164,7 @@ log_level -i "AKSENGINE_UPGRADE_VERSION:                $AKSENGINE_UPGRADE_VERSI
 log_level -i "AVAILABILITY_PROFILE:                     $AVAILABILITY_PROFILE"
 log_level -i "IDENTITY_SYSTEM:                          $IDENTITY_SYSTEM"
 log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:          $K8S_AZURE_CLOUDPROVIDER_VERSION"
+log_level -i "K8S_AZURE_CLOUDPROVIDER_RELEASE:          $K8S_AZURE_CLOUDPROVIDER_RELEASE"
 log_level -i "MASTER_COUNT:                             $MASTER_COUNT"
 log_level -i "MASTER_DNS_PREFIX:                        $MASTER_DNS_PREFIX"
 log_level -i "MASTER_SIZE:                              $MASTER_SIZE"
@@ -173,6 +182,13 @@ log_level -i "WINDOWS_ADMIN_USERNAME:                   $WINDOWS_ADMIN_USERNAME"
 log_level -i "WINDOWS_AGENT_COUNT:                      $WINDOWS_AGENT_COUNT"
 log_level -i "WINDOWS_AGENT_SIZE:                       $WINDOWS_AGENT_SIZE"
 
+if [[ "$K8S_AZURE_CLOUDPROVIDER_VERSION" == "" ]]; then 
+    if [[ "$K8S_AZURE_CLOUDPROVIDER_RELEASE" == "1.14" ]]; then
+        K8S_AZURE_CLOUDPROVIDER_VERSION="1.14.7"
+    else
+        K8S_AZURE_CLOUDPROVIDER_VERSION="1.15.10"
+    fi
+fi
 
 #####################################################################################
 # Install pre-requisites
@@ -317,7 +333,7 @@ IDENTITY_SYSTEM_LOWER=`echo "$IDENTITY_SYSTEM" | tr '[:upper:]' '[:lower:]'`
 #####################################################################################
 # Section to generate ARM template using AKS Engine, login using Azure CLI and deploy the template.
 # https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-version-profiles-azurecli2#connect-to-azure-stack
-HYBRID_PROFILE=2018-03-01-hybrid
+HYBRID_PROFILE=2019-03-01-hybrid
 log_level -i "Register to AzureStack cloud using below command."
 retrycmd_if_failure 5 10 az cloud register -n $ENVIRONMENT_NAME --endpoint-resource-manager $TENANT_ENDPOINT --suffix-storage-endpoint $SUFFIXES_STORAGE_ENDPOINT --suffix-keyvault-dns $SUFFIXES_KEYVAULT_DNS --endpoint-active-directory-resource-id $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID --endpoint-active-directory $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT --endpoint-active-directory-graph-resource-id $ENDPOINT_GRAPH_ENDPOINT
 log_level -i "Set Azure stack environment."
@@ -341,7 +357,8 @@ jq --arg SSH_PUBLICKEY "${SSH_PUBLICKEY}" '.properties.linuxProfile.ssh.publicKe
 jq --arg AUTHENTICATION_METHOD $AUTHENTICATION_METHOD '.properties.customCloudProfile.authenticationMethod = $AUTHENTICATION_METHOD' | \
 jq --arg SPN_CLIENT_ID $SPN_CLIENT_ID '.properties.servicePrincipalProfile.clientId = $SPN_CLIENT_ID' | \
 jq --arg SPN_CLIENT_SECRET $SPN_CLIENT_SECRET '.properties.servicePrincipalProfile.secret = $SPN_CLIENT_SECRET' | \
-jq --arg K8S_VERSION $K8S_AZURE_CLOUDPROVIDER_VERSION '.properties.orchestratorProfile.orchestratorRelease=$K8S_VERSION' | \
+jq --arg K8S_RELEASE $K8S_AZURE_CLOUDPROVIDER_RELEASE '.properties.orchestratorProfile.orchestratorRelease=$K8S_RELEASE' | \
+jq --arg K8S_VERSION $K8S_AZURE_CLOUDPROVIDER_VERSION '.properties.orchestratorProfile.orchestratorVersion=$K8S_VERSION' | \
 jq --arg NETWORK_PLUGIN $NETWORK_PLUGIN '.properties.orchestratorProfile.kubernetesConfig.networkPlugin=$NETWORK_PLUGIN' \
 > $AZURESTACK_CONFIGURATION_TEMP
 
@@ -482,6 +499,7 @@ log_level -i "SSH_KEY_NAME: $SSH_KEY_NAME"
 log_level -i "STORAGE_ENDPOINT_SUFFIX: $STORAGE_ENDPOINT_SUFFIX"
 log_level -i "SUBSCRIPTION_ID: $SUBSCRIPTION_ID"
 log_level -i "TENANT_ID: $TENANT_ID"
+log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:          $K8S_AZURE_CLOUDPROVIDER_VERSION"
 log_level -i "------------------------------------------------------------------------"
 
 make test-kubernetes &> deploy_test_results
