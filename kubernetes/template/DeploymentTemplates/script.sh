@@ -234,6 +234,7 @@ generate_api_model()
             "kubernetesConfig": {
                 "useInstanceMetadata": false,
                 "networkPlugin": "",
+                "networkPolicy": "",
                 "containerRuntime": "",
                 "kubeletConfig": {
                     "--node-status-update-frequency": "1m"
@@ -540,6 +541,8 @@ if [ "$NETWORK_POLICY" != "" ]; then
     cat $AZURESTACK_CONFIGURATION | jq --arg NETWORK_POLICY $NETWORK_POLICY '.properties.orchestratorProfile.kubernetesConfig.networkPolicy=$NETWORK_POLICY' \
     > $AZURESTACK_CONFIGURATION_TEMP
     
+    validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
+
     log_level -i "Done setting network policy property."
 fi
 
