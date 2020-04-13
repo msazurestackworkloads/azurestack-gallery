@@ -3,7 +3,7 @@ $ProgressPreference = "SilentlyContinue"
 $lockedFiles = "kubelet.err.log", "kubelet.log", "kubeproxy.log", "kubeproxy.err.log", "containerd.err.log", "containerd.log", "azure-vnet-telemetry.log", "azure-vnet.log"
 
 $timeStamp = get-date -format 'yyyyMMdd-hhmmss'
-$zipName = "win_log_$env:computername-$($timeStamp).zip"
+$zipName = "win_log_$env:computername.zip"
 
 Write-Host "Collecting logs for various Kubernetes components"
 $paths = @()

@@ -133,15 +133,15 @@ processDvmHost()
 processWindowsHost()
 {
     host=$1
-    pass=$2
+    #pass=$2
 
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing windows-host ${host}"
-    scp ${SCP_FLAGS} collect-windows-logs.ps1 ${USER}@${host}:/home/${USER}/collect-windows-logs.ps1
-    ssh ${SSH_FLAGS} ${USER}@${host} "sudo apt-get install sshpass -y; sshpass -p '${pass}' scp ${KNOWN_HOSTS_OPTIONS} azureuser@10.240.0.4"
-    
-
-    ssh ${SSH_FLAGS} ${USER}@${host} "sudo chmod 744 collectlogs.sh; ./collectlogs.sh ${NAMESPACES};"
-
+    #ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo apt-get install sshpass -y"
+    #WIN_PROXY_CMD="ssh ${KNOWN_HOSTS_OPTIONS} ${USER}@${MASTER_IP} -W %h:%p"
+    scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" collect-windows-logs.ps1 ${USER}@${host}:"C:/k/debug/collect-windows-logs.ps1"
+    ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "powershell; Start-Process PowerShell -Verb RunAs; C:/k/debug/collect-windows-logs.ps1"
+    scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host}:"C:/Users/azureuser/win_log_${host}.zip" ${LOGFILEFOLDER}/"win_log_${host}.zip"
+    ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "powershell; rm C:/k/debug/collect-windows-logs.ps1; rm C:/Users/azureuser/win_log_${host}.zip"
 }
 
 printUsage()
@@ -330,7 +330,8 @@ then
         else
             for winhost in ${WINDOWS_NODES}
             do
-                processWindowsHost ${MASTER_IP} ${winhost} ${WINDOWS_NODES_PASSWORD}
+                processWindowsHost ${winhost} 
+                # ${WINDOWS_NODES_PASSWORD}
             done
         fi
     fi
