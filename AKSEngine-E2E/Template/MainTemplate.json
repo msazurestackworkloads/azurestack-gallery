@@ -166,7 +166,12 @@
     },
     "kubernetesAzureCloudProviderVersion": {
       "type": "string",
-      "defaultValue": "1.11",
+      "metadata": {
+        "description": "This is the version for the Kubernetes Azure cloud provider. We would use a custom Kubernetes build specifically for Azure Stack for each version."
+      }
+    },
+    "kubernetesAzureCloudProviderRelease": {
+      "type": "string",
       "metadata": {
         "description": "This is the version for the Kubernetes Azure cloud provider. We would use a custom Kubernetes build specifically for Azure Stack for each version."
       }
@@ -253,6 +258,9 @@
           }, 
           "kubernetesAzureCloudProviderVersion": {
             "value": "[parameters('kubernetesAzureCloudProviderVersion')]"
+          },
+          "kubernetesAzureCloudProviderRelease": {
+            "value": "[parameters('kubernetesAzureCloudProviderRelease')]"
           },
           "identitySystem": {
             "value": "[parameters('identitySystem')]"
