@@ -19,6 +19,7 @@ ERR_APT_UPDATE_TIMEOUT=99 # Timeout waiting for apt-get update to complete
 #ERR_AZS_LOGIN_ADFS=54 # Failure to log in to ADFS environment
 #ERR_AZS_ACCOUNT_SUB=55 # Failure setting account default subscription
 
+
 function collect_deployment_and_operations
 {
     # Store main exit code
@@ -34,6 +35,20 @@ function collect_deployment_and_operations
 
 # Collect deployment logs always, even if the script ends with an error
 trap collect_deployment_and_operations EXIT
+
+###
+#   <summary>
+#       Cleanups up the GPU Drivers. This is needed when DVM is deployed with AKS Image that contains these drivers
+#   </summary>
+#   <returns>None</returns>
+#   <exception>None</exception>
+#   <remarks>Called within same scripts.</remarks>
+###
+cleanUpGPUDrivers() {
+  rm -Rf $GPU_DEST
+  rm -f /etc/apt/sources.list.d/nvidia-docker.list
+  apt-key del $(apt-key list | grep NVIDIA -B 1 | head -n 1 | cut -d "/" -f 2 | cut -d " " -f 1)
+}
 
 ###
 #   <summary>
@@ -335,6 +350,7 @@ log_level -i "WINDOWS_AGENT_COUNT:                      $WINDOWS_AGENT_COUNT"
 log_level -i "WINDOWS_AGENT_SIZE:                       $WINDOWS_AGENT_SIZE"
 log_level -i "WINDOWS_CUSTOM_PACKAGE:                   $WINDOWS_CUSTOM_PACKAGE"
 
+cleanUpGPUDrivers
 
 if [[ "$WINDOWS_AGENT_COUNT" == "0" ]] && [[ "$AGENT_COUNT" == "0" ]]; then
     exit $ERR_INVALID_AGENT_COUNT_VALUE
