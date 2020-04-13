@@ -35,6 +35,11 @@ function collect_deployment_and_operations
 # Collect deployment logs always, even if the script ends with an error
 trap collect_deployment_and_operations EXIT
 
+cleanUpGPUDrivers() {
+    rm -f /etc/apt/sources.list.d/nvidia-docker.list
+    apt-key del $(apt-key list | grep NVIDIA -B 1 | head -n 1 | cut -d "/" -f 2 | cut -d " " -f 1)
+}
+
 ###
 #   <summary>
 #       Logs output by prepending date and log level type(Error, warning, info or verbose).
@@ -383,6 +388,7 @@ sleep $WAIT_TIME_SECONDS
 # apt packages
 # leaving this part connected until the modules are added to vhd
 
+cleanUpGPUDrivers
 if [ ! $DISCONNECTED_AKS_ENGINE_URL ]
 then
     log_level -i "Updating apt cache."
