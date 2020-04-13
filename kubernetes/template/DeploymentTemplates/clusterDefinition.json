@@ -9,6 +9,7 @@
                 "kubernetesImageBase": "",
                 "useInstanceMetadata": false,
                 "networkPlugin": "kubenet",
+                "networkPolicy": "",
                 "containerRuntime": "docker",
                 "cloudProviderBackoff": true,
                 "cloudProviderBackoffRetries": 1,
