@@ -13,7 +13,8 @@
             }
         },
         "customCloudProfile": {
-            "portalURL": ""
+            "portalURL": "",
+            "authenticationMethod": ""
         },
         "masterProfile": {
             "dnsPrefix": "",
