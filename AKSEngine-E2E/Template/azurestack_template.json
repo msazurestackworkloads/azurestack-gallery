@@ -31,7 +31,8 @@
         },
         "customCloudProfile": {
             "identitySystem": "",
-            "portalURL": ""
+            "portalURL": "",
+            "authenticationMethod": ""
         },
         "masterProfile": {
             "dnsPrefix": "",
