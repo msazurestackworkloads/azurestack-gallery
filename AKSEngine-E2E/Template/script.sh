@@ -373,7 +373,7 @@ if [ "$AGENT_COUNT" != "0" ]; then
     jq --arg linuxAgentCount $AGENT_COUNT \
     --arg linuxAgentSize $AGENT_SIZE \
     --arg linuxAvailabilityProfile $AVAILABILITY_PROFILE \
-    --arg NODE_DISTRO "ubuntu" \
+    --arg NODE_DISTRO "aks-ubuntu-16.04" \
     '.properties.agentPoolProfiles += [{"name": "linuxpool", "osDiskSizeGB": 100, "AcceleratedNetworkingEnabled": false, "distro": $NODE_DISTRO, "count": $linuxAgentCount | tonumber, "vmSize": $linuxAgentSize, "availabilityProfile": $linuxAvailabilityProfile}]' \
     > $AZURESTACK_CONFIGURATION_TEMP
     
