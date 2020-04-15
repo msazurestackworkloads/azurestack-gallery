@@ -1,4 +1,4 @@
-#! /bin/bash -ex
+#!/bin/bash -ex
 
 ERR_APT_INSTALL_TIMEOUT=9           # Timeout installing required apt packages
 ERR_AKSE_DOWNLOAD=10                # Failure downloading AKS-Engine binaries
