@@ -235,8 +235,17 @@ generate_api_model()
         "orchestratorProfile": {
             "orchestratorType": "Kubernetes",
             "orchestratorRelease": "",
-            "orchestratorVersion":"",
+            "orchestratorVersion": "",
             "kubernetesConfig": {
+                "cloudProviderBackoff": true,
+                "cloudProviderBackoffRetries": 1,
+                "cloudProviderBackoffDuration": 30,
+                "cloudProviderRateLimit": true,
+                "cloudProviderRateLimitQPS": 3,
+                "cloudProviderRateLimitBucket": 10,
+                "cloudProviderRateLimitQPSWrite": 3,
+                "cloudProviderRateLimitBucketWrite": 10,
+                "kubernetesImageBase": "mcr.microsoft.com/k8s/azurestack/core/",
                 "useInstanceMetadata": false,
                 "networkPlugin": "",
                 "networkPolicy": "",
@@ -253,7 +262,8 @@ generate_api_model()
             }
         },
         "customCloudProfile": {
-            "portalURL": ""
+            "portalURL": "",
+            "identitySystem": ""
         },
         "masterProfile": {
             "dnsPrefix": "",
