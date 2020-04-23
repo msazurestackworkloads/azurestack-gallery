@@ -322,7 +322,7 @@ then
     if [ -n "$WINDOWS_NODES_PASSWORD" ]
     then
         #Get Windoews nodes
-        WINDOWS_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep 'k8s-\|vmd-' | cut -f 1)
+        WINDOWS_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep -v 'k8s-\|vmd-' | cut -f 1)
 
         if [ -z "$WINDOWS_NODES" ]
         then
