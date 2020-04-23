@@ -133,11 +133,8 @@ processDvmHost()
 processWindowsHost()
 {
     host=$1
-    #pass=$2
 
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing windows-host ${host}"
-    #ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo apt-get install sshpass -y"
-    #WIN_PROXY_CMD="ssh ${KNOWN_HOSTS_OPTIONS} ${USER}@${MASTER_IP} -W %h:%p"
     scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" collect-windows-logs.ps1 ${USER}@${host}:"C:/k/debug/collect-windows-logs.ps1"
     ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "powershell; Start-Process PowerShell -Verb RunAs; C:/k/debug/collect-windows-logs.ps1"
     scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host}:"C:/Users/azureuser/win_log_${host}.zip" ${LOGFILEFOLDER}/"win_log_${host}.zip"
@@ -158,7 +155,7 @@ printUsage()
     echo "      --api-model                   AKS Engine Kubernetes cluster definition json file"
     echo "      --upload-logs                 Persists retrieved logs in an Azure Stack storage account"
     echo "      --disable-host-key-checking   Sets SSH's StrictHostKeyChecking option to \"no\" while the script executes. Only use in a safe environment."
-    echo "      --windows-nodes-password      Password of Windows Nodes if logs on Windows Nodes need to be collected"
+    echo "      --include-windows-nodes       Collect logs on Windows nodes as well"
     echo "  -h, --help                        Print script usage"
     echo ""
     echo "Examples:"
@@ -166,6 +163,7 @@ printUsage()
     echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg -n default -n monitoring"
     echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg --upload-logs --api-model clusterDefinition.json"
     echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg --upload-logs"
+    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg --include-windows-nodes"
     
     exit 1
 }
@@ -206,9 +204,9 @@ do
             KNOWN_HOSTS_OPTIONS='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR'
             shift
         ;;
-        -w|--windows-nodes-password)
-            WINDOWS_NODES_PASSWORD="$2"
-            shift 2
+        --include-windows-nodes)
+            INCLUDE_WINDOWS_NODES="true"
+            shift
         ;;
         -h|--help)
             printUsage
@@ -270,6 +268,7 @@ echo "user:                    $USER"
 echo "identity-file:           $IDENTITYFILE"
 echo "resource-group:          $RESOURCE_GROUP"
 echo "upload-logs:             $UPLOAD_LOGS"
+echo "include_windows_nodes:   $INCLUDE_WINDOWS_NODES"
 echo ""
 
 NOW=`date +%Y%m%d%H%M%S`
@@ -319,7 +318,7 @@ then
     done
 
     # WINDOWS NODES
-    if [ -n "$WINDOWS_NODES_PASSWORD" ]
+    if [ "$INCLUDE_WINDOWS_NODES" == "true" ]
     then
         #Get Windoews nodes
         WINDOWS_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep -v 'k8s-\|vmd-' | cut -f 1)
@@ -331,7 +330,6 @@ then
             for winhost in ${WINDOWS_NODES}
             do
                 processWindowsHost ${winhost} 
-                # ${WINDOWS_NODES_PASSWORD}
             done
         fi
     fi
