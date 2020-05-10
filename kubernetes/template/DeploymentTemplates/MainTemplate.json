@@ -6,7 +6,7 @@
       "type": "string",
       "defaultValue": "azureuser",
       "metadata": {
-        "description": "User name for the Linux Virtual Machines that are part of the Kubernetes cluster and DVM."
+        "description": "User name for the Linux virtual machines that are part of the Kubernetes cluster and DVM."
       }
     },
     "sshPublicKey": {
@@ -24,14 +24,14 @@
     "agentPoolProfileCount": {
       "defaultValue": 3,
       "metadata": {
-        "description": "Kubernetes Node Pool Profile Count"
+        "description": "Kubernetes linux node pool profile count"
       },
       "type": "int"
     },
     "agentPoolProfileVMSize": {
       "defaultValue": "Standard_D2_v2",
       "metadata": {
-        "description": "The VMSize of Kubernetes node VMs"
+        "description": "The virtual machine size of the Kubernetes linux agent nodes"
       },
       "type": "string"
     },
@@ -45,7 +45,7 @@
     "masterPoolProfileVMSize": {
       "defaultValue": "Standard_D2_v2",
       "metadata": {
-        "description": "The VMSize of Kubernetes master VMs"
+        "description": "The virtual machine size of the Kubernetes master nodes"
       },
       "type": "string"
     },
@@ -82,9 +82,16 @@
     },
     "kubernetesAzureCloudProviderVersion": {
       "type": "string",
-      "defaultValue": "1.12",
+      "defaultValue": "",
       "metadata": {
         "description": "This is the version for the Kubernetes Azure cloud provider. We would use a custom Kubernetes build specifically for Azure Stack for each version."
+      }
+    },
+    "kubernetesAzureCloudProviderRelease": {
+      "type": "string",
+      "defaultValue": "1.14",
+      "metadata": {
+        "description": "This is the release for the Kubernetes Azure cloud provider. We would use a custom Kubernetes build specifically for Azure Stack for each version."
       }
     },
     "_artifactsLocation": {
@@ -103,7 +110,7 @@
     },
     "aksEngineReleaseVersion": {
       "type": "string",
-      "defaultValue": "v0.37.4",
+      "defaultValue": "v0.48.0",
       "metadata": {
         "description": "The version of AKS Engine to download"
       }
@@ -129,56 +136,185 @@
         "description": "The name of the file containing the cluster definition"
       }
     },
+    "customVnetName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Name of the custom vnet"
+      }
+    },
+    "networkPlugin": {
+      "defaultValue": "kubenet",
+      "allowedValues": [
+        "flannel",
+        "azure",
+        "kubenet"
+      ],
+      "metadata": {
+        "description": "Network plugin which will deployed in Kubernetes cluster"
+      },
+      "type": "string"
+    }, 
+    "networkPolicy": {
+      "defaultValue": "",
+      "allowedValues": [
+        "",
+        "azure"
+      ],
+      "metadata": {
+        "description": "Network policy which will deployed in Kubernetes cluster"
+      },
+      "type": "string"
+    },
+    "windowsAdminUsername": {
+      "defaultValue": "azureuser",
+      "metadata": {
+        "description": "User name for the Windows virtual machines that are part of the Kubernetes cluster."
+      },
+      "type": "string"
+    },
+    "windowsAdminPassword": {
+      "defaultValue": "",
+      "metadata": {
+        "description": "User password for the Windows virtual machines that are part of the Kubernetes cluster."
+      },
+      "type": "securestring"
+    },
+    "customWindowsPackageURL": {
+      "defaultValue": "",
+      "metadata": {
+        "description": "Custom Windows K8s zip location which will be used to deploy(kubelet, kubeproxy) on Windows node."
+      },
+      "type": "string"
+    },
+    "windowsAgentPoolProfileCount": {
+      "defaultValue": "0",      
+      "metadata": {
+        "description": "Kubernetes Windows node pool profile count"
+      },
+      "type": "string"
+    },
+    "windowsAgentPoolProfileVMSize": {
+      "defaultValue": "Standard_D2_v2",
+      "metadata": {
+        "description": "The virtual machine size of the Kubernetes Windows nodes"
+      },
+      "type": "string"
+    },
+    "availabilityProfile": {      
+      "defaultValue": "AvailabilitySet",
+      "allowedValues": [
+        "AvailabilitySet",
+        "VirtualMachineScaleSets"
+      ],
+      "metadata": {
+        "description": "Availability profile that nodes in the Kubernetes cluster will be deployed with"
+      },
+      "type": "string"
+    },
+    "masterSubnetName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Name of the master subnet"
+      }
+    },
+    "agentSubnetName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Name of the agent subnet"
+      }
+    },
+    "firstConsecutiveStaticIP": {
+      "type": "string",
+      "defaultValue": "10.100.0.5",
+      "metadata": {
+        "description": "First consecutive static IP"
+      }
+    },
     "nodeDistro": {
-      "defaultValue": "ubuntu",
+      "defaultValue": "aks-ubuntu-16.04",
       "allowedValues": [
         "ubuntu",
-        "aks"
+        "aks-ubuntu-16.04"
       ],
       "metadata": {
         "description": "Node distro to be used to deploy Kubernetes on Azure Stack."
       },
       "type": "string"
     },
-    "kubernetesImageBase": {
+    "enableTillerAddOn": {
       "type": "string",
-      "defaultValue": "mcr.microsoft.com/k8s/azurestack/core/",
+      "defaultValue": "false",
       "metadata": {
-        "description": "The base for Kubernetes images"
+        "description": "Flag to enable Tiller addon"
+      }
+    },
+    "containerRuntime": {
+      "defaultValue": "docker",
+      "allowedValues": [
+        "docker",
+        "containerd"
+      ],
+      "metadata": {
+        "description": "Container runtime to deploy on each cluster node."
+      },
+      "type": "string"
+    },
+    "localAKSeBinaryURL": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Azure Stack blob url to download AKS engine from a blob store in disconnected environment."
+      }
+    },
+    "dvmImagePublisher": {
+      "type": "string",
+      "defaultValue": "microsoft-aks",
+      "metadata": {
+        "description": "Azure VM image publisher to be used for the DVM"
+      }
+    },
+    "dvmImageOffer": {
+      "type": "string",
+      "defaultValue": "aks",
+      "metadata": {
+        "description": "Azure VM image offer to be used for the DVM"
+      }
+    },
+    "dvmImageSku": {
+      "type": "string",
+      "defaultValue": "aks-engine-ubuntu-1604-202003",
+      "metadata": {
+        "description": "Azure VM image sku to be used for the DVM"
+      }
+    },
+    "dvmImageVersion": {
+      "type": "string",
+      "defaultValue": "2020.03.19",
+      "metadata": {
+        "description": "Azure VM image version to be used for the DVM"
       }
     }
   },
   "variables": {
-    "resourceGroupName": "[resourceGroup().name]",
-    "dnsNameForPublicIP": "[toLower(concat('vmd-dns', parameters('masterProfileDnsPrefix')))]",
-    "location": "[resourceGroup().location]",
-    "imagePublisher": "Canonical",
-    "imageOffer": "UbuntuServer",
-    "imageSku": "16.04-LTS",
-    "imageVersion": "latest",
-    "vmSize": "Standard_D2_v2",
-    "OSDiskName": "osdisk",
-    "nicName": "[concat('vmd-vnic', uniqueString(resourceGroup().id))]",
-    "addressPrefix": "10.0.0.0/24",
-    "subnetName": "mySubnet",
-    "subnetPrefix": "10.0.0.0/24",
-    "storageAccountName": "[concat('vmdsa', uniquestring(resourceGroup().id))]",
-    "storageAccountType": "Standard_LRS",
-    "publicIPAddressName": "[concat('vmd-publicIP', uniqueString(resourceGroup().id))]",
-    "publicIPAddressType": "Static",
-    "vmStorageAccountContainerName": "vhds",
-    "vmName": "[concat('vmd-', uniqueString(resourceGroup().id))]",
-    "virtualNetworkName": "[concat('vmd-vnet-', uniqueString(resourceGroup().id))]",
-    "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
-    "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
-    "networkSecurityGroupName": "[tolower(concat('vmd-nsg',uniquestring(resourceGroup().id)))]",
-    "sshKeyPath": "[concat('/home/',parameters('linuxAdminUsername'),'/.ssh/authorized_keys')]",
-    "tenantSubscriptionId": "[subscription().subscriptionId]",
-    "scriptName": "script",
-    "singleQuote": "'",
-    "scriptParameters": "[concat('IDENTITY_SYSTEM=','\"',parameters('identitySystem'),'\"',' NODE_DISTRO=','\"',parameters('nodeDistro'),'\"',' RESOURCE_GROUP_NAME=','\"',variables('resourceGroupName'),'\"',' PUBLICIP_DNS=','\"',variables('dnsNameForPublicIP'),'\"' ,' TENANT_ID=','\"',subscription().tenantId,'\"' ,' TENANT_SUBSCRIPTION_ID=','\"',variables('tenantSubscriptionId'),'\"',' ADMIN_USERNAME=','\"',parameters('linuxAdminUsername'),'\"',' MASTER_DNS_PREFIX=','\"',parameters('masterProfileDnsPrefix'),'\"' ,' AGENT_COUNT=','\"',parameters('agentPoolProfileCount'),'\"' ,' AGENT_SIZE=','\"',parameters('agentPoolProfileVMSize'),'\"' ,' MASTER_COUNT=','\"',parameters('masterPoolProfileCount'),'\"',' MASTER_SIZE=','\"',parameters('masterPoolProfileVMSize'),'\"' ,' SPN_CLIENT_ID=','\"',parameters('servicePrincipalClientId'),'\"' ,' SPN_CLIENT_SECRET=','\"',parameters('servicePrincipalClientSecret'),'\"' ,' K8S_AZURE_CLOUDPROVIDER_VERSION=','\"',parameters('kubernetesAzureCloudProviderVersion'),'\"' ,' REGION_NAME=','\"',variables('location'),'\"' ,' SSH_PUBLICKEY=','\"',parameters('sshPublicKey'),'\"' ,' STORAGE_PROFILE=','\"',parameters('storageProfile'),'\"')]"
+    "apiVersionDeployments": "2015-11-01"
   },
   "resources": [
+    {
+      "apiVersion": "[variables('apiVersionDeployments')]",
+      "name": "pid-b8a190d4-9ecc-4bd5-a9ba-3cc60c6e0c1f",
+      "properties": {
+        "mode": "Incremental",
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "resources": []
+        }
+      },
+      "type": "Microsoft.Resources/deployments"
+    },
     {
       "apiVersion": "2015-01-01",
       "name": "dvmdeployment",
@@ -223,11 +359,35 @@
           "kubernetesAzureCloudProviderVersion": {
             "value": "[parameters('kubernetesAzureCloudProviderVersion')]"
           },
+          "kubernetesAzureCloudProviderRelease": {
+            "value": "[parameters('kubernetesAzureCloudProviderRelease')]"
+          },
           "identitySystem": {
             "value": "[parameters('identitySystem')]"
           },
           "nodeDistro": {
             "value": "[parameters('nodeDistro')]"
+          },
+          "customVnetName": {
+            "value": "[parameters('customVnetName')]"
+          },
+          "networkPlugin": {
+            "value": "[parameters('networkPlugin')]"
+          },
+          "networkPolicy": {
+            "value": "[parameters('networkPolicy')]"
+          },
+          "availabilityProfile": {
+            "value": "[parameters('availabilityProfile')]"
+          },          
+          "masterSubnetName": {
+            "value": "[parameters('masterSubnetName')]"
+          },
+          "agentSubnetName": {
+            "value": "[parameters('agentSubnetName')]"
+          },
+          "firstConsecutiveStaticIP": {
+            "value": "[parameters('firstConsecutiveStaticIP')]"
           },
           "aksEngineBaseURL": {
             "value": "[parameters('aksEngineBaseURL')]"
@@ -244,8 +404,41 @@
           "clusterDefinitionFileName": {
             "value": "[parameters('clusterDefinitionFileName')]"
           },
-          "kubernetesImageBase": {
-            "value": "[parameters('kubernetesImageBase')]"
+          "windowsAgentPoolProfileCount": {
+            "value": "[parameters('windowsAgentPoolProfileCount')]"
+          },
+          "windowsAgentPoolProfileVMSize": {
+            "value": "[parameters('windowsAgentPoolProfileVMSize')]"
+          },
+          "windowsAdminUsername": {
+            "value": "[parameters('windowsAdminUsername')]"
+          },
+          "windowsAdminPassword": {
+            "value": "[parameters('windowsAdminPassword')]"
+          },
+          "customWindowsPackageURL": {
+            "value": "[parameters('customWindowsPackageURL')]"
+          },
+          "enableTillerAddOn": {
+            "value": "[parameters('enableTillerAddOn')]"
+          },
+          "containerRuntime": {
+            "value": "[parameters('containerRuntime')]"
+          },
+          "localAKSeBinaryURL": {
+            "value": "[parameters('localAKSeBinaryURL')]"
+          },
+          "dvmImagePublisher": {
+            "value": "[parameters('dvmImagePublisher')]"
+          },
+          "dvmImageOffer": {
+            "value": "[parameters('dvmImageOffer')]"
+          },
+          "dvmImageSku": {
+            "value": "[parameters('dvmImageSku')]"
+          },
+          "dvmImageVersion": {
+            "value": "[parameters('dvmImageVersion')]"
           }
         }
       }

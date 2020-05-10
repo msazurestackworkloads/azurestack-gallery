@@ -1,0 +1,185 @@
+{
+    "handler": "Microsoft.Compute.MultiVm",
+    "version": "0.4.0-preview",
+    "parameters": {
+        "basics": [],
+        "steps": [
+            {
+                "name": "VirtualMachineStep",
+                "label": "Virtual Machine",
+                "subLabel": {
+                    "preValidation": "Provide virtual machine settings",
+                    "postValidation": "Done"
+                },
+                "bladeTitle": "Virtual machine configuration",
+                "elements": [
+                    {
+                        "name": "adminUsername",
+                        "type": "Microsoft.Compute.UserNameTextBox",
+                        "label": "Username",
+                        "defaultValue": "azureuser",
+                        "constraints": {
+                            "required": true,
+                            "regex": "^[a-z0-9A-Z]{1,30}$",
+                            "validationMessage": "Only alphanumeric characters are allowed, and the value must be 1-30 characters long."
+                        },
+                        "osPlatform": "Linux"
+                    },
+                    {
+                        "name": "adminPublicKey",
+                        "type": "Microsoft.Compute.CredentialsCombo",
+                        "label": {
+                            "authenticationType": "Authentication type",
+                            "password": "Password",
+                            "confirmPassword": "Confirm password",
+                            "sshPublicKey": "SSH public key"
+                        },
+                        "constraints": {
+                            "required": true,
+                            "customPasswordRegex": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{12,}$",
+                            "customValidationMessage": "The password must be alphanumeric, contain at least 12 characters, and have at least 1 letter and 1 number."
+                        },
+                        "options": {
+                            "hideConfirmation": false,
+                            "hidePassword": true
+                        },
+                        "osPlatform": "Linux"
+                    },
+                    {
+                        "name": "virtualMachineSize",
+                        "type": "Microsoft.Compute.SizeSelector",
+                        "label": "Size",
+                        "osPlatform": "Linux",
+                        "defaultValue": "Standard_F8s_v2",
+                        "recommendedSizes": [
+                            "Standard_F8s_v2"
+                        ],
+                        "options": {
+                            "hideDiskTypeFilter": false
+                        }
+                    },
+                    {
+                        "name": "dnsPrefix",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Domain name label",
+                        "defaultValue": "registry",
+                        "toolTip": "The domain name is invalid. It can contain only lowercase letters, numbers and hyphens. The first character must be a letter. The last character must be letter or number. The value must be between 3 and 16 characters long.",
+                        "constraints": {
+                            "required": true,
+                            "regex": "^[a-z][a-z0-9-]{1,16}[a-z0-9]$",
+                            "validationMessage": "DNS prefix is invalid. The prefix must conform to the following regular expression: ^[a-z][a-z0-9-]{1,16}[a-z0-9]$."
+                        }
+                    },
+                    {
+                        "name": "registryReplicas",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Replicas",
+                        "defaultValue": "20",
+                        "toolTip": "Registry replica count",
+                        "constraints": {
+                            "required": true,
+                            "regex": "^[0-9]{1,2}$"
+                        }
+                    },
+                    {
+                        "name": "virtualMachineSku",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Image SKU",
+                        "defaultValue": "aks-ubuntu-1604-201910",
+                        "toolTip": "OS image SKU",
+                        "constraints": {
+                            "required": true
+                        }
+                    },
+                    {
+                        "name": "servicePrincipalClientId",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Service Principal Client ID",
+                        "constraints": {
+                            "required": true
+                        }
+                    },
+                    {
+                        "name": "servicePrincipalClientSecret",
+                        "type": "Microsoft.Common.PasswordBox",
+                        "label": {
+                            "password": "Service Principal password",
+                            "confirmPassword": "Confirm Service Principal password"
+                        },
+                        "constraints": {
+                            "required": true
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "StoragePfxStep",
+                "label": "Storage and Key Vault",
+                "subLabel": {
+                    "preValidation": "Provide storage and Key Vault settings",
+                    "postValidation": "Done"
+                },
+                "bladeTitle": "Storage and Key Vault configuration",
+                "elements": [
+                    {
+                        "name": "storageAccountResourceId",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Existing backend Storage Account resource ID",
+                        "constraints": {
+                            "required": true
+                        }
+                    },
+                    {
+                        "name": "storageAccountContainer",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Existing backend blob container",
+                        "constraints": {
+                            "required": true
+                        }
+                    },
+                    {
+                        "name": "keyVaultResourceId",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "PFX Certificate Key Vault Resource Id",
+                        "constraints": {
+                            "required": true
+                        }
+                    },
+                    {
+                        "name": "keyVaultSecretUrl",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "PFX Certificate Key Vault Secret URL",
+                        "constraints": {
+                            "required": true
+                        }
+                    },
+                    {
+                        "name": "certificateThumbprint",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "PFX Certificate Thumbprint",
+                        "constraints": {
+                            "required": true
+                        }
+                    }
+                ]
+            }
+        ],
+        "outputs": {
+            "adminUsername": "[steps('VirtualMachineStep').adminUsername]",
+            "adminPublicKey": "[steps('VirtualMachineStep').adminPublicKey.sshPublicKey]",
+            "virtualMachineSize": "[steps('VirtualMachineStep').virtualMachineSize]",
+            "pipName": "[steps('VirtualMachineStep').dnsPrefix]",
+            "pipDomainNameLabel": "[steps('VirtualMachineStep').dnsPrefix]",
+            "pipAllocationMethod": "Static",
+            "storageAccountResourceId": "[steps('StoragePfxStep').storageAccountResourceId]",
+            "storageAccountContainer": "[steps('StoragePfxStep').storageAccountContainer]",
+            "pfxKeyVaultResourceId": "[steps('StoragePfxStep').keyVaultResourceId]",
+            "pfxKeyVaultSecretUrl": "[steps('StoragePfxStep').keyVaultSecretUrl]",
+            "pfxThumbprint": "[steps('StoragePfxStep').certificateThumbprint]",
+            "registryReplicas": "[steps('VirtualMachineStep').registryReplicas]",
+            "virtualMachineSku": "[steps('VirtualMachineStep').virtualMachineSku]",
+            "servicePrincipalClientId": "[steps('VirtualMachineStep').servicePrincipalClientId]",
+            "servicePrincipalClientSecret": "[steps('VirtualMachineStep').servicePrincipalClientSecret]"
+        }
+    }
+}

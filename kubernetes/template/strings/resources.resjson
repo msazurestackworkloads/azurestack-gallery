@@ -1,9 +1,9 @@
 {
     "displayName":  "Kubernetes Cluster",
     "publisherDisplayName": "Microsoft",
-    "summary": "An IaaS based template for deploying a standalone Kubernetes Cluster",
-    "longSummary": "This solution deploys Kubernetes cluster running as an standalone cluster with templates generated using AKS Engine.",
-    "description": "This solution deploys a Kubernetes cluster running as a standalone cluster with templates generated using AKS Engine. <p>Kubernetes is a distributed system platform used to build scalable, reliable, and easily-managed applications for the cloud. You can use Kubernetes to: </p>• Develop upgradeable and scalable applications using Helm that can be deployed in seconds. <br> • Easily monitor and diagnose the health of your applications.",
+    "summary": "An IaaS based template for deploying a standalone Kubernetes cluster",
+    "longSummary": "This solution deploys a standalone Kubernetes cluster using AKS Engine.",
+    "description": "This solution deploys a standalone Kubernetes cluster using AKS Engine. <p>This solution is intended to deploy clusters as a proof-of-concept. For supported Kubernetes clusters on Azure Stack, use <a href='https://docs.microsoft.com/en-us/azure-stack/user/azure-stack-kubernetes-aks-engine-overview?view=azs-1908' target='_blank'>the AKS engine</a>.</p> <p>Kubernetes is a distributed system platform used to build scalable, reliable, and easily-managed applications for the cloud. </p>",
 	"documentationLink": "Kubernetes Help",
 	"documentationLink2": "Add a Kubernetes Cluster to the Azure Stack Marketplace",
 	"documentationLink3": "Deploy a Kubernetes cluster to Azure Stack",

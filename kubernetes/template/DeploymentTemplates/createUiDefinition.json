@@ -2,492 +2,757 @@
   "handler": "Microsoft.Compute.MultiVm",
   "version": "0.4.0-preview",
   "parameters": {
-    "basics": [
+    "basics": [],
+    "steps": [
+      {
+        "name": "KubernetesClusterSettings",
+        "label": "Kubernetes Cluster settings",
+        "subLabel": {
+          "preValidation": "Provide Kubernetes Cluster settings.",
+          "postValidation": "Done"
+        },
+        "bladeTitle": "Kubernetes Cluster Settings",
+        "elements": [
+          {
+            "name": "linuxAdminUsername",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Linux VM admin username",
+            "defaultValue": "azureuser",
+            "toolTip": "User name for the Linux virtual machines that are part of the Kubernetes cluster and DVM.",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "sshPublicKey",
+            "type": "Microsoft.Compute.CredentialsCombo",
+            "label": {
+              "authenticationType": "Authentication type",
+              "password": "Password",
+              "confirmPassword": "Confirm password",
+              "sshPublicKey": "SSH public key"
+            },
+            "toolTip": {
+              "authenticationType": "Authentication type",
+              "password": "Password",
+              "sshPublicKey": "SSH public key used to connect to virtual Linux machines created as part of the Kubernetes cluster and DVM."
+            },
+            "constraints": {
+              "required": true
+            },
+            "options": {
+              "hideConfirmation": false,
+              "hidePassword": true
+            },
+            "osPlatform": "Linux",
+            "visible": true
+          },
+          {
+            "name": "masterProfileDnsPrefix",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Master Profile DNS prefix",
+            "defaultValue": null,
+            "toolTip": "This must be a region-unique name, for example, k8s-12345. A best practice is to use the same prefix for the DNS and region name.",
+            "constraints": {
+              "required": true,
+              "regex": "^[a-z][a-z0-9-]{1,61}[a-z0-9]$",
+              "validationMessage": "DNS prefix is invalid. The prefix must conform to the following regular expression: ^[a-z][a-z0-9-]{1,61}[a-z0-9]$."
+            }
+          },
+          {
+            "name": "masterPoolProfileCount",
+            "type": "Microsoft.Common.DropDown",
+            "label": "Kubernetes master pool profile count",
+            "defaultValue": "3",
+            "toolTip": "The number of master nodes for the Kubernetes cluster. This value should be odd number.",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "1",
+                  "value": "1"
+                },
+                {
+                  "label": "3",
+                  "value": "3"
+                },
+                {
+                  "label": "5",
+                  "value": "5"
+                },
+                {
+                  "label": "7",
+                  "value": "7"
+                }
+              ]
+            },
+            "visible": true
+          },
+          {
+            "name": "masterPoolProfileVMSize",
+            "type": "Microsoft.Common.DropDown",
+            "label": "The virtual machine size of the Kubernetes master nodes",
+            "defaultValue": "Standard_D2_v2",
+            "toolTip": "The virtual machine size of the Kubernetes master nodes",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "Standard_D1_v2",
+                  "value": "Standard_D1_v2"
+                },
+                {
+                  "label": "Standard_D2_v2",
+                  "value": "Standard_D2_v2"
+                },
+                {
+                  "label": "Standard_D3_v2",
+                  "value": "Standard_D3_v2"
+                },
+                {
+                  "label": "Standard_D4_v2",
+                  "value": "Standard_D4_v2"
+                },
+                {
+                  "label": "Standard_D5_v2",
+                  "value": "Standard_D5_v2"
+                },
+                {
+                  "label": "Standard_D11_v2",
+                  "value": "Standard_D11_v2"
+                },
+                {
+                  "label": "Standard_D12_v2",
+                  "value": "Standard_D12_v2"
+                },
+                {
+                  "label": "Standard_D13_v2",
+                  "value": "Standard_D13_v2"
+                },
+                {
+                  "label": "Standard_D14_v2",
+                  "value": "Standard_D14_v2"
+                },
+                {
+                  "label": "Standard_DS1_v2",
+                  "value": "Standard_DS1_v2"
+                },
+                {
+                  "label": "Standard_DS2_v2",
+                  "value": "Standard_DS2_v2"
+                },
+                {
+                  "label": "Standard_DS3_v2",
+                  "value": "Standard_DS3_v2"
+                },
+                {
+                  "label": "Standard_DS4_v2",
+                  "value": "Standard_DS4_v2"
+                },
+                {
+                  "label": "Standard_DS5_v2",
+                  "value": "Standard_DS5_v2"
+                },
+                {
+                  "label": "Standard_DS11_v2",
+                  "value": "Standard_DS11_v2"
+                },
+                {
+                  "label": "Standard_DS12_v2",
+                  "value": "Standard_DS12_v2"
+                },
+                {
+                  "label": "Standard_DS13_v2",
+                  "value": "Standard_DS13_v2"
+                },
+                {
+                  "label": "Standard_DS14_v2",
+                  "value": "Standard_DS14_v2"
+                }
+              ]
+            },
+            "visible": true
+          },
+          {
+            "name": "agentPoolProfileCount",
+            "type": "Microsoft.Common.DropDown",
+            "label": "Kubernetes linux node pool profile count",
+            "defaultValue": "3",
+            "toolTip": "The number of linux agents for Kubernetes cluster.",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "1",
+                  "value": "1"
+                },
+                {
+                  "label": "2",
+                  "value": "2"
+                },
+                {
+                  "label": "3",
+                  "value": "3"
+                },
+                {
+                  "label": "4",
+                  "value": "4"
+                },
+                {
+                  "label": "5",
+                  "value": "5"
+                },
+                {
+                  "label": "6",
+                  "value": "6"
+                },
+                {
+                  "label": "7",
+                  "value": "7"
+                },
+                {
+                  "label": "8",
+                  "value": "8"
+                },
+                {
+                  "label": "9",
+                  "value": "9"
+                },
+                {
+                  "label": "10",
+                  "value": "10"
+                },
+                {
+                  "label": "11",
+                  "value": "11"
+                },
+                {
+                  "label": "12",
+                  "value": "12"
+                },
+                {
+                  "label": "13",
+                  "value": "13"
+                },
+                {
+                  "label": "14",
+                  "value": "14"
+                },
+                {
+                  "label": "15",
+                  "value": "15"
+                },
+                {
+                  "label": "16",
+                  "value": "16"
+                }
+              ]
+            },
+            "visible": true
+          },
+          {
+            "name": "agentPoolProfileVMSize",
+            "type": "Microsoft.Common.DropDown",
+            "label": "The virtual machine size of Kubernetes linux agent nodes",
+            "defaultValue": "Standard_D2_v2",
+            "toolTip": "The virtual machine size of Kubernetes linux agent nodes",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "Standard_D1_v2",
+                  "value": "Standard_D1_v2"
+                },
+                {
+                  "label": "Standard_D2_v2",
+                  "value": "Standard_D2_v2"
+                },
+                {
+                  "label": "Standard_D3_v2",
+                  "value": "Standard_D3_v2"
+                },
+                {
+                  "label": "Standard_D4_v2",
+                  "value": "Standard_D4_v2"
+                },
+                {
+                  "label": "Standard_D5_v2",
+                  "value": "Standard_D5_v2"
+                },
+                {
+                  "label": "Standard_D11_v2",
+                  "value": "Standard_D11_v2"
+                },
+                {
+                  "label": "Standard_D12_v2",
+                  "value": "Standard_D12_v2"
+                },
+                {
+                  "label": "Standard_D13_v2",
+                  "value": "Standard_D13_v2"
+                },
+                {
+                  "label": "Standard_D14_v2",
+                  "value": "Standard_D14_v2"
+                },
+                {
+                  "label": "Standard_DS1_v2",
+                  "value": "Standard_DS1_v2"
+                },
+                {
+                  "label": "Standard_DS2_v2",
+                  "value": "Standard_DS2_v2"
+                },
+                {
+                  "label": "Standard_DS3_v2",
+                  "value": "Standard_DS3_v2"
+                },
+                {
+                  "label": "Standard_DS4_v2",
+                  "value": "Standard_DS4_v2"
+                },
+                {
+                  "label": "Standard_DS5_v2",
+                  "value": "Standard_DS5_v2"
+                },
+                {
+                  "label": "Standard_DS11_v2",
+                  "value": "Standard_DS11_v2"
+                },
+                {
+                  "label": "Standard_DS12_v2",
+                  "value": "Standard_DS12_v2"
+                },
+                {
+                  "label": "Standard_DS13_v2",
+                  "value": "Standard_DS13_v2"
+                },
+                {
+                  "label": "Standard_DS14_v2",
+                  "value": "Standard_DS14_v2"
+                }
+              ]
+            },
+            "visible": true
+          },
+          {
+            "name": "storageProfile",
+            "type": "Microsoft.Common.DropDown",
+            "label": "The Storage Profile",
+            "defaultValue": "Managed disk",
+            "toolTip": "The storage profile of Kubernetes node VMs.",
+            "constraints": {
+              "required": true,
+              "allowedValues": [
+                {
+                  "label": "Managed disk",
+                  "value": "manageddisk"
+                }
+              ]
+            },
+            "visible": false
+          },
+          {
+            "name": "identitySystem",
+            "type": "Microsoft.Common.DropDown",
+            "label": "Azure Stack identity system",
+            "defaultValue": "AzureAD",
+            "toolTip": "The identity sytem of Azure Stack.",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "AzureAD",
+                  "value": "AzureAD"
+                },
+                {
+                  "label": "ADFS",
+                  "value": "ADFS"
+                }
+              ]
+            },
+            "visible": true
+          },
+          {
+            "name": "nodeDistro",
+            "type": "Microsoft.Common.DropDown",
+            "label": "Kubernetes node distro",
+            "defaultValue": "Ubuntu",
+            "toolTip": "Kubernetes node distro.",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "Ubuntu",
+                  "value": "ubuntu"
+                },
+                {
+                  "label": "AKS",
+                  "value": "aks-ubuntu-16.04"
+                }
+              ]
+            },
+            "visible": false
+          },
+          {
+            "name": "servicePrincipalClientId",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Service principal clientId",
+            "defaultValue": null,
+            "toolTip": "The service principal application ID (used by the Kubernetes Azure cloud provider). More help here: https://github.com/Azure/aks-engine/blob/master/docs/topics/service-principals.md",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "servicePrincipalClientSecret",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Service principal client secret",
+            "defaultValue": null,
+            "toolTip": "The service principal client secret.",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "kubernetesAzureCloudProviderRelease",
+            "type": "Microsoft.Common.DropDown",
+            "label": "Kubernetes Release",
+            "defaultValue": "1.14",
+            "toolTip": "This is the release for the Kubernetes Azure cloud provider.",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "1.14",
+                  "value": "1.14"
+                },
+                {
+                  "label": "1.15",
+                  "value": "1.15"
+                }
+              ]
+            },
+            "visible": true
+          },
+          {
+            "name": "aksEngineBaseURL",
+            "type": "Microsoft.Common.TextBox",
+            "label": "AKS Engine URL base",
+            "defaultValue": "https://github.com/Azure/aks-engine/releases/download",
+            "toolTip": "The beginning of the URL for downloading the AKS Engine binary",
+            "constraints": {
+              "required": true
+            },
+            "visible": false
+          },
+          {
+            "name": "aksEngineReleaseVersion",
+            "type": "Microsoft.Common.TextBox",
+            "label": "AKS Engine release version",
+            "defaultValue": "v0.48.0",
+            "toolTip": "The version of AKS Engine to download",
+            "constraints": {
+              "required": true
+            },
+            "visible": false
+          },
+          {
+            "name": "galleryRepository",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Gallery repository",
+            "defaultValue": "msazurestackworkloads/azurestack-gallery",
+            "toolTip": "The name of the repository for the Marketplace Item",
+            "constraints": {
+              "required": true
+            },
+            "visible": false
+          },
+          {
+            "name": "galleryBranch",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Gallery branch",
+            "defaultValue": "master",
+            "toolTip": "The name of the branch of the Gallery repository",
+            "constraints": {
+              "required": true
+            },
+            "visible": false
+          },
+          {
+            "name": "clusterDefinitionFileName",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Cluster definition file name",
+            "defaultValue": "clusterDefinition.json",
+            "toolTip": "The name of the file containing the cluster definition",
+            "constraints": {
+              "required": true
+            },
+            "visible": false
+          },
+          {
+            "name": "enableTillerAddOn",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Flag to enable Tiller addon",
+            "defaultValue": "false",
+            "toolTip": "Flag to enable Tiller addon",
+            "visible": false
+          },
+          {
+            "name": "containerRuntime",
+            "type": "Microsoft.Common.DropDown",
+            "label": "Container runtime",
+            "toolTip": "Container runtime to deploy on each cluster node",
+            "defaultValue": "docker",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "docker",
+                  "value": "docker"
+                },
+                {
+                  "label": "containerd",
+                  "value": "containerd"
+                }
+              ]
+            },
+            "visible": false
+          },
+          {
+            "name": "networkPlugin",
+            "type": "Microsoft.Common.DropDown",
+            "label": "Network Plugin name",
+            "defaultValue": "Kubenet",
+            "toolTip": "Network plugin which will deployed in Kubernetes cluster",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "Flannel",
+                  "value": "flannel"
+                },
+                {
+                  "label": "Azure CNI",
+                  "value": "azure"
+                },
+                {
+                  "label": "Kubenet",
+                  "value": "kubenet"
+                }
+              ]
+            },
+            "visible": false
+          },
+          {
+            "name": "networkPolicy",
+            "type": "Microsoft.Common.DropDown",
+            "label": "Network Policy name",
+            "defaultValue": "",
+            "toolTip": "Network policy which will deployed in Kubernetes cluster",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "default",
+                  "value": ""
+                },
+                {
+                  "label": "Azure CNI",
+                  "value": "azure"
+                }
+              ]
+            },
+            "visible": false
+          },
+          {
+            "name": "availabilityProfile",
+            "type": "Microsoft.Common.DropDown",
+            "label": "Availability profile name",
+            "defaultValue": "Availability Set",
+            "toolTip": "Availability profile that nodes in the Kubernetes cluster will be deployed with",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "Availability Set",
+                  "value": "AvailabilitySet"
+                },
+                {
+                  "label": "Virtual Machine Scale Sets",
+                  "value": "VirtualMachineScaleSets"
+                }
+              ]
+            },
+            "visible": false
+          },
+          {
+            "name": "windowsAgentPoolProfileCount",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Kubernetes Windows node pool profile count",
+            "defaultValue": "0",
+            "toolTip": "The number of Windows agent nodes in Kubernetes cluster.",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "0",
+                  "value": "0"
+                },
+                {
+                  "label": "1",
+                  "value": "1"
+                },
+                {
+                  "label": "2",
+                  "value": "2"
+                },
+                {
+                  "label": "3",
+                  "value": "3"
+                },
+                {
+                  "label": "4",
+                  "value": "4"
+                },
+                {
+                  "label": "5",
+                  "value": "5"
+                },
+                {
+                  "label": "6",
+                  "value": "6"
+                },
+                {
+                  "label": "7",
+                  "value": "7"
+                },
+                {
+                  "label": "8",
+                  "value": "8"
+                },
+                {
+                  "label": "9",
+                  "value": "9"
+                },
+                {
+                  "label": "10",
+                  "value": "10"
+                }
+              ]
+            },
+            "visible": false
+          },
+          {
+            "name": "windowsAgentPoolProfileVMSize",
+            "type": "Microsoft.Common.DropDown",
+            "label": "The virtual machine size of the Kubernetes Windows agent nodes",
+            "defaultValue": "Standard_D2_v2",
+            "toolTip": "The virtual machine size of the Kubernetes Windows agent nodes",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "Standard_D1_v2",
+                  "value": "Standard_D1_v2"
+                },
+                {
+                  "label": "Standard_D2_v2",
+                  "value": "Standard_D2_v2"
+                },
+                {
+                  "label": "Standard_D3_v2",
+                  "value": "Standard_D3_v2"
+                },
+                {
+                  "label": "Standard_D4_v2",
+                  "value": "Standard_D4_v2"
+                },
+                {
+                  "label": "Standard_D5_v2",
+                  "value": "Standard_D5_v2"
+                },
+                {
+                  "label": "Standard_D11_v2",
+                  "value": "Standard_D11_v2"
+                },
+                {
+                  "label": "Standard_D12_v2",
+                  "value": "Standard_D12_v2"
+                },
+                {
+                  "label": "Standard_D13_v2",
+                  "value": "Standard_D13_v2"
+                },
+                {
+                  "label": "Standard_D14_v2",
+                  "value": "Standard_D14_v2"
+                },
+                {
+                  "label": "Standard_DS1_v2",
+                  "value": "Standard_DS1_v2"
+                },
+                {
+                  "label": "Standard_DS2_v2",
+                  "value": "Standard_DS2_v2"
+                },
+                {
+                  "label": "Standard_DS3_v2",
+                  "value": "Standard_DS3_v2"
+                },
+                {
+                  "label": "Standard_DS4_v2",
+                  "value": "Standard_DS4_v2"
+                },
+                {
+                  "label": "Standard_DS5_v2",
+                  "value": "Standard_DS5_v2"
+                },
+                {
+                  "label": "Standard_DS11_v2",
+                  "value": "Standard_DS11_v2"
+                },
+                {
+                  "label": "Standard_DS12_v2",
+                  "value": "Standard_DS12_v2"
+                },
+                {
+                  "label": "Standard_DS13_v2",
+                  "value": "Standard_DS13_v2"
+                },
+                {
+                  "label": "Standard_DS14_v2",
+                  "value": "Standard_DS14_v2"
+                }
+              ]
+            },
+            "visible": false
+          },
+          {
+            "name": "windowsAdminUsername",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Windows VM admin username",
+            "defaultValue": "azureuser",
+            "toolTip": "User name for Windows virtual machines that are part of Kubernetes cluster.",
+            "visible": false
+          },
+          {
+            "name": "windowsAdminPassword",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Windows VM admin password",
+            "defaultValue": "",
+            "toolTip": "Password for Windows virtual machines that are part of Kubernetes cluster.",
+            "visible": false
+          },
+          {
+            "name": "customWindowsPackageURL",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Custom Windows package URL",
+            "defaultValue": "",
+            "toolTip": "Custom Windows K8s zip location which will be used to deploy(kubelet, kubeproxy) on Windows node.",
+            "visible": false
+          },
+          {
+            "name": "localAKSeBinaryURL",
+            "type": "Microsoft.Common.TextBox",
+            "label": "AKS Engine Base URL (Disconnected)",
+            "defaultValue": "",
+            "toolTip": "The local blob URL AKS Engine. See list of supported AKS Engine on Azure Stack here. https://github.com/Azure/aks-engine/blob/master/docs/topics/azure-stack.md",
+            "constraints": {
+              "required": false
+            },
+            "visible": true
+          }
+        ]
+      }
     ],
-    "steps": [{
-      "name": "KubernetesClusterSettings",
-      "label": "Kubernetes Cluster settings",
-      "subLabel": {
-        "preValidation": "Provide Kubernetes Cluster settings.",
-        "postValidation": "Done"
-      },
-      "bladeTitle": "Kubernetes Cluster Settings",
-      "elements": [{
-        "name": "linuxAdminUsername",
-        "type": "Microsoft.Common.TextBox",
-        "label": "Linux VM admin username",
-        "defaultValue": "azureuser",
-        "toolTip": "User name for the Linux Virtual Machines that are part of the Kubernetes cluster and DVM.",
-        "constraints": {
-          "required": true
-        }
-      },
-      {
-        "name": "sshPublicKey",
-        "type": "Microsoft.Compute.CredentialsCombo",
-        "label": {
-          "authenticationType": "Authentication type",
-          "password": "Password",
-          "confirmPassword": "Confirm password",
-          "sshPublicKey": "SSH public key"
-        },
-        "toolTip": {
-          "authenticationType": "Authentication type",
-          "password": "Password",
-          "sshPublicKey": "SSH public key used to connect to virtual Linux machines created as part of the Kubernetes cluster and DVM."
-        }, 
-        "constraints": {
-          "required": true
-        },
-        "options": {
-          "hideConfirmation": false,
-          "hidePassword": true
-        },
-        "osPlatform": "Linux",
-        "visible": true
-      },
-      {
-        "name": "masterProfileDnsPrefix",
-        "type": "Microsoft.Common.TextBox",
-        "label": "Master Profile DNS prefix",
-        "defaultValue": null,
-        "toolTip": "This must be a region-unique name, for example, k8s-12345. A best practice is to use the same prefix for the DNS and region name.",
-        "constraints": {
-          "required": true,
-          "regex": "^[a-z][a-z0-9-]{1,61}[a-z0-9]$",
-          "validationMessage": "DNS prefix is invalid. The prefix must conform to the following regular expression: ^[a-z][a-z0-9-]{1,61}[a-z0-9]$."
-        }
-      },
-      {
-        "name": "masterPoolProfileCount",
-        "type": "Microsoft.Common.DropDown",
-        "label": "Kubernetes master pool profile count",
-        "defaultValue": "3",
-        "toolTip": "The number of master nodes for the Kubernetes cluster. This value should be odd number.",
-        "constraints": {
-          "allowedValues": [{
-              "label": "1",
-              "value": "1"
-            },
-            {
-              "label": "3",
-              "value": "3"
-            },
-            {
-              "label": "5",
-              "value": "5"
-            },
-            {
-              "label": "7",
-              "value": "7"
-            }
-          ]
-        },
-        "visible": true
-      },
-      {
-        "name": "masterPoolProfileVMSize",
-        "type": "Microsoft.Common.DropDown",
-        "label": "The VMSize of Kubernetes master VMs",
-        "defaultValue": "Standard_D2_v2",
-        "toolTip": "The VMSize of Kubernetes master VMs",
-        "constraints": {
-          "allowedValues": [
-            {
-              "label": "Standard_D1_v2",
-              "value": "Standard_D1_v2"
-            },
-            {
-              "label": "Standard_D2_v2",
-              "value": "Standard_D2_v2"
-            },
-            {
-              "label": "Standard_D3_v2",
-              "value": "Standard_D3_v2"
-            },
-            {
-              "label": "Standard_D4_v2",
-              "value": "Standard_D4_v2"
-            },
-            {
-              "label": "Standard_D5_v2",
-              "value": "Standard_D5_v2"
-            },
-            {
-              "label": "Standard_D11_v2",
-              "value": "Standard_D11_v2"
-            },
-            {
-              "label": "Standard_D12_v2",
-              "value": "Standard_D12_v2"
-            },
-            {
-              "label": "Standard_D13_v2",
-              "value": "Standard_D13_v2"
-            },
-            {
-              "label": "Standard_D14_v2",
-              "value": "Standard_D14_v2"
-            },
-            {
-              "label": "Standard_DS1_v2",
-              "value": "Standard_DS1_v2"
-            },
-            {
-              "label": "Standard_DS2_v2",
-              "value": "Standard_DS2_v2"
-            },
-            {
-              "label": "Standard_DS3_v2",
-              "value": "Standard_DS3_v2"
-            },
-            {
-              "label": "Standard_DS4_v2",
-              "value": "Standard_DS4_v2"
-            },
-            {
-              "label": "Standard_DS5_v2",
-              "value": "Standard_DS5_v2"
-            },
-            {
-              "label": "Standard_DS11_v2",
-              "value": "Standard_DS11_v2"
-            },
-            {
-              "label": "Standard_DS12_v2",
-              "value": "Standard_DS12_v2"
-            },
-            {
-              "label": "Standard_DS13_v2",
-              "value": "Standard_DS13_v2"
-            },
-            {
-              "label": "Standard_DS14_v2",
-              "value": "Standard_DS14_v2"
-            }
-          ]
-        },
-        "visible": true
-      },
-      {
-        "name": "agentPoolProfileCount",
-        "type": "Microsoft.Common.DropDown",
-        "label": "Kubernetes node pool profile count",
-        "defaultValue": "3",
-        "toolTip": "The number of agents for the Kubernetes cluster.",
-        "constraints": {
-          "allowedValues": [{
-              "label": "1",
-              "value": "1"
-            },
-            {
-              "label": "2",
-              "value": "2"
-            },
-            {
-              "label": "3",
-              "value": "3"
-            },
-            {
-              "label": "4",
-              "value": "4"
-            },
-            {
-              "label": "5",
-              "value": "5"
-            },
-            {
-              "label": "6",
-              "value": "6"
-            },
-            {
-              "label": "7",
-              "value": "7"
-            }, {
-              "label": "8",
-              "value": "8"
-            },
-            {
-              "label": "9",
-              "value": "9"
-            },
-            {
-              "label": "10",
-              "value": "10"
-            },
-            {
-              "label": "11",
-              "value": "11"
-            }, {
-              "label": "12",
-              "value": "12"
-            },
-            {
-              "label": "13",
-              "value": "13"
-            },
-            {
-              "label": "14",
-              "value": "14"
-            },
-            {
-              "label": "15",
-              "value": "15"
-            },
-            {
-              "label": "16",
-              "value": "16"
-            }
-          ]
-        },
-        "visible": true
-      },
-      {
-        "name": "agentPoolProfileVMSize",
-        "type": "Microsoft.Common.DropDown",
-        "label": "The VMSize of Kubernetes node VMs",
-        "defaultValue": "Standard_D2_v2",
-        "toolTip": "The VMSize of Kubernetes node VMs",
-        "constraints": {
-          "allowedValues": [
-            {
-              "label": "Standard_D1_v2",
-              "value": "Standard_D1_v2"
-            },
-            {
-              "label": "Standard_D2_v2",
-              "value": "Standard_D2_v2"
-            },
-            {
-              "label": "Standard_D3_v2",
-              "value": "Standard_D3_v2"
-            },
-            {
-              "label": "Standard_D4_v2",
-              "value": "Standard_D4_v2"
-            },
-            {
-              "label": "Standard_D5_v2",
-              "value": "Standard_D5_v2"
-            },
-            {
-              "label": "Standard_D11_v2",
-              "value": "Standard_D11_v2"
-            },
-            {
-              "label": "Standard_D12_v2",
-              "value": "Standard_D12_v2"
-            },
-            {
-              "label": "Standard_D13_v2",
-              "value": "Standard_D13_v2"
-            },
-            {
-              "label": "Standard_D14_v2",
-              "value": "Standard_D14_v2"
-            },
-            {
-              "label": "Standard_DS1_v2",
-              "value": "Standard_DS1_v2"
-            },
-            {
-              "label": "Standard_DS2_v2",
-              "value": "Standard_DS2_v2"
-            },
-            {
-              "label": "Standard_DS3_v2",
-              "value": "Standard_DS3_v2"
-            },
-            {
-              "label": "Standard_DS4_v2",
-              "value": "Standard_DS4_v2"
-            },
-            {
-              "label": "Standard_DS5_v2",
-              "value": "Standard_DS5_v2"
-            },
-            {
-              "label": "Standard_DS11_v2",
-              "value": "Standard_DS11_v2"
-            },
-            {
-              "label": "Standard_DS12_v2",
-              "value": "Standard_DS12_v2"
-            },
-            {
-              "label": "Standard_DS13_v2",
-              "value": "Standard_DS13_v2"
-            },
-            {
-              "label": "Standard_DS14_v2",
-              "value": "Standard_DS14_v2"
-            }
-          ]
-        },
-        "visible": true
-      },
-      {
-        "name": "storageProfile",
-        "type": "Microsoft.Common.DropDown",
-        "label": "The Storage Profile",
-        "defaultValue": "Managed disk",
-        "toolTip": "The storage profile of Kubernetes node VMs.",
-        "constraints": {
-          "required": true,
-          "allowedValues": [
-            {
-              "label": "Managed disk",
-              "value": "manageddisk"
-            }
-          ]
-        },
-        "visible": false
-      },
-      {
-        "name": "identitySystem",
-        "type": "Microsoft.Common.DropDown",
-        "label": "Azure Stack identity system",
-        "defaultValue": "AzureAD",
-        "toolTip": "The identity sytem of Azure Stack.",
-        "constraints": {
-          "allowedValues": [{
-              "label": "AzureAD",
-              "value": "AzureAD"
-            },
-            {
-              "label": "ADFS",
-              "value": "ADFS"
-            }
-          ]
-        },
-        "visible": true
-      },
-      {
-        "name": "nodeDistro",
-        "type": "Microsoft.Common.DropDown",
-        "label": "Kubernetes node distro",
-        "defaultValue": "Ubuntu",
-        "toolTip": "Kubernetes node distro.",
-        "constraints": {
-          "allowedValues": [{
-              "label": "Ubuntu",
-              "value": "ubuntu"
-            },
-            {
-              "label": "AKS",
-              "value": "aks"
-            }
-          ]
-        },
-        "visible": false
-      },
-      {
-        "name": "servicePrincipalClientId",
-        "type": "Microsoft.Common.TextBox",
-        "label": "Service principal clientId",
-        "defaultValue": null,
-        "toolTip": "The service principal application ID (used by the Kubernetes Azure cloud provider). More help here: https://github.com/Azure/aks-engine/blob/master/docs/topics/service-principals.md",
-        "constraints": {
-          "required": true
-        }
-      },
-      {
-        "name": "servicePrincipalClientSecret",
-        "type": "Microsoft.Common.TextBox",
-        "label": "Service principal client secret",
-        "defaultValue": null,
-        "toolTip": "The service principal client secret.",
-        "constraints": {
-          "required": true
-        }
-      },
-      {
-        "name": "kubernetesAzureCloudProviderVersion",
-        "type": "Microsoft.Common.DropDown",
-        "label": "Kubernetes version",
-        "defaultValue": "1.12",
-        "toolTip": "This is the version for the Kubernetes Azure cloud provider.",
-        "constraints": {
-          "allowedValues": [
-            {
-              "label": "1.12",
-              "value": "1.12"
-            },
-            {
-              "label": "1.13",
-              "value": "1.13"
-            }
-          ]
-        },
-        "visible": true
-      },
-      {
-        "name": "aksEngineBaseURL",
-        "type": "Microsoft.Common.TextBox",
-        "label": "AKS Engine URL base",
-        "defaultValue": "https://github.com/Azure/aks-engine/releases/download",
-        "toolTip": "The beginning of the URL for downloading the AKS Engine binary",
-        "constraints": {
-          "required": true
-        },
-        "visible": false
-      },
-      {
-        "name": "aksEngineReleaseVersion",
-        "type": "Microsoft.Common.TextBox",
-        "label": "AKS Engine release version",
-        "defaultValue": "v0.37.4",
-        "toolTip": "The version of AKS Engine to download",
-        "constraints": {
-          "required": true
-        },
-        "visible": false
-      },
-      {
-        "name": "galleryRepository",
-        "type": "Microsoft.Common.TextBox",
-        "label": "Gallery repository",
-        "defaultValue": "msazurestackworkloads/azurestack-gallery",
-        "toolTip": "The name of the repository for the Marketplace Item",
-        "constraints": {
-          "required": true
-        },
-        "visible": false
-      },
-      {
-        "name": "galleryBranch",
-        "type": "Microsoft.Common.TextBox",
-        "label": "Gallery branch",
-        "defaultValue": "master",
-        "toolTip": "The name of the branch of the Gallery repository",
-        "constraints": {
-          "required": true
-        },
-        "visible": false
-      },
-      {
-        "name": "clusterDefinitionFileName",
-        "type": "Microsoft.Common.TextBox",
-        "label": "Cluster definition file name",
-        "defaultValue": "clusterDefinition.json",
-        "toolTip": "The name of the file containing the cluster definition",
-        "constraints": {
-          "required": true
-        },
-        "visible": false
-      },
-      {
-        "name": "kubernetesImageBase",
-        "type": "Microsoft.Common.TextBox",
-        "label": "Kubernetes Image Base",
-        "defaultValue": "mcr.microsoft.com/k8s/azurestack/core/",
-        "toolTip": "The base for Kubernetes images",
-        "constraints": {
-          "required": true
-        }, 
-        "visible": false
-      }]
-    }],
     "outputs": {
       "linuxAdminUsername": "[steps('KubernetesClusterSettings').linuxAdminUsername]",
       "sshPublicKey": "[steps('KubernetesClusterSettings').sshPublicKey.sshPublicKey]",
@@ -501,13 +766,23 @@
       "identitySystem": "[steps('KubernetesClusterSettings').identitySystem]",
       "nodeDistro": "[steps('KubernetesClusterSettings').nodeDistro]",
       "servicePrincipalClientSecret": "[steps('KubernetesClusterSettings').servicePrincipalClientSecret]",
-      "kubernetesAzureCloudProviderVersion": "[steps('KubernetesClusterSettings').kubernetesAzureCloudProviderVersion]",
+      "kubernetesAzureCloudProviderRelease": "[steps('KubernetesClusterSettings').kubernetesAzureCloudProviderRelease]",
       "aksEngineBaseURL": "[steps('KubernetesClusterSettings').aksEngineBaseURL]",
       "aksEngineReleaseVersion": "[steps('KubernetesClusterSettings').aksEngineReleaseVersion]",
       "galleryRepository": "[steps('KubernetesClusterSettings').galleryRepository]",
       "galleryBranch": "[steps('KubernetesClusterSettings').galleryBranch]",
       "clusterDefinitionFileName": "[steps('KubernetesClusterSettings').clusterDefinitionFileName]",
-      "kubernetesImageBase": "[steps('KubernetesClusterSettings').kubernetesImageBase]"
+      "networkPlugin": "[steps('KubernetesClusterSettings').networkPlugin]",
+      "networkPolicy": "[steps('KubernetesClusterSettings').networkPolicy]",
+      "enableTillerAddOn": "[steps('KubernetesClusterSettings').enableTillerAddOn]",
+      "containerRuntime": "[steps('KubernetesClusterSettings').containerRuntime]",
+      "availabilityProfile": "[steps('KubernetesClusterSettings').availabilityProfile]",
+      "windowsAgentPoolProfileCount": "[steps('KubernetesClusterSettings').windowsAgentPoolProfileCount]",
+      "windowsAgentPoolProfileVMSize": "[steps('KubernetesClusterSettings').windowsAgentPoolProfileVMSize]",
+      "windowsAdminUsername": "[steps('KubernetesClusterSettings').windowsAdminUsername]",
+      "windowsAdminPassword": "[steps('KubernetesClusterSettings').windowsAdminPassword]",
+      "customWindowsPackageURL": "[steps('KubernetesClusterSettings').customWindowsPackageURL]",
+      "localAKSeBinaryURL": "[steps('KubernetesClusterSettings').localAKSeBinaryURL]"
     }
   }
 }

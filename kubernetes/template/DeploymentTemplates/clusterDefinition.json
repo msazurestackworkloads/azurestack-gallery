@@ -8,7 +8,31 @@
             "kubernetesConfig": {
                 "kubernetesImageBase": "",
                 "useInstanceMetadata": false,
-                "networkPlugin": "flannel"
+                "networkPlugin": "kubenet",
+                "networkPolicy": "",
+                "containerRuntime": "docker",
+                "cloudProviderBackoff": true,
+                "cloudProviderBackoffRetries": 1,
+                "cloudProviderBackoffDuration": 30,
+                "cloudProviderRateLimit": true,
+                "cloudProviderRateLimitQPS": 3,
+                "cloudProviderRateLimitBucket": 10,
+                "cloudProviderRateLimitQPSWrite": 3,
+                "cloudProviderRateLimitBucketWrite": 10,
+                "kubeletConfig": {
+                    "--node-status-update-frequency": "1m"
+                },
+                "controllerManagerConfig": {
+                    "--node-monitor-grace-period": "5m",
+                    "--pod-eviction-timeout": "5m",
+                    "--route-reconciliation-period": "1m"
+                },
+                "addons": [
+                    {
+                        "name": "tiller",
+                        "enabled": false
+                    }
+                ]
             }
         },
         "customCloudProfile": {
@@ -18,20 +42,11 @@
             "dnsPrefix": "",
             "distro": "ubuntu",
             "osDiskSizeGB": 200,
+            "availabilityProfile": "AvailabilitySet",
             "count": 3,
             "vmSize": "Standard_D2_v2"
         },
-        "agentPoolProfiles": [
-            {
-                "name": "linuxpool",
-                "osDiskSizeGB": 200,
-                "count": 3,
-                "vmSize": "Standard_D2_v2",
-                "distro": "ubuntu",
-                "availabilityProfile": "AvailabilitySet",
-                "AcceleratedNetworkingEnabled": false
-            }
-        ],
+        "agentPoolProfiles": [],
         "linuxProfile": {
             "adminUsername": "azureuser",
             "ssh": {
@@ -42,9 +57,14 @@
                 ]
             }
         },
+        "windowsProfile": {
+            "adminUsername": "azureuser",
+            "adminPassword": "",
+            "sshEnabled": true
+        },
         "servicePrincipalProfile": {
             "clientId": "",
             "secret": ""
         }
     }
-} 
+}

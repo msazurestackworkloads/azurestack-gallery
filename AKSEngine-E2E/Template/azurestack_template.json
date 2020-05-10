@@ -4,20 +4,39 @@
     "properties": {
         "orchestratorProfile": {
             "orchestratorType": "Kubernetes",
-            "orchestratorRelease": "1.11",
+            "orchestratorRelease": "",
+            "orchestratorVersion": "",
             "kubernetesConfig": {
+                "cloudProviderBackoff": true,
+                "cloudProviderBackoffRetries": 1,
+                "cloudProviderBackoffDuration": 30,
+                "cloudProviderRateLimit": true,
+                "cloudProviderRateLimitQPS": 3,
+                "cloudProviderRateLimitBucket": 10,
+                "cloudProviderRateLimitQPSWrite": 3,
+                "cloudProviderRateLimitBucketWrite": 10,
                 "kubernetesImageBase": "mcr.microsoft.com/k8s/azurestack/core/",
                 "useInstanceMetadata": false,
-                "networkPlugin": "flannel",
+                "networkPlugin": "kubenet",
+                "kubeletConfig": {
+                    "--node-status-update-frequency": "1m"
+                },
+                "controllerManagerConfig": {
+                    "--node-monitor-grace-period": "5m",
+                    "--pod-eviction-timeout": "5m",
+                    "--route-reconciliation-period": "1m"
+                },
                 "customWindowsPackageURL": ""
             }
         },
         "customCloudProfile": {
-            "portalURL": ""
+            "identitySystem": "",
+            "portalURL": "",
+            "authenticationMethod": ""
         },
         "masterProfile": {
             "dnsPrefix": "",
-            "distro": "ubuntu",
+            "distro": "aks-ubuntu-16.04",
             "osDiskSizeGB": 100,
             "availabilityProfile": "AvailabilitySet",
             "count": 3,

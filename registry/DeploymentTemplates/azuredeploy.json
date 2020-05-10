@@ -1,0 +1,334 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "adminUsername": {
+            "type": "string",
+            "defaultValue": "azureuser",
+            "metadata": {
+                "description": "The linux user name."
+            }
+        },
+        "adminPublicKey": {
+            "type": "string",
+            "metadata": {
+                "description": "User's RSA public key."
+            }
+        },
+        "virtualMachineSize": {
+            "type": "string",
+            "defaultValue": "Standard_F8s_v2",
+            "metadata": {
+                "description": "The VM size."
+            }
+        },
+        "virtualMachinePublisher": {
+            "type": "string",
+            "defaultValue": "microsoft-aks",
+            "metadata": {
+                "description": "The guest OS image publisher."
+            }
+        },
+        "virtualMachineOffer": {
+            "type": "string",
+            "defaultValue": "aks",
+            "metadata": {
+                "description": "The guest OS image offer."
+            }
+        },
+        "virtualMachineSku": {
+            "type": "string",
+            "defaultValue": "aks-ubuntu-1604-201910",
+            "metadata": {
+                "description": "The guest OS image SKU."
+            }
+        },
+        "virtualMachineVersion": {
+            "type": "string",
+            "defaultValue": "latest",
+            "metadata": {
+                "description": "The guest OS image version."
+            }
+        },
+        "pipName": {
+            "type": "string",
+            "metadata": {
+                "description": "The public IP resource name."
+            }
+        },
+        "pipDomainNameLabel": {
+            "type": "string",
+            "metadata": {
+                "description": "The public IP DNS label."
+            }
+        },
+        "pipAllocationMethod": {
+            "type": "string",
+            "defaultValue": "dynamic",
+            "metadata": {
+                "description": "The public IP allocation method."
+            }
+        },
+        "storageAccountResourceId": {
+            "type": "string",
+            "metadata": {
+                "description": "An already existing storage account resource identifier."
+            }
+        },
+        "storageAccountContainer": {
+            "type": "string",
+            "metadata": {
+                "description": "An already existing storage account container name."
+            }
+        },
+        "pfxKeyVaultResourceId": {
+            "type": "string",
+            "metadata": {
+                "description": "The Key Vault resource identifier."
+            }
+        },
+        "pfxKeyVaultSecretUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "Absolute URL to the Key Vault secret that stores the pfx certificate."
+            }
+        },
+        "pfxThumbprint": {
+            "type": "string",
+            "metadata": {
+                "description": "The certificate thumbprint."
+            }
+        },
+        "registryReplicas": {
+            "type": "string",
+            "defaultValue": "20",
+            "metadata": {
+                "description": "Registry replicas."
+            }
+        },
+        "servicePrincipalClientId": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Client ID with access to list and get secrets from the credentials Key Vault instance"
+            }
+        },
+        "servicePrincipalClientSecret": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Secret of the client with access to list and get secrets from the credentials Key Vault instance"
+            }
+        },
+        "enableValidations": {
+            "type": "string",
+            "defaultValue": "false",
+            "metadata": {
+                "description": "Registry validation flag."
+            }
+        }
+    },
+    "variables": {
+        "rgname": "[resourceGroup().name]",
+        "nsgName": "[concat(variables('rgname'), '-nsg')]",
+        "nicName": "[concat(variables('rgname'), '-nic')]",
+        "vnetName": "[concat(variables('rgname'), '-vnet')]",
+        "vnetId": "[resourceId('Microsoft.Network/virtualNetworks',variables('vnetName'))]",
+        "subnetRef": "[concat(variables('vnetId'), '/subnets/default')]",
+        "tenantId": "[subscription().tenantId]",
+        "location": "[resourceGroup().location]",
+        "marketplaceVersion": "1.0.3",
+        "registryTag": "2.7.1",
+        "containerStatusWaitTimeInSeconds": "900",
+        "provisionScriptParameters": "[concat('MARKETPLACE_VERSION=', variables('marketplaceVersion'),' CONTAINER_STATUS_WAIT_TIME=', variables('containerStatusWaitTimeInSeconds'),' ADMIN_USER_NAME=', parameters('adminUsername'),' SA_RESOURCE_ID=', parameters('storageAccountResourceId'),' SA_CONTAINER=', parameters('storageAccountContainer'),' KV_RESOURCE_ID=', parameters('pfxKeyVaultResourceId'),' CERT_THUMBPRINT=', parameters('pfxThumbprint'),' PIP_LABEL=', parameters('pipDomainNameLabel'),' REGISTRY_TAG=', variables('registryTag'),' SPN_CLIENT_ID=',parameters('servicePrincipalClientId'),' SPN_CLIENT_SECRET=',parameters('servicePrincipalClientSecret'),' ENABLE_VALIDATIONS=',parameters('enableValidations'),' REGISTRY_REPLICAS=', parameters('registryReplicas'))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[concat(variables('rgname'),'-vm')]",
+            "apiVersion": "2017-03-30",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "osProfile": {
+                    "computerName": "[concat(variables('rgname'),'-vm')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "customData": "[base64(concat('#cloud-config\n\nwrite_files:\n- path: \"/opt/azure/containers/script.sh\"\n  permissions: \"0744\"\n  encoding: gzip\n  owner: \"root\"\n  content: !!binary |\n    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'))]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": true,
+                        "ssh": {
+                            "publicKeys": [
+                                {
+                                    "path": "[concat('/home/', parameters('adminUsername'), '/.ssh/authorized_keys')]",
+                                    "keyData": "[parameters('adminPublicKey')]"
+                                }
+                            ]
+                        }
+                    },
+                    "secrets": [
+                        {
+                            "sourceVault": {
+                                "id": "[parameters('pfxKeyVaultResourceId')]"
+                            },
+                            "vaultCertificates": [
+                                {
+                                    "certificateUrl": "[parameters('pfxKeyVaultSecretUrl')]"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "hardwareProfile": {
+                    "vmSize": "[parameters('virtualMachineSize')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[parameters('virtualMachinePublisher')]",
+                        "offer": "[parameters('virtualMachineOffer')]",
+                        "sku": "[parameters('virtualMachineSku')]",
+                        "version": "[parameters('virtualMachineVersion')]"
+                    },
+                    "osDisk": {
+                        "createOption": "FromImage",
+                        "diskSizeGB": 30,
+                        "managedDisk": {
+                            "storageAccountType": "Premium_LRS"
+                        }
+                    },
+                    "dataDisks": [
+                    ]
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('nicName'))]"
+                        }
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[concat('Microsoft.Network/networkInterfaces/',variables('nicName'))]"
+            ]
+        },
+        {
+            "apiVersion": "2017-03-30",
+            "dependsOn": [
+                "[concat('Microsoft.Compute/virtualMachines/',variables('rgname'),'-vm')]"
+            ],
+            "location": "[resourceGroup().location]",
+            "name": "[concat(variables('rgname'),'-vm/cse')]",
+            "properties": {
+                "protectedSettings": {
+                    "commandToExecute": "[concat(variables('provisionScriptParameters'),' LOCATION=',variables('location'),' TENANT_ID=',variables('tenantId'),' PIP_FQDN=', '\"', reference(resourceId('Microsoft.Network/publicIPAddresses',parameters('pipName')),'2017-10-01').dnsSettings.fqdn,'\"',' /opt/azure/containers/script.sh >> /var/log/azure/docker-registry.log 2>&1')]"
+                },
+                "publisher": "Microsoft.Azure.Extensions",
+                "settings": {
+                },
+                "type": "CustomScript",
+                "typeHandlerVersion": "2.0",
+                "autoUpgradeMinorVersion": true
+            },
+            "type": "Microsoft.Compute/virtualMachines/extensions"
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[concat(variables('rgname'),'-vnet')]",
+            "apiVersion": "2017-10-01",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "172.16.0.0/24"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "default",
+                        "properties": {
+                            "addressPrefix": "172.16.0.0/24"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('nicName')]",
+            "apiVersion": "2017-10-01",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('subnetRef')]"
+                            },
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIpAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIpAddresses',parameters('pipName'))]"
+                            }
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('nsgName'))]"
+                }
+            },
+            "dependsOn": [
+                "[concat('Microsoft.Network/virtualNetworks/',variables('rgname'),'-vnet')]",
+                "[concat('Microsoft.Network/publicIpAddresses/',parameters('pipName'))]",
+                "[concat('Microsoft.Network/networkSecurityGroups/',variables('nsgName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "sku": {
+                "name": "Basic"
+            },
+            "name": "[parameters('pipName')]",
+            "apiVersion": "2017-10-01",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "publicIpAllocationMethod": "[parameters('pipAllocationMethod')]",
+                "dnsSettings": {
+                    "domainNameLabel": "[parameters('pipDomainNameLabel')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('nsgName')]",
+            "apiVersion": "2017-10-01",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "HTTPS",
+                        "properties": {
+                            "priority": 320,
+                            "protocol": "Tcp",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "sourceApplicationSecurityGroups": [
+                            ],
+                            "destinationApplicationSecurityGroups": [
+                            ],
+                            "sourceAddressPrefix": "*",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "*",
+                            "destinationPortRange": "443"
+                        }
+                    }
+                ]
+            }
+        }
+    ],
+    "outputs": {
+        "adminUsername": {
+            "type": "string",
+            "value": "[parameters('adminUsername')]"
+        },
+        "virtualMachineSku": {
+            "type": "string",
+            "value": "[parameters('virtualMachineSku')]"
+        }
+    }
+}

@@ -1,15 +1,23 @@
-#! /bin/bash -ex
+#!/bin/bash -ex
 
 ERR_APT_INSTALL_TIMEOUT=9           # Timeout installing required apt packages
 ERR_AKSE_DOWNLOAD=10                # Failure downloading AKS-Engine binaries
 ERR_AKSE_DEPLOY=12                  # Failure calling AKS-Engine's deploy operation
 ERR_TEMPLATE_DOWNLOAD=13            # Failure downloading AKS-Engine template
 ERR_INVALID_AGENT_COUNT_VALUE=14    # Both Windows and Linux agent value is zero
+ERR_TEMPLATE_GENERATION=15          # The default api model could not be generated
 ERR_CACERT_INSTALL=20               # Failure moving CA certificate
 ERR_METADATA_ENDPOINT=30            # Failure calling the metadata endpoint
 ERR_API_MODEL=40                    # Failure building API model using user input
 ERR_AZS_CLOUD_REGISTER=50           # Failure calling az cloud register
 ERR_APT_UPDATE_TIMEOUT=99           # Timeout waiting for apt-get update to complete
+#ERR_AKSE_GENERATE=11 # Failure calling AKS-Engine's generate operation
+#ERR_MS_GPG_KEY_DOWNLOAD_TIMEOUT=26 # Timeout waiting for Microsoft's GPG key download
+#ERR_AZS_CLOUD_ENVIRONMENT=51 # Failure setting az cloud environment
+#ERR_AZS_CLOUD_PROFILE=52 # Failure setting az cloud profile
+#ERR_AZS_LOGIN_AAD=53 # Failure to log in to AAD environment
+#ERR_AZS_LOGIN_ADFS=54 # Failure to log in to ADFS environment
+#ERR_AZS_ACCOUNT_SUB=55 # Failure setting account default subscription
 
 ###
 #   <summary>
@@ -35,6 +43,29 @@ log_level()
     esac
 }
 
+apt_get_install()
+{
+    retries=$1; wait_sleep=$2; timeout=$3;
+    shift && shift && shift
+    
+    for i in $(seq 1 $retries); do
+        wait_for_apt_locks
+        dpkg --configure -a
+        apt-get install --no-install-recommends -y ${@}
+        [ $? -eq 0  ] && break || \
+        if [ $i -eq $retries ]; then
+            return 1
+        else
+            sleep $wait_sleep
+            apt_get_update
+        fi
+    done
+    
+    echo "Executed apt-get install --no-install-recommends -y \"$@\" $i times";
+    wait_for_apt_locks
+}
+
+
 ###
 #   <summary>
 #       Retry given command by given number of times in case we have hit any failure.
@@ -55,6 +86,42 @@ retrycmd_if_failure()
     done;
     log_level -i "Command Executed $i times.";
 }
+
+wait_for_apt_locks()
+{
+    while fuser /var/lib/dpkg/lock /var/lib/apt/lists/lock /var/cache/apt/archives/lock >/dev/null 2>&1; do
+        echo 'Waiting for release of apt locks'
+        sleep 3
+    done
+}
+
+# Avoid transcient apt-update failures
+# Function taken from the AKSe's code based
+apt_get_update()
+{
+    log_level -i "Updating apt cache."
+    
+    retries=10
+    apt_update_output=/tmp/apt-get-update.out
+    
+    for i in $(seq 1 $retries); do
+        wait_for_apt_locks
+        dpkg --configure -a
+        apt-get -f -y install
+        apt-get update 2>&1 | tee $apt_update_output | grep -E "^([WE]:.*)|([eE]rr.*)$"
+        [ $? -ne 0  ] && cat $apt_update_output && break || \
+        cat $apt_update_output
+        if [ $i -eq $retries ]; then
+            return 1
+        else
+            sleep 30
+        fi
+    done
+    
+    echo "Executed apt-get update $i time/s"
+    wait_for_apt_locks
+}
+
 
 ###
 #   <summary>
@@ -156,6 +223,7 @@ log_level -i "AKSENGINE_UPGRADE_VERSION:                $AKSENGINE_UPGRADE_VERSI
 log_level -i "AVAILABILITY_PROFILE:                     $AVAILABILITY_PROFILE"
 log_level -i "IDENTITY_SYSTEM:                          $IDENTITY_SYSTEM"
 log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:          $K8S_AZURE_CLOUDPROVIDER_VERSION"
+log_level -i "K8S_AZURE_CLOUDPROVIDER_RELEASE:          $K8S_AZURE_CLOUDPROVIDER_RELEASE"
 log_level -i "MASTER_COUNT:                             $MASTER_COUNT"
 log_level -i "MASTER_DNS_PREFIX:                        $MASTER_DNS_PREFIX"
 log_level -i "MASTER_SIZE:                              $MASTER_SIZE"
@@ -173,13 +241,32 @@ log_level -i "WINDOWS_ADMIN_USERNAME:                   $WINDOWS_ADMIN_USERNAME"
 log_level -i "WINDOWS_AGENT_COUNT:                      $WINDOWS_AGENT_COUNT"
 log_level -i "WINDOWS_AGENT_SIZE:                       $WINDOWS_AGENT_SIZE"
 
+if [[ "$K8S_AZURE_CLOUDPROVIDER_VERSION" == "" ]]; then 
+    if [[ "$K8S_AZURE_CLOUDPROVIDER_RELEASE" == "1.14" ]]; then
+        K8S_AZURE_CLOUDPROVIDER_VERSION="1.14.7"
+    else
+        K8S_AZURE_CLOUDPROVIDER_VERSION="1.15.10"
+    fi
+fi
 
 #####################################################################################
 # Install pre-requisites
 
-retrycmd_if_failure 5 10 sudo apt-get update -y
-PACKAGES="make pax jq curl apt-transport-https lsb-release software-properties-common dirmngr gnupg"
-retrycmd_if_failure 5 10 sudo apt-get install ${PACKAGES} -y
+log_level -i "Updating apt cache."
+apt_get_update || exit $ERR_APT_UPDATE_TIMEOUT
+
+log_level -i "Installing azure-cli and dependencies."
+apt_get_install 30 1 600  \
+make \
+pax \
+jq \
+curl \
+apt-transport-https \
+lsb-release \
+software-properties-common \
+dirmngr \
+gnupg \
+|| exit $ERR_APT_INSTALL_TIMEOUT
 
 ####################################################################################
 #Section to install Azure CLI.
@@ -317,7 +404,7 @@ IDENTITY_SYSTEM_LOWER=`echo "$IDENTITY_SYSTEM" | tr '[:upper:]' '[:lower:]'`
 #####################################################################################
 # Section to generate ARM template using AKS Engine, login using Azure CLI and deploy the template.
 # https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-version-profiles-azurecli2#connect-to-azure-stack
-HYBRID_PROFILE=2018-03-01-hybrid
+HYBRID_PROFILE=2019-03-01-hybrid
 log_level -i "Register to AzureStack cloud using below command."
 retrycmd_if_failure 5 10 az cloud register -n $ENVIRONMENT_NAME --endpoint-resource-manager $TENANT_ENDPOINT --suffix-storage-endpoint $SUFFIXES_STORAGE_ENDPOINT --suffix-keyvault-dns $SUFFIXES_KEYVAULT_DNS --endpoint-active-directory-resource-id $ENDPOINT_ACTIVE_DIRECTORY_RESOURCEID --endpoint-active-directory $ENDPOINT_ACTIVE_DIRECTORY_ENDPOINT --endpoint-active-directory-graph-resource-id $ENDPOINT_GRAPH_ENDPOINT
 log_level -i "Set Azure stack environment."
@@ -341,7 +428,8 @@ jq --arg SSH_PUBLICKEY "${SSH_PUBLICKEY}" '.properties.linuxProfile.ssh.publicKe
 jq --arg AUTHENTICATION_METHOD $AUTHENTICATION_METHOD '.properties.customCloudProfile.authenticationMethod = $AUTHENTICATION_METHOD' | \
 jq --arg SPN_CLIENT_ID $SPN_CLIENT_ID '.properties.servicePrincipalProfile.clientId = $SPN_CLIENT_ID' | \
 jq --arg SPN_CLIENT_SECRET $SPN_CLIENT_SECRET '.properties.servicePrincipalProfile.secret = $SPN_CLIENT_SECRET' | \
-jq --arg K8S_VERSION $K8S_AZURE_CLOUDPROVIDER_VERSION '.properties.orchestratorProfile.orchestratorRelease=$K8S_VERSION' | \
+jq --arg K8S_RELEASE $K8S_AZURE_CLOUDPROVIDER_RELEASE '.properties.orchestratorProfile.orchestratorRelease=$K8S_RELEASE' | \
+jq --arg K8S_VERSION $K8S_AZURE_CLOUDPROVIDER_VERSION '.properties.orchestratorProfile.orchestratorVersion=$K8S_VERSION' | \
 jq --arg NETWORK_PLUGIN $NETWORK_PLUGIN '.properties.orchestratorProfile.kubernetesConfig.networkPlugin=$NETWORK_PLUGIN' \
 > $AZURESTACK_CONFIGURATION_TEMP
 
@@ -356,7 +444,7 @@ if [ "$AGENT_COUNT" != "0" ]; then
     jq --arg linuxAgentCount $AGENT_COUNT \
     --arg linuxAgentSize $AGENT_SIZE \
     --arg linuxAvailabilityProfile $AVAILABILITY_PROFILE \
-    --arg NODE_DISTRO "ubuntu" \
+    --arg NODE_DISTRO "aks-ubuntu-16.04" \
     '.properties.agentPoolProfiles += [{"name": "linuxpool", "osDiskSizeGB": 100, "AcceleratedNetworkingEnabled": false, "distro": $NODE_DISTRO, "count": $linuxAgentCount | tonumber, "vmSize": $linuxAgentSize, "availabilityProfile": $linuxAvailabilityProfile}]' \
     > $AZURESTACK_CONFIGURATION_TEMP
     
@@ -482,6 +570,7 @@ log_level -i "SSH_KEY_NAME: $SSH_KEY_NAME"
 log_level -i "STORAGE_ENDPOINT_SUFFIX: $STORAGE_ENDPOINT_SUFFIX"
 log_level -i "SUBSCRIPTION_ID: $SUBSCRIPTION_ID"
 log_level -i "TENANT_ID: $TENANT_ID"
+log_level -i "K8S_AZURE_CLOUDPROVIDER_VERSION:          $K8S_AZURE_CLOUDPROVIDER_VERSION"
 log_level -i "------------------------------------------------------------------------"
 
 make test-kubernetes &> deploy_test_results

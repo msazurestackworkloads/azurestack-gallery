@@ -1,0 +1,8 @@
+{
+    "displayName": "Container Registry Template",
+    "publisherDisplayName": "Microsoft",
+    "summary": "Deploy and manage a Docker private registry",
+    "longSummary": "Deploy and manage a Docker private registry",
+    "description": "<p>Deploy and manage a Docker private registry</p><p>Container Registry Template is a solution template that deploys and configures a Docker private registry for hosting container images in an Ubuntu VM image. Using the Container Registry Template, you can store and distribute Docker-formatted images for all types of container deployments. Users can benefit from using familiar tooling capable of working with the open source Docker Registry v2.  This solution template requires the AKS Base Image for deployment.</p><p>Use Container Registry Template to:</p><ul><li>Store and manage container images across all types of Azure deployments</li><li>Use familiar, open-source Docker command line interface (CLI) tools</li><li>Keep container images near deployments to reduce latency and costs in connected and air-gapped deployments</li><ul>",
+    "link1": "Terms of Use"
+}

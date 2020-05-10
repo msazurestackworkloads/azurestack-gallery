@@ -1,75 +1,159 @@
 #!/bin/bash
 
-function restore_ssh_config
+validateKeys()
 {
-    # Restore only if previously backed up
-    if [[ -v SSH_CONFIG_BAK ]]; then
-        if [ -f $SSH_CONFIG_BAK ]; then
-            rm ~/.ssh/config
-            mv $SSH_CONFIG_BAK ~/.ssh/config
-        fi
-    fi
+    host=$1
+    flags=$2
     
-    # Restore only if previously backed up
-    if [[ -v SSH_KEY_BAK ]]; then
-        if [ -f $SSH_KEY_BAK ]; then
-            rm ~/.ssh/id_rsa
-            mv $SSH_KEY_BAK ~/.ssh/id_rsa
-            # Remove if empty
-            if [ -a ~/.ssh/id_rsa -a ! -s ~/.ssh/id_rsa ]; then
-                rm ~/.ssh/id_rsa
-            fi
-        fi
+    ssh ${flags} ${USER}@${host} "exit"
+    
+    if [ $? -ne 0 ]; then
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to host ${host}"
+        exit 1
     fi
 }
 
-# Restorey SSH config file always, even if the script ends with an error
-trap restore_ssh_config EXIT
-
-function download_scripts
+validateResourceGroup()
 {
-    ARTIFACTSURL=$1
-    mkdir -p $SCRIPTSFOLDER
-    
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Pulling dependencies from this repo: $ARTIFACTSURL"
-    
-    for script in common detectors collectlogs collectlogsdvm hosts
-    do
-        if [ -f $SCRIPTSFOLDER/$script.sh ]; then
-            echo "[$(date +%Y%m%d%H%M%S)][INFO] Dependency '$script.sh' already in local file system"
-        fi
-        
-        curl -fs $ARTIFACTSURL/diagnosis/$script.sh -o $SCRIPTSFOLDER/$script.sh
-        
-        if [ ! -f $SCRIPTSFOLDER/$script.sh ]; then
-            echo "[$(date +%Y%m%d%H%M%S)][ERROR] Required script not available. URL: $ARTIFACTSURL/diagnosis/$script.sh"
-            echo "[$(date +%Y%m%d%H%M%S)][ERROR] You may be running an older version. Download the latest script from github: https://aka.ms/AzsK8sLogCollectorScript"
-            exit 1
-        fi
-    done
+    LOCATION=$(az group show -n ${RESOURCE_GROUP} --query location --output tsv)
+    if [ $? -ne 0 ]; then
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] Specified resource group ${RESOURCE_GROUP} not found in current subscription."
+        exit 1
+    fi
 }
 
-function printUsage
+checkRequirements()
 {
+    if ! command -v az &> /dev/null; then
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] azure-cli not available, please install and configure following this indications: https://docs.microsoft.com/azure-stack/user/azure-stack-version-profiles-azurecli2"
+        exit 1
+    fi
+}
+
+copyLogsToSADirectory()
+{
+    az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{host:name,akse:tags.aksEngineVersion}" --output table | grep 'k8s-' > ${SA_DIR}/akse-version.txt
+    
+    cp ${LOGFILEFOLDER}/k8s-*.zip ${SA_DIR}
+    cp ${LOGFILEFOLDER}/vmd-*.zip ${SA_DIR}
+    cp ${LOGFILEFOLDER}/cluster-snapshot.zip ${SA_DIR}
+    cp ${LOGFILEFOLDER}/resources/* ${SA_DIR}
+    
+    if [ -n "$API_MODEL" ]
+    then
+        cp ${API_MODEL} ${SA_DIR}
+    fi
+}
+
+deleteSADirectory()
+{
+    rm -rf ${LOGFILEFOLDER}/data
+}
+
+createSADirectories()
+{
+    local SA_DIR_DATE=$(echo $NOW | head -c 8)
+    local SA_DIR_HOUR=$(echo $NOW | tail -c 7 | head -c 2)
+    local SA_DIR_MIN=$(echo $NOW | tail -c 5 | head -c 2)
+    SA_CONTAINER_DIR="data/d=${SA_DIR_DATE}/h=${SA_DIR_HOUR}/m=${SA_DIR_MIN}"
+    SA_DIR="${LOGFILEFOLDER}/${SA_CONTAINER_DIR}"
+    mkdir -p ${SA_DIR}
+}
+
+ensureResourceGroup()
+{
+    SA_RESOURCE_GROUP="KubernetesLogs"
+    
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Ensuring resource group: ${SA_RESOURCE_GROUP}"
+    az group create -n ${SA_RESOURCE_GROUP} -l ${LOCATION} 1> /dev/null
+    if [ $? -ne 0 ]; then
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] Error ensuring resource group ${SA_RESOURCE_GROUP}"
+        exit 1
+    fi
+}
+
+ensureStorageAccount()
+{
+    SA_NAME="diagnostics"
+    
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Ensuring storage account: ${SA_NAME}"
+    az storage account create --name ${SA_NAME} --resource-group ${SA_RESOURCE_GROUP} --location ${LOCATION} --sku Premium_LRS --https-only true 1> /dev/null
+    if [ $? -ne 0 ]; then
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] Error ensuring storage account ${SA_NAME}"
+        exit 1
+    fi
+}
+
+ensureStorageAccountContainer()
+{
+    SA_CONTAINER="kuberneteslogs"
+    
+    echo "$(date +%Y%m%d%H%M%S)][INFO] Ensuring storage account container: ${SA_CONTAINER}"
+    az storage container create --name ${SA_CONTAINER} --account-name ${SA_NAME}
+    if [ $? -ne 0 ]; then
+        echo "$(date +%Y%m%d%H%M%S)][ERR] Error ensuring storage account container ${SA_CONTAINER}"
+        exit 1
+    fi
+}
+
+uploadLogs()
+{
+    echo "$(date +%Y%m%d%H%M%S)][INFO] Uploading log files to container: ${SA_CONTAINER}"
+    az storage blob upload-batch -d ${SA_CONTAINER} -s ${SA_DIR} --destination-path ${SA_CONTAINER_DIR} --account-name ${SA_NAME}
+    if [ $? -ne 0 ]; then
+        echo "$(date +%Y%m%d%H%M%S)][ERR] Error uploading log files to container ${SA_CONTAINER}"
+        exit 1
+    fi
+}
+
+processHost()
+{
+    host=$1
+    
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host ${host}"
+    scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" collectlogs.sh ${USER}@${host}:/home/${USER}/collectlogs.sh
+    ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "sudo chmod 744 collectlogs.sh; ./collectlogs.sh ${NAMESPACES};"
+    scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host}:/home/${USER}/${host}.zip ${LOGFILEFOLDER}/${host}.zip
+    ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "rm -f collectlogs.sh ${host}.zip"
+}
+
+processDvmHost()
+{
+    host=$1
+    
+    DVM_NAME=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep 'vmd-' | cut -f 1 )
+    
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing dvm-host ${host}"
+    scp ${SCP_FLAGS} collectlogs.sh ${USER}@${host}:/home/${USER}/collectlogs.sh
+    ssh ${SSH_FLAGS} ${USER}@${host} "sudo chmod 744 collectlogs.sh; ./collectlogs.sh ${NAMESPACES};"
+    scp ${SCP_FLAGS} ${USER}@${host}:/home/${USER}/${DVM_NAME}.zip ${LOGFILEFOLDER}/${DVM_NAME}.zip
+    ssh ${SSH_FLAGS} ${USER}@${host} "rm -f collectlogs.sh ${DVM_NAME}.zip"
+}
+
+printUsage()
+{
+    echo "$0 collects diagnostics from Kubernetes clusters provisioned by AKS Engine"
     echo ""
     echo "Usage:"
-    echo "  $0 -i id_rsa -m 192.168.102.34 -u azureuser -n default -n monitoring --disable-host-key-checking"
-    echo "  $0 --identity-file id_rsa --user azureuser --vmd-host 192.168.102.32"
-    echo "  $0 --identity-file id_rsa --master-host 192.168.102.34 --user azureuser --vmd-host 192.168.102.32"
-    echo "  $0 --identity-file id_rsa --master-host 192.168.102.34 --user azureuser --vmd-host 192.168.102.32"
+    echo "  $0 [flags]"
     echo ""
-    echo "Options:"
-    echo "  -u, --user                      User name associated to the identifity-file"
-    echo "  -i, --identity-file             RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')"
-    echo "  -m, --master-host               A master node's public IP or FQDN (host name starts with 'k8s-master-')"
-    echo "  -d, --vmd-host                  The DVM's public IP or FQDN (host name starts with 'vmd-')"
-    echo "  -n, --user-namespace            Collect logs for containers in the passed namespace (kube-system logs are always collected)"
-    echo "  --all-namespaces                Collect logs for all containers. Overrides the user-namespace flag"
-    echo "  --disable-host-key-checking     Sets SSH StrictHostKeyChecking option to \"no\" while the script executes. Use only when building automation in a save environment."
-    echo "  -h, --help                      Print the command usage"
+    echo "Flags:"
+    echo "  -u, --user                        The administrator username for the cluster VMs"
+    echo "  -i, --identity-file               RSA private key tied to the public key used to create the Kubernetes cluster (usually named 'id_rsa')"
+    echo "  -g, --resource-group              Kubernetes cluster resource group"
+    echo "      --api-model                   AKS Engine Kubernetes cluster definition json file"
+    echo "      --upload-logs                 Persists retrieved logs in an Azure Stack storage account"
+    echo "      --disable-host-key-checking   Sets SSH's StrictHostKeyChecking option to \"no\" while the script executes. Only use in a safe environment."
+    echo "  -h, --help                        Print script usage"
+    echo ""
+    echo "Examples:"
+    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg --disable-host-key-checking"
+    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg -n default -n monitoring"
+    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg --upload-logs --api-model clusterDefinition.json"
+    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg --upload-logs"
+    
     exit 1
 }
-
 
 if [ "$#" -eq 0 ]
 then
@@ -77,9 +161,7 @@ then
 fi
 
 NAMESPACES="kube-system"
-ALLNAMESPACES=1
-# Revert once CI passes the new flag => STRICT_HOST_KEY_CHECKING="ask"
-STRICT_HOST_KEY_CHECKING="no"
+UPLOAD_LOGS="false"
 
 # Handle named parameters
 while [[ "$#" -gt 0 ]]
@@ -89,28 +171,24 @@ do
             IDENTITYFILE="$2"
             shift 2
         ;;
-        -m|--master-host)
-            MASTER_HOST="$2"
-            shift 2
-        ;;
-        -d|--vmd-host)
-            DVM_HOST="$2"
-            shift 2
-        ;;
         -u|--user)
             USER="$2"
             shift 2
         ;;
-        -n|--user-namespace)
-            NAMESPACES="$NAMESPACES $2"
+        -g|--resource-group)
+            RESOURCE_GROUP="$2"
             shift 2
         ;;
-        --all-namespaces)
-            ALLNAMESPACES=0
+        --api-model)
+            API_MODEL="$2"
+            shift 2
+        ;;
+        --upload-logs)
+            UPLOAD_LOGS="true"
             shift
         ;;
         --disable-host-key-checking)
-            STRICT_HOST_KEY_CHECKING="no"
+            KNOWN_HOSTS_OPTIONS='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR'
             shift
         ;;
         -h|--help)
@@ -118,7 +196,7 @@ do
         ;;
         *)
             echo ""
-            echo "[ERR] Incorrect option $1"
+            echo "[ERR] Unexpected flag $1"
             printUsage
         ;;
     esac
@@ -139,135 +217,102 @@ then
     printUsage
 fi
 
-if [ -z "$DVM_HOST" -a -z "$MASTER_HOST" ]
-then
-    echo ""
-    echo "[ERR] Either --vmd-host or --master-host should be provided"
-    printUsage
-fi
-
 if [ ! -f $IDENTITYFILE ]
 then
     echo ""
-    echo "[ERR] identity-file not found at $IDENTITYFILE"
+    echo "[ERR] identity-file $IDENTITYFILE not found"
     printUsage
     exit 1
 else
     cat $IDENTITYFILE | grep -q "BEGIN \(RSA\|OPENSSH\) PRIVATE KEY" \
-    || { echo "The identity file $IDENTITYFILE is not a RSA Private Key file."; echo "A RSA private key file starts with '-----BEGIN [RSA|OPENSSH] PRIVATE KEY-----''"; exit 1; }
+    || { echo "Provided identity file $IDENTITYFILE is not a RSA Private Key file."; echo "A RSA private key starts with '-----BEGIN [RSA|OPENSSH] PRIVATE KEY-----''"; exit 1; }
 fi
 
-test $ALLNAMESPACES -eq 0 && unset NAMESPACES
-
-# Print user input
-echo ""
-echo "user:             $USER"
-echo "identity-file:    $IDENTITYFILE"
-echo "master-host:      $MASTER_HOST"
-echo "vmd-host:         $DVM_HOST"
-echo "namespaces:       ${NAMESPACES:-all}"
-echo ""
-
-NOW=`date +%Y%m%d%H%M%S`
-CURRENTDATE=$(date +"%Y-%m-%d-%H-%M-%S-%3N")
-LOGFILEFOLDER="./KubernetesLogs_$CURRENTDATE"
-SCRIPTSFOLDER="$LOGFILEFOLDER/scripts"
-mkdir -p $LOGFILEFOLDER/scripts
-mkdir -p ~/.ssh
-
-# Download scripts from github
-ARTIFACTSURL="${ARTIFACTSURL:-https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master}"
-download_scripts $ARTIFACTSURL
-
-# Backup .ssh/config
-SSH_CONFIG_BAK=~/.ssh/config.$NOW
-if [ ! -f ~/.ssh/config ]; then touch ~/.ssh/config; fi
-mv ~/.ssh/config $SSH_CONFIG_BAK;
-
-# Backup .ssh/id_rsa
-SSH_KEY_BAK=~/.ssh/id_rsa.$NOW
-if [ ! -f ~/.ssh/id_rsa ]; then touch ~/.ssh/id_rsa; fi
-mv ~/.ssh/id_rsa $SSH_KEY_BAK;
-cp $IDENTITYFILE ~/.ssh/id_rsa
-
-echo "Host *" >> ~/.ssh/config
-echo "    StrictHostKeyChecking $STRICT_HOST_KEY_CHECKING" >> ~/.ssh/config
-echo "    UserKnownHostsFile /dev/null" >> ~/.ssh/config
-echo "    LogLevel ERROR" >> ~/.ssh/config
-
-echo "[$(date +%Y%m%d%H%M%S)][INFO] Testing SSH keys"
-TEST_HOST="${MASTER_HOST:-$DVM_HOST}"
-ssh -q $USER@$TEST_HOST "exit"
-
-if [ $? -ne 0 ]; then
-    echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to the server"
-    echo "[$(date +%Y%m%d%H%M%S)][ERR] Aborting log collection process"
+if [ -z "$RESOURCE_GROUP" ]
+then
+    echo ""
+    echo "[ERR] --resource-group is required"
+    printUsage
     exit 1
 fi
 
-if [ -n "$MASTER_HOST" ]
+if [ -n "$API_MODEL" ]
 then
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect cluster logs"
-    
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Looking for cluster hosts"
-    scp -q $SCRIPTSFOLDER/hosts.sh $USER@$MASTER_HOST:/home/$USER/hosts.sh
-    ssh -tq $USER@$MASTER_HOST "sudo chmod 744 hosts.sh; ./hosts.sh $NOW"
-    scp -q $USER@$MASTER_HOST:"/home/$USER/cluster-info.$NOW" $LOGFILEFOLDER/cluster-info.tar.gz
-    ssh -tq $USER@$MASTER_HOST "sudo rm -f cluster-info.$NOW hosts.sh"
-    tar -xzf $LOGFILEFOLDER/cluster-info.tar.gz -C $LOGFILEFOLDER
-    rm $LOGFILEFOLDER/cluster-info.tar.gz
-    
-    # Configure SSH bastion host. Technically only needed for worker nodes.
-    for host in $(cat $LOGFILEFOLDER/host.list)
-    do
-        # https://en.wikibooks.org/wiki/OpenSSH/Cookbook/Proxies_and_Jump_Hosts#Passing_Through_One_or_More_Gateways_Using_ProxyJump
-        echo "Host $host" >> ~/.ssh/config
-        echo "    ProxyJump $USER@$MASTER_HOST" >> ~/.ssh/config
-    done
-    
-    for host in $(cat $LOGFILEFOLDER/host.list)
-    do
-        echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host $host"
-        
-        echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
-        scp -q -r $SCRIPTSFOLDER/*.sh $USER@$host:/home/$USER/
-        ssh -q -t $USER@$host "sudo chmod 744 common.sh detectors.sh collectlogs.sh; ./collectlogs.sh $NAMESPACES;"
-        
-        echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
-        scp -q $USER@$host:"/home/$USER/kube_logs.tar.gz" $LOGFILEFOLDER/kube_logs.tar.gz
-        tar -xzf $LOGFILEFOLDER/kube_logs.tar.gz -C $LOGFILEFOLDER
-        rm $LOGFILEFOLDER/kube_logs.tar.gz
-        
-        # Removing temp files from node
-        ssh -q -t $USER@$host "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh kube_logs.tar.gz"
-    done
-    
-    rm $LOGFILEFOLDER/host.list
+    if [ -n  "$(grep -e secret -e "BEGIN CERTIFICATE" -e "BEGIN RSA PRIVATE KEY" $API_MODEL)" ] || [ -n "$(grep -Po '"secret": *\K"[^"]*"' $API_MODEL | sed -e 's/^"//' -e 's/"$//')" ]
+    then
+        echo "[ERR] --api-model contains sensitive information (secrets or certificates); please remove it before running the tool"
+        exit 1
+    fi
 fi
+
+# Print user input
+echo ""
+echo "user:                    $USER"
+echo "identity-file:           $IDENTITYFILE"
+echo "resource-group:          $RESOURCE_GROUP"
+echo "upload-logs:             $UPLOAD_LOGS"
+echo ""
+
+NOW=`date +%Y%m%d%H%M%S`
+LOGFILEFOLDER="_output/${RESOURCE_GROUP}-${NOW}"
+mkdir -p $LOGFILEFOLDER
+
+SSH_FLAGS="-q -t -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS}"
+SCP_FLAGS="-q -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS}"
+
+checkRequirements
+validateResourceGroup
+
+# DVM
+DVM_HOST=$(az network public-ip list -g ${RESOURCE_GROUP} --query "[*].{Name:name,ip:ipAddress}" --output tsv | grep 'vmd-' | head -n 1 | cut -f 2)
 
 if [ -n "$DVM_HOST" ]
 then
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] About to collect VMD logs"
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Checking connectivity with DVM host"
+    validateKeys ${DVM_HOST} "${SSH_FLAGS}"
     
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading scripts"
-    scp -q -r $SCRIPTSFOLDER/*.sh $USER@$DVM_HOST:/home/$USER/
-    ssh -q -t $USER@$DVM_HOST "sudo chmod 744 common.sh detectors.sh collectlogsdvm.sh; ./collectlogsdvm.sh;"
-    
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Downloading logs"
-    scp -q $USER@$DVM_HOST:"/home/$USER/dvm_logs.tar.gz" $LOGFILEFOLDER/dvm_logs.tar.gz
-    tar -xzf $LOGFILEFOLDER/dvm_logs.tar.gz -C $LOGFILEFOLDER
-    rm $LOGFILEFOLDER/dvm_logs.tar.gz
-    
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Removing temp files from DVM"
-    ssh -q -t $USER@$DVM_HOST "rm -f common.sh detectors.sh collectlogs.sh collectlogsdvm.sh dvm_logs.tar.gz"
+    processDvmHost ${DVM_HOST}
 fi
 
-# Aggregate ERRORS.txt
-if [ `find $LOGFILEFOLDER -name ERRORS.txt | wc -w` -ne "0" ];
+# CLUSTER NODES
+MASTER_IP=$(az network public-ip list -g ${RESOURCE_GROUP} --query "[*].{Name:name,ip:ipAddress}" --output tsv | grep 'k8s-master' | cut -f 2)
+if [ $? -ne 0 ]; then
+    echo "[$(date +%Y%m%d%H%M%S)][ERR] Error fetching the master nodes' load balancer IP"
+    exit 1
+fi
+
+echo "[$(date +%Y%m%d%H%M%S)][INFO] Checking connectivity with cluster nodes"
+validateKeys ${MASTER_IP} "${SSH_FLAGS}"
+
+if [ -n "$MASTER_IP" ]
 then
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Known issues found. Details: $LOGFILEFOLDER/ALL_ERRORS.txt"
-    cat $LOGFILEFOLDER/*/ERRORS.txt &> $LOGFILEFOLDER/ALL_ERRORS.txt
+    scp ${SCP_FLAGS} hosts.sh ${USER}@${MASTER_IP}:/home/${USER}/hosts.sh
+    ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo chmod 744 hosts.sh; ./hosts.sh"
+    scp ${SCP_FLAGS} ${USER}@${MASTER_IP}:/home/${USER}/cluster-snapshot.zip ${LOGFILEFOLDER}/cluster-snapshot.zip
+    ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo rm -f cluster-snapshot.zip hosts.sh"
+    
+    CLUSTER_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep 'k8s-' | cut -f 1)
+    PROXY_CMD="ssh -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS} ${USER}@${MASTER_IP} -W %h:%p"
+    
+    for host in ${CLUSTER_NODES}
+    do
+        processHost ${host}
+    done
 fi
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO] Done collecting Kubernetes logs"
-echo "[$(date +%Y%m%d%H%M%S)][INFO] Logs can be found in this location: $LOGFILEFOLDER"
+mkdir -p $LOGFILEFOLDER/resources
+az network vnet list -g ${RESOURCE_GROUP} > ${LOGFILEFOLDER}/resources/vnets.json
+
+# UPLOAD
+if [ "$UPLOAD_LOGS" == "true" ]; then
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing logs"
+    createSADirectories
+    copyLogsToSADirectory
+    ensureResourceGroup
+    ensureStorageAccount
+    ensureStorageAccountContainer
+    uploadLogs
+    deleteSADirectory
+fi
+
+echo "[$(date +%Y%m%d%H%M%S)][INFO] Logs can be found here: $LOGFILEFOLDER"

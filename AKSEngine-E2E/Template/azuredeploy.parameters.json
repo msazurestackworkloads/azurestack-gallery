@@ -35,6 +35,9 @@
     "kubernetesAzureCloudProviderVersion": {
       "value": ""
     },
+    "kubernetesAzureCloudProviderRelease": {
+      "value": ""
+    },
     "identitySystem": {
       "value": ""
     },

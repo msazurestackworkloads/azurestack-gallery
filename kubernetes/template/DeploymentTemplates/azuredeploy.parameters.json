@@ -35,12 +35,27 @@
     "kubernetesAzureCloudProviderVersion": {
       "value": ""
     },
+    "kubernetesAzureCloudProviderRelease": {
+      "value": ""
+    },
     "identitySystem": {
       "value": ""
     },
     "nodeDistro": {
+      "value": "ubuntu"
+    },  
+    "customVnetName": {
       "value": ""
-    },    
+    },
+    "masterSubnetName": {
+      "value": ""
+    },
+    "agentSubnetName": {
+      "value": ""
+    },
+    "firstConsecutiveStaticIP": {
+      "value": ""
+    },
     "aksEngineBaseURL": {
       "value": ""
     },
@@ -56,7 +71,37 @@
     "clusterDefinitionFileName": {
       "value": ""
     },
-    "kubernetesImageBase": {
+    "networkPlugin": {
+      "value": "kubenet"
+    },
+    "networkPolicy": {
+      "value": ""
+    },
+    "availabilityProfile": {
+      "value": "AvailabilitySet"
+    },
+    "windowsAgentPoolProfileCount": {
+      "value": "0"
+    },
+    "windowsAgentPoolProfileVMSize": {
+      "value": "Standard_D2_v2"
+    },
+    "windowsAdminUsername": {
+      "value": "azureuser"
+    },
+    "windowsAdminPassword": {
+      "value": ""
+    },
+    "customWindowsPackageURL": {
+      "value": ""
+    },
+    "enableTillerAddOn": {
+      "value": "false"
+    },
+    "containerRuntime": {
+      "value": "docker"
+    },
+    "localAKSeBinaryURL": {
       "value": ""
     }
   }
