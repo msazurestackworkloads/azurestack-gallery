@@ -43,6 +43,29 @@ log_level()
     esac
 }
 
+apt_get_install()
+{
+    retries=$1; wait_sleep=$2; timeout=$3;
+    shift && shift && shift
+    
+    for i in $(seq 1 $retries); do
+        wait_for_apt_locks
+        dpkg --configure -a
+        apt-get install --no-install-recommends -y ${@}
+        [ $? -eq 0  ] && break || \
+        if [ $i -eq $retries ]; then
+            return 1
+        else
+            sleep $wait_sleep
+            apt_get_update
+        fi
+    done
+    
+    echo "Executed apt-get install --no-install-recommends -y \"$@\" $i times";
+    wait_for_apt_locks
+}
+
+
 ###
 #   <summary>
 #       Retry given command by given number of times in case we have hit any failure.
@@ -63,6 +86,42 @@ retrycmd_if_failure()
     done;
     log_level -i "Command Executed $i times.";
 }
+
+wait_for_apt_locks()
+{
+    while fuser /var/lib/dpkg/lock /var/lib/apt/lists/lock /var/cache/apt/archives/lock >/dev/null 2>&1; do
+        echo 'Waiting for release of apt locks'
+        sleep 3
+    done
+}
+
+# Avoid transcient apt-update failures
+# Function taken from the AKSe's code based
+apt_get_update()
+{
+    log_level -i "Updating apt cache."
+    
+    retries=10
+    apt_update_output=/tmp/apt-get-update.out
+    
+    for i in $(seq 1 $retries); do
+        wait_for_apt_locks
+        dpkg --configure -a
+        apt-get -f -y install
+        apt-get update 2>&1 | tee $apt_update_output | grep -E "^([WE]:.*)|([eE]rr.*)$"
+        [ $? -ne 0  ] && cat $apt_update_output && break || \
+        cat $apt_update_output
+        if [ $i -eq $retries ]; then
+            return 1
+        else
+            sleep 30
+        fi
+    done
+    
+    echo "Executed apt-get update $i time/s"
+    wait_for_apt_locks
+}
+
 
 ###
 #   <summary>
@@ -193,9 +252,21 @@ fi
 #####################################################################################
 # Install pre-requisites
 
-retrycmd_if_failure 5 10 sudo apt-get update -y
-PACKAGES="make pax jq curl apt-transport-https lsb-release software-properties-common dirmngr gnupg"
-retrycmd_if_failure 5 10 sudo apt-get install ${PACKAGES} -y
+log_level -i "Updating apt cache."
+apt_get_update || exit $ERR_APT_UPDATE_TIMEOUT
+
+log_level -i "Installing azure-cli and dependencies."
+apt_get_install 30 1 600  \
+make \
+pax \
+jq \
+curl \
+apt-transport-https \
+lsb-release \
+software-properties-common \
+dirmngr \
+gnupg \
+|| exit $ERR_APT_INSTALL_TIMEOUT
 
 ####################################################################################
 #Section to install Azure CLI.
