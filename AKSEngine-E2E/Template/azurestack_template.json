@@ -1,0 +1,70 @@
+{
+    "apiVersion": "vlabs",
+    "location": "",
+    "properties": {
+        "orchestratorProfile": {
+            "orchestratorType": "Kubernetes",
+            "orchestratorRelease": "",
+            "orchestratorVersion": "",
+            "kubernetesConfig": {
+                "cloudProviderBackoff": true,
+                "cloudProviderBackoffRetries": 1,
+                "cloudProviderBackoffDuration": 30,
+                "cloudProviderRateLimit": true,
+                "cloudProviderRateLimitQPS": 3,
+                "cloudProviderRateLimitBucket": 10,
+                "cloudProviderRateLimitQPSWrite": 3,
+                "cloudProviderRateLimitBucketWrite": 10,
+                "kubernetesImageBase": "mcr.microsoft.com/k8s/azurestack/core/",
+                "useInstanceMetadata": false,
+                "networkPlugin": "kubenet",
+                "kubeletConfig": {
+                    "--node-status-update-frequency": "1m"
+                },
+                "controllerManagerConfig": {
+                    "--node-monitor-grace-period": "5m",
+                    "--pod-eviction-timeout": "5m",
+                    "--route-reconciliation-period": "1m"
+                },
+                "customWindowsPackageURL": ""
+            }
+        },
+        "customCloudProfile": {
+            "identitySystem": "",
+            "portalURL": "",
+            "authenticationMethod": ""
+        },
+        "masterProfile": {
+            "dnsPrefix": "",
+            "distro": "aks-ubuntu-16.04",
+            "osDiskSizeGB": 100,
+            "availabilityProfile": "AvailabilitySet",
+            "count": 3,
+            "vmSize": "Standard_D2_v2"
+        },
+        "agentPoolProfiles": [],
+        "linuxProfile": {
+            "adminUsername": "azureuser",
+            "ssh": {
+                "publicKeys": [
+                    {
+                        "keyData": ""
+                    }
+                ]
+            }
+        },
+        "windowsProfile": {
+            "adminUsername": "azureuser",
+            "adminPassword": "",
+            "imageVersion": "latest",
+            "WindowsPublisher": "MicrosoftWindowsServer",
+            "WindowsOffer": "WindowsServer",
+            "WindowsSku": "2019-Datacenter-Core-with-Containers",
+            "sshEnabled": true
+        },
+        "servicePrincipalProfile": {
+            "clientId": "",
+            "secret": ""
+        }
+    }
+}

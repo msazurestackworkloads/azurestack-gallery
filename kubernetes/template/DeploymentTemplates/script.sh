@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash -ex
 
 ERR_APT_INSTALL_TIMEOUT=9 # Timeout installing required apt packages
 ERR_AKSE_DOWNLOAD=10 # Failure downloading AKS-Engine binaries
@@ -34,6 +34,11 @@ function collect_deployment_and_operations
 
 # Collect deployment logs always, even if the script ends with an error
 trap collect_deployment_and_operations EXIT
+
+cleanUpGPUDrivers() {
+    rm -f /etc/apt/sources.list.d/nvidia-docker.list
+    apt-key del $(apt-key list | grep NVIDIA -B 1 | head -n 1 | cut -d "/" -f 2 | cut -d " " -f 1)
+}
 
 ###
 #   <summary>
@@ -230,10 +235,20 @@ generate_api_model()
         "orchestratorProfile": {
             "orchestratorType": "Kubernetes",
             "orchestratorRelease": "",
-            "orchestratorVersion":"",
+            "orchestratorVersion": "",
             "kubernetesConfig": {
+                "cloudProviderBackoff": true,
+                "cloudProviderBackoffRetries": 1,
+                "cloudProviderBackoffDuration": 30,
+                "cloudProviderRateLimit": true,
+                "cloudProviderRateLimitQPS": 3,
+                "cloudProviderRateLimitBucket": 10,
+                "cloudProviderRateLimitQPSWrite": 3,
+                "cloudProviderRateLimitBucketWrite": 10,
+                "kubernetesImageBase": "mcr.microsoft.com/k8s/azurestack/core/",
                 "useInstanceMetadata": false,
                 "networkPlugin": "",
+                "networkPolicy": "",
                 "containerRuntime": "",
                 "kubeletConfig": {
                     "--node-status-update-frequency": "1m"
@@ -247,7 +262,8 @@ generate_api_model()
             }
         },
         "customCloudProfile": {
-            "portalURL": ""
+            "portalURL": "",
+            "identitySystem": ""
         },
         "masterProfile": {
             "dnsPrefix": "",
@@ -382,6 +398,7 @@ sleep $WAIT_TIME_SECONDS
 # apt packages
 # leaving this part connected until the modules are added to vhd
 
+cleanUpGPUDrivers
 if [ ! $DISCONNECTED_AKS_ENGINE_URL ]
 then
     log_level -i "Updating apt cache."
@@ -540,6 +557,8 @@ if [ "$NETWORK_POLICY" != "" ]; then
     cat $AZURESTACK_CONFIGURATION | jq --arg NETWORK_POLICY $NETWORK_POLICY '.properties.orchestratorProfile.kubernetesConfig.networkPolicy=$NETWORK_POLICY' \
     > $AZURESTACK_CONFIGURATION_TEMP
     
+    validate_and_restore_cluster_definition $AZURESTACK_CONFIGURATION_TEMP $AZURESTACK_CONFIGURATION || exit $ERR_API_MODEL
+
     log_level -i "Done setting network policy property."
 fi
 

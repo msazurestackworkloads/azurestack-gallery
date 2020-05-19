@@ -1,0 +1,78 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "linuxAdminUsername": {
+      "value": ""
+    },
+    "sshPublicKey": {
+      "value": ""
+    },
+    "masterProfileDnsPrefix": {
+      "value": ""
+    },
+    "agentPoolProfileCount": {
+      "value": 1
+    },
+    "agentPoolProfileVMSize": {
+      "value": ""
+    },
+    "masterPoolProfileCount": {
+      "value": 2
+    },
+    "masterPoolProfileVMSize": {
+      "value": ""
+    },
+    "storageProfile": {
+      "value": ""
+    },
+    "servicePrincipalClientId": {
+      "value": ""
+    },
+    "servicePrincipalClientSecret": {
+      "value": ""
+    },
+    "kubernetesAzureCloudProviderVersion": {
+      "value": ""
+    },
+    "kubernetesAzureCloudProviderRelease": {
+      "value": ""
+    },
+    "identitySystem": {
+      "value": ""
+    },
+    "aksEngineNodeCount": {
+      "value": 5
+    },
+    "aksEngineUpgradeVersion": {
+      "value": ""
+    },
+    "aksEngineApiModel": {
+      "value": "https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/aks-e2e-release/AKSEngine-E2E/Template/azurestack_template.json"
+    },
+    "aksEngineRepository": {
+      "value": ""
+    },
+    "aksEngineBranch": {
+      "value": ""
+    },
+    "networkPlugin": {
+      "value": "flannel"
+    },
+    "availabilityProfile": {
+      "value": "AvailabilitySet"
+    },
+    "windowsAgentPoolProfileCount": {
+      "value": "0"
+    },
+    "windowsAgentPoolProfileVMSize": {
+      "value": "Standard_D2_v2"
+    },
+    "windowsAdminUsername": {
+      "value": "azureuser"
+    },
+    "windowsAdminPassword": {
+      "value": ""
+    }
+  }
+}
