@@ -155,7 +155,6 @@ printUsage()
     echo "      --api-model                   AKS Engine Kubernetes cluster definition json file"
     echo "      --upload-logs                 Persists retrieved logs in an Azure Stack storage account"
     echo "      --disable-host-key-checking   Sets SSH's StrictHostKeyChecking option to \"no\" while the script executes. Only use in a safe environment."
-    echo "      --include-windows-nodes       Collect logs on Windows nodes as well"
     echo "  -h, --help                        Print script usage"
     echo ""
     echo "Examples:"
@@ -163,7 +162,6 @@ printUsage()
     echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg -n default -n monitoring"
     echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg --upload-logs --api-model clusterDefinition.json"
     echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg --upload-logs"
-    echo "  $0 -u azureuser -i ~/.ssh/id_rsa -g k8s-rg --include-windows-nodes"
     
     exit 1
 }
@@ -202,10 +200,6 @@ do
         ;;
         --disable-host-key-checking)
             KNOWN_HOSTS_OPTIONS='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR'
-            shift
-        ;;
-        --include-windows-nodes)
-            INCLUDE_WINDOWS_NODES="true"
             shift
         ;;
         -h|--help)
@@ -268,7 +262,6 @@ echo "user:                    $USER"
 echo "identity-file:           $IDENTITYFILE"
 echo "resource-group:          $RESOURCE_GROUP"
 echo "upload-logs:             $UPLOAD_LOGS"
-echo "include_windows_nodes:   $INCLUDE_WINDOWS_NODES"
 echo ""
 
 NOW=`date +%Y%m%d%H%M%S`
@@ -317,21 +310,16 @@ then
         processHost ${host}
     done
 
-    # WINDOWS NODES
-    if [ "$INCLUDE_WINDOWS_NODES" == "true" ]
-    then
-        #Get Windoews nodes
-        WINDOWS_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep -v 'k8s-\|vmd-' | cut -f 1)
+    #Get Windoews nodes log if Windows nodes exist
+    WINDOWS_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep -v 'k8s-\|vmd-' | cut -f 1)
 
-        if [ -z "$WINDOWS_NODES" ]
-        then
-            echo "[INFO] Failed to find windows nodes, skipping windows nodes log collection..."
-        else
-            for winhost in ${WINDOWS_NODES}
-            do
-                processWindowsHost ${winhost} 
-            done
-        fi
+    if [ ! -z "$WINDOWS_NODES" ]
+    then
+        echo "[INFO] Windows nodes detected, will collect log for windows nodes."
+        for winhost in ${WINDOWS_NODES}
+        do
+            processWindowsHost ${winhost} 
+        done
     fi
 
 fi

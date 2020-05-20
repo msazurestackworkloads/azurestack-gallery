@@ -19,7 +19,7 @@ The logs retrieved by `getkuberneteslogs.sh` are the following:
 - docker status and journal
 - kube-system snapshot
 
-Some additional times are retrieved for windows nodes:
+Some additional logs are retrieved for windows nodes:
 
  - Log file `c:\Azure\CustomDataSetupScript.log`
  - kube-proxy status and journal
@@ -45,7 +45,5 @@ Some additional times are retrieved for windows nodes:
 
 `--api-model`                  - Persists apimodel.json file in an Azure Stack Storage account. 
                                  Upload apimodel.json file to storage account happens when `--upload-logs` parameter is also provided.
-
-`--include-windows-nodes`      - Collect log for Windows nodes. Only apply to scenarios when Windows nodepools exist in the Kubernetes clusters.
 
 `-h, --help`                   - Print script usage
