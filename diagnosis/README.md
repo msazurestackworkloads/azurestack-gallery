@@ -27,7 +27,7 @@ Some additional logs are retrieved for windows nodes:
  - azure-vnet log and azure-vnet-telemetry log
  - ETW events for docker
  - ETW events for Hyper-V
- - ETW events for some
+ - ETW events for some system events
 
 ## Required Parameters
 

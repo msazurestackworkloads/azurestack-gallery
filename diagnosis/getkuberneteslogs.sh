@@ -135,10 +135,10 @@ processWindowsHost()
     host=$1
 
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing windows-host ${host}"
-    scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" collect-windows-logs.ps1 ${USER}@${host}:"C:/k/debug/collect-windows-logs.ps1"
-    ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "powershell; Start-Process PowerShell -Verb RunAs; C:/k/debug/collect-windows-logs.ps1"
+    scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" azs-collect-windows-logs.ps1 ${USER}@${host}:"C:/k/debug/azs-collect-windows-logs.ps1"
+    ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "powershell; Start-Process PowerShell -Verb RunAs; C:/k/debug/azs-collect-windows-logs.ps1"
     scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host}:"C:/Users/azureuser/win_log_${host}.zip" ${LOGFILEFOLDER}/"win_log_${host}.zip"
-    ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "powershell; rm C:/k/debug/collect-windows-logs.ps1; rm C:/Users/azureuser/win_log_${host}.zip"
+    ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "powershell; rm C:/k/debug/azs-collect-windows-logs.ps1; rm C:/Users/azureuser/win_log_${host}.zip"
 }
 
 printUsage()
@@ -313,7 +313,7 @@ then
     #Get Windoews nodes log if Windows nodes exist
     WINDOWS_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep -v 'k8s-\|vmd-' | cut -f 1)
 
-    if [ ! -z "$WINDOWS_NODES" ]
+    if [ -n "$WINDOWS_NODES" ]
     then
         echo "[INFO] Windows nodes detected, will collect log for windows nodes."
         for winhost in ${WINDOWS_NODES}
