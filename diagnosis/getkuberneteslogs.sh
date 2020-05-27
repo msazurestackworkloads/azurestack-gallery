@@ -315,7 +315,6 @@ then
 
     if [ -n "$WINDOWS_NODES" ]
     then
-        echo "[INFO] Windows nodes detected, will collect log for windows nodes."
         for winhost in ${WINDOWS_NODES}
         do
             processWindowsHost ${winhost} 
