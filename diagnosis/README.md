@@ -19,7 +19,7 @@ The logs retrieved by `getkuberneteslogs.sh` are the following:
 - docker status and journal
 - kube-system snapshot
 
-Some additional logs are retrieved for windows nodes:
+Some additional logs are retrieved for Windows nodes:
 
  - Log file `c:\Azure\CustomDataSetupScript.log`
  - kube-proxy status and journal
@@ -27,7 +27,6 @@ Some additional logs are retrieved for windows nodes:
  - azure-vnet log and azure-vnet-telemetry log
  - ETW events for docker
  - ETW events for Hyper-V
- - ETW events for some system events
 
 ## Required Parameters
 
