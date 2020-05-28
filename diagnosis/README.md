@@ -19,6 +19,15 @@ The logs retrieved by `getkuberneteslogs.sh` are the following:
 - docker status and journal
 - kube-system snapshot
 
+Some additional logs are retrieved for Windows nodes:
+
+ - Log file `c:\Azure\CustomDataSetupScript.log`
+ - kube-proxy status and journal
+ - containerd status and journal
+ - azure-vnet log and azure-vnet-telemetry log
+ - ETW events for docker
+ - ETW events for Hyper-V
+
 ## Required Parameters
 
 `-u, --user`           - The administrator username for the cluster VMs
