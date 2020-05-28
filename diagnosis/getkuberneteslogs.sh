@@ -130,6 +130,17 @@ processDvmHost()
     ssh ${SSH_FLAGS} ${USER}@${host} "rm -f collectlogs.sh ${DVM_NAME}.zip"
 }
 
+processWindowsHost()
+{
+    host=$1
+
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing windows-host ${host}"
+    scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" azs-collect-windows-logs.ps1 ${USER}@${host}:"C:/k/debug/azs-collect-windows-logs.ps1"
+    ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "powershell; Start-Process PowerShell -Verb RunAs; C:/k/debug/azs-collect-windows-logs.ps1"
+    scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host}:"C:/Users/azureuser/win_log_${host}.zip" ${LOGFILEFOLDER}/"win_log_${host}.zip"
+    ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "powershell; rm C:/k/debug/azs-collect-windows-logs.ps1; rm C:/Users/azureuser/win_log_${host}.zip"
+}
+
 printUsage()
 {
     echo "$0 collects diagnostics from Kubernetes clusters provisioned by AKS Engine"
@@ -293,11 +304,23 @@ then
     
     CLUSTER_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep 'k8s-' | cut -f 1)
     PROXY_CMD="ssh -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS} ${USER}@${MASTER_IP} -W %h:%p"
-    
+
     for host in ${CLUSTER_NODES}
     do
         processHost ${host}
     done
+
+    #Get Windoews nodes log if Windows nodes exist
+    WINDOWS_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep -v 'k8s-\|vmd-' | cut -f 1)
+
+    if [ -n "$WINDOWS_NODES" ]
+    then
+        for winhost in ${WINDOWS_NODES}
+        do
+            processWindowsHost ${winhost} 
+        done
+    fi
+
 fi
 
 mkdir -p $LOGFILEFOLDER/resources
