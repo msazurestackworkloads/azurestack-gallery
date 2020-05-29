@@ -95,6 +95,10 @@ collectCloudProviderJson() {
     if [ -f /etc/kubernetes/azurestackcloud.json ]; then
         sudo jq . /etc/kubernetes/azurestackcloud.json > ${LOGDIRECTORY}/etc/kubernetes/azurestackcloud.json
     fi
+    if [ -f /opt/azure/vhd-install.complete ]; then
+        mkdir -p ${LOGDIRECTORY}/opt/azure
+        cp /opt/azure/vhd-install.complete ${LOGDIRECTORY}/opt/azure
+    fi
 }
 
 checkNetworking() {
