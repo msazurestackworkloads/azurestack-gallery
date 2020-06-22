@@ -127,6 +127,8 @@ done
 
 sudo cp /var/log/waagent.log ${LOGDIRECTORY}/var/log/k8s-waagent.log || :
 
+sudo cp /var/log/kubeaudit/audit.log ${LOGDIRECTORY}/var/log/k8s-kubeaudit.log || :
+
 if [ -f /var/log/azure/deploy-script-dvm.log ]
 then
     sudo apt install zip -y

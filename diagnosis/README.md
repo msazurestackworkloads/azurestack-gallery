@@ -9,6 +9,7 @@ Typically, to collect logs from servers you manage, you have to start a remote s
 The logs retrieved by `getkuberneteslogs.sh` are the following:
 
 - Log files in directory `/var/log/azure/`
+- Log file `/var/log/kubeaudit/audit.log` (kube audit)
 - Log file `/var/log/waagent.log` (waagent)
 - Log file `/var/log/azure/deploy-script-dvm.log` (if deployed using Azure Stack's Kubernetes Cluster marketplace item)
 - Static manifests in directory `/etc/kubernetes/manifests`
