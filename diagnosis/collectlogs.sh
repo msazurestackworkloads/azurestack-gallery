@@ -125,6 +125,12 @@ do
     sudo cp "$f" ${LOGDIRECTORY}/var/log/k8s-"${f%}" || :
 done
 
+cd /var/log/kubeaudit
+for f in *.log
+do
+    sudo cp "$f" ${LOGDIRECTORY}/var/log/k8s-"${f%}" || :
+done
+
 sudo cp /var/log/waagent.log ${LOGDIRECTORY}/var/log/k8s-waagent.log || :
 
 if [ -f /var/log/azure/deploy-script-dvm.log ]
