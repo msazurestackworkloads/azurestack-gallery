@@ -1,0 +1,605 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "clusterName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of your cluster - Between 3 and 23 characters. Letters and numbers only"
+            }
+        },
+        "nodeTypePrefix": {
+            "type": "string",
+            "maxLength": 8,
+            "metadata": {
+                "description": "The prefix of the node type name. The node type will be named as nodeTypePrefix + index."
+            }
+        },
+        "nodeTypeInstanceCounts": {
+            "type": "array",
+            "metadata": {
+                "description": "List of instance counts for all node types."
+            }
+        },
+        "nodeTypeIndex": {
+            "type": "int",
+            "metadata": {
+                "description": "Current node type index."
+            }
+        },
+        "subnetIPFormat": {
+            "type": "string",
+            "metadata": {
+                "description": "Subnetwork IP prefix format. eg:10.0.[].0/24"
+            }
+        },
+        "overProvision": {
+            "type": "string",
+            "defaultValue": false
+        },
+        "vmImageSku": {
+            "type": "string"
+        },
+        "vmImagePublisher": {
+            "type": "string"
+        },
+        "vmImageOffer": {
+            "type": "string"
+        },
+        "additionalLoadbalancerProbePortsArray": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "Additional ports to be registered for health probe"
+            }
+        },
+        "lbHealthProbePortsArray": {
+            "type": "array",
+            "metadata": {
+                "description": "Ports to be registered for health probe or Load balancer"
+            }
+        },
+        "vmImageVersion": {
+            "type": "string"
+        },
+        "vmNodeSize": {
+            "type": "string"
+        },
+        "adminUserName": {
+            "type": "string",
+            "metadata": {
+                "description": "Remote desktop user Id"
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Remote desktop user password. Must be a strong password"
+            }
+        },
+        "subnetID": {
+            "type": "string"
+        },
+        "publicIPID": {
+            "type": "string"
+        },
+        "lbPortsArray": {
+            "type": "array",
+            "metadata": {
+                "description": "Array of application ports to be opened (like [80, 8080, 8081])."
+            }
+        },
+        "lbBackendPortsArray": {
+            "type": "array",
+            "metadata": {
+                "description": "Array of application backend ports to be opened (like [80, 8080, 8081])."
+            }
+        },
+        "sourceVaultValue": {
+            "type": "string",
+            "metadata": {
+                "description": "Resource Id of the key vault, is should be in the format of /subscriptions/<Sub ID>/resourceGroups/<Resource group name>/providers/Microsoft.KeyVault/vaults/<vault name>"
+            }
+        },
+        "certsToInstall": {
+            "type": "array",
+            "metadata": {
+                "description": "Certificate urls to install from"
+            }
+        },
+        "customerCertsToInstall": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "Customer certificate urls to install from"
+            }
+        },
+        "clusterCertificateThumbprint": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Cluster Certificate Thumbprint"
+            }
+        },
+        "serverCertificateThumbprint": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Server Certificate Thumbprint"
+            }
+        },
+        "reverseProxyCertificateThumbprint": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Reverse proxy Certificate Thumbprint"
+            }
+        },
+        "servicefabricTcpGatewayPort": {
+            "type": "int"
+        },
+        "servicefabricHttpGatewayPort": {
+            "type": "int"
+        },
+        "servicereverseProxyEndpointPort": {
+            "type": "int"
+        },
+        "ephemeralStartPort": {
+            "type": "int"
+        },
+        "ephemeralEndPort": {
+            "type": "int"
+        },
+        "applicationStartPort": {
+            "type": "int"
+        },
+        "applicationEndPort": {
+            "type": "int"
+        },
+        "adminClientConnectionEndpoint": {
+            "type": "string"
+        },
+        "adminClientCertificateThumbprint": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "Admin client Certificate Thumbprint"
+            }
+        },
+        "nonAdminClientCertificateThumbprint": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "Non-Admin client Certificate Thumbprint"
+            }
+        },
+        "DNSService": {
+            "type": "string",
+            "defaultValue": "No"
+        },
+        "RepairManager": {
+            "type": "string",
+            "defaultValue": "No"
+        },
+        "BackupRestoreService": {
+            "type": "string",
+            "defaultValue": "No"
+        },
+        "serviceFabricUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "Service fabric runtime download url."
+            }
+        },
+        "serviceFabricRuntimeUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "Service fabric runtime download url. Leave it empty if using the latest."
+            }
+        },
+        "scriptBaseUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "Scripts base url"
+            }
+        },
+        "rootCertBase64": {
+            "type": "string",
+            "defaultValue": ""
+        },
+        "natPools": {
+            "type": "array",
+            "metadata": {
+                "description": "NAT pools"
+            }
+        },
+        "providerIdentityApplicationId": {
+            "type": "string",
+            "defaultValue": ""
+        },
+        "armEndpoint": {
+            "type": "string",
+            "defaultValue": ""
+        },
+        "azureKeyVaultDnsSuffix": {
+            "type": "string",
+            "defaultValue": ""
+        },
+        "azureKeyVaultServiceEndpointResourceId": {
+            "type": "string",
+            "defaultValue": ""
+        },
+        "providerIdentityTenantId": {
+            "type": "string",
+            "defaultValue": ""
+        },
+        "DSCAgentConfig": {
+            "type": "object",
+            "defaultValue": {}
+        },
+        "clusterCertificateCommonName": {
+            "type": "string",
+            "metadata": {
+                "description": "CN for cluster certificate"
+            },
+            "defaultValue": ""
+        },
+        "serverCertificateCommonName": {
+            "type": "string",
+            "metadata": {
+                "description": "CN for server certificate"
+            },
+            "defaultValue": ""
+        },
+        "reverseProxyCertificateCommonName": {
+            "type": "string",
+            "metadata": {
+                "description": "CN for reverse proxy certificate"
+            },
+            "defaultValue": ""
+        },
+        "adminClientCertificateCommonName": {
+            "type": "string",
+            "metadata": {
+                "description": "CN for admin client certificate"
+            },
+            "defaultValue": ""
+        },
+        "nonAdminClientCertificateCommonName": {
+            "type": "string",
+            "metadata": {
+                "description": "CN for non-admin client certificate"
+            },
+            "defaultValue": ""
+        },
+        "providerIdentityCertCommonName": {
+            "type": "string",
+            "metadata": {
+                "description": "CN for provider identity certificate"
+            },
+            "defaultValue": ""
+        },
+        "additionalCertCommonNamesNeedNetworkAccess": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "Additional certificate common names that need Network Service permission"
+            }
+        },
+        "ConfigurationMode": {
+            "type": "string",
+            "allowedValues": [
+                "ApplyOnly",
+                "ApplyAndMonitor",
+                "ApplyAndAutoCorrect"
+            ],
+            "defaultValue": "ApplyOnly"
+        },
+        "StandaloneDeployment": {
+            "type": "bool",
+            "defaultValue": false
+        },
+        "DisableStrongNameValidation": {
+            "type": "bool",
+            "defaultValue": false
+        },
+        "DisableContainers": {
+            "type": "bool",
+            "defaultValue": true
+        },
+        "BuildNumber": {
+          "type": "string",
+          "metadata": {
+            "description": "The build that this template is part of. It is used to create a forceupdate tag to force a VMSS guest agent update"
+          }
+       },
+       "BRSDisableKVAuthorityValidation": {
+            "type": "bool",
+            "metadata": {
+                "description": "Set to true if it is a ADFS identity system so BackupRestoreService of Service Fabric can authenticate with ADFS APP appropriately. Use only if BackUpRestoreService is used in SF cluster"
+            },
+            "defaultValue": false
+       }
+    },
+    "variables": {
+
+        "apiVersion": {
+            "vmssApiVersion": "2017-03-30",
+            "lbApiVersion": "2015-06-15",
+            "vNetApiVersion": "2015-06-15",
+            "storageApiVersion": "2016-01-01",
+            "publicIPApiVersion": "2015-06-15",
+            "templateDeploymentApiVersion": "2015-01-01"
+        },
+
+        "location": "[resourceGroup().location]",
+        "vmScaleSetName": "[toLower(replace(parameters('clusterName'), '-', ''))]",
+        "nicName": "[concat(variables('vmScaleSetName'), 'nic')]",
+        "lbName": "[concat(variables('vmScaleSetName'), '-publiclb')]",
+        "lbID": "[resourceId('Microsoft.Network/loadBalancers', variables('lbName'))]",
+        "bePoolName": "[concat(variables('vmScaleSetName'), 'bepool')]",
+        "natPoolName": "[concat(variables('vmScaleSetName'), 'natpool')]",
+        "ipConfigName": "[concat(variables('vmScaleSetName'), 'ipconfig')]",
+
+        "derivedIds": {
+            "lbIPConfigID": "[concat(variables('lbID'),'/frontendIPConfigurations/LoadBalancerIPConfig')]",
+            "backendPoolId": "[concat(variables('lbID'),'/backendAddressPools/', variables('bePoolName'))]"
+        },
+
+        "serviceFabricDeploymentModuleUrl": "[uri(parameters('scriptBaseUrl'), 'DeploySFCluster.zip')]",
+        "serviceFabricDeploymentConfigFunction": "DeploySFCluster.ps1\\InstallServiceFabricConfiguration",
+        "lbProbePortsArray": "[concat(array(parameters('lbPortsArray')), parameters('additionalLoadbalancerProbePortsArray'))]",
+        "lbProbeBackendPortsArray": "[concat(array(parameters('lbBackendPortsArray')), parameters('additionalLoadbalancerProbePortsArray'))]",
+        "serviceFabricConfigPath": "[uri(parameters('scriptBaseUrl'), 'ClusterConfig.X509.MultiMachine.json')]",
+        "serviceFabricRuntimeUrl": "[if(equals(trim(parameters('serviceFabricRuntimeUrl')), ''), 'N/A', parameters('serviceFabricRuntimeUrl'))]",
+        "certificateStoreValue": "My",
+        "customerCertsStoreValue": "My",
+
+        "deploymentNodeIndex": 0,
+
+        "upgradePolicy": "[if(parameters('StandaloneDeployment'), 'Automatic', 'Manual')]",
+
+        "vmssExtensions": [{
+            "name": "DeployServiceFabricCluster",
+            "properties": {
+                "publisher": "Microsoft.Powershell",
+                "type": "DSC",
+                "typeHandlerVersion": "2.77",
+                "autoUpgradeMinorVersion": true,
+                "forceUpdateTag": "[parameters('BuildNumber')]",
+                "settings": {
+                    "modulesUrl": "[variables('serviceFabricDeploymentModuleUrl')]",
+                    "configurationFunction": "[variables('serviceFabricDeploymentConfigFunction')]",
+                    "properties": {
+                        "DeploymentNodeIndex": "[variables('deploymentNodeIndex')]",
+                        "ClusterName": "[parameters('clusterName')]",
+                        "VMNodeTypePrefix": "[parameters('nodeTypePrefix')]",
+                        "VMNodeTypeInstanceCounts": "[parameters('nodeTypeInstanceCounts')]",
+                        "CurrentVMNodeTypeIndex": "[parameters('nodeTypeIndex')]",
+                        "SubnetIPFormat": "[parameters('subnetIPFormat')]",
+                        "clientConnectionEndpointPort": "[parameters('servicefabricTcpGatewayPort')]",
+                        "httpGatewayEndpointPort": "[parameters('servicefabricHttpGatewayPort')]",
+                        "reverseProxyEndpointPort": "[parameters('servicereverseProxyEndpointPort')]",
+                        "ephemeralStartPort": "[parameters('ephemeralStartPort')]",
+                        "ephemeralEndPort": "[parameters('ephemeralEndPort')]",
+                        "applicationStartPort": "[parameters('applicationStartPort')]",
+                        "applicationEndPort": "[parameters('applicationEndPort')]",
+                        "certificateStoreValue": "[variables('certificateStoreValue')]",
+                        "AdminUserName": "[parameters('adminUsername')]",
+                        "clusterCertificateCommonName": "[parameters('clusterCertificateCommonName')]",
+                        "serverCertificateCommonName": "[parameters('serverCertificateCommonName')]",
+                        "reverseProxyCertificateCommonName": "[parameters('reverseProxyCertificateCommonName')]",
+                        "adminClientCertificateCommonName": "[parameters('adminClientCertificateCommonName')]",
+                        "nonAdminClientCertificateCommonName": "[parameters('nonAdminClientCertificateCommonName')]",
+                        "providerIdentityCertCommonName": "[parameters('providerIdentityCertCommonName')]",
+                        "additionalCertCommonNamesNeedNetworkAccess": "[parameters('additionalCertCommonNamesNeedNetworkAccess')]",
+                        "clusterCertificateThumbprint": "[parameters('clusterCertificateThumbprint')]",
+                        "serverCertificateThumbprint": "[parameters('serverCertificateThumbprint')]",
+                        "reverseProxyCertificateThumbprint": "[parameters('reverseProxyCertificateThumbprint')]",
+                        "adminClientCertificateThumbprint": "[parameters('adminClientCertificateThumbprint')]",
+                        "nonAdminClientCertificateThumbprint": "[parameters('nonAdminClientCertificateThumbprint')]",
+                        "ClientConnectionEndpoint": "[parameters('adminClientConnectionEndpoint')]",
+                        "DNSService": "[parameters('DNSService')]",
+                        "RepairManager": "[parameters('RepairManager')]",
+                        "BackupRestoreService": "[parameters('BackupRestoreService')]",
+                        "ConfigPath": "[variables('serviceFabricConfigPath')]",
+                        "serviceFabricUrl": "[parameters('serviceFabricUrl')]",
+                        "serviceFabricRuntimeUrl": "[variables('serviceFabricRuntimeUrl')]",
+                        "RootCACertBase64": "[parameters('rootCertBase64')]",
+                        "providerIdentityApplicationId": "[parameters('providerIdentityApplicationId')]",
+                        "armEndpoint": "[parameters('armEndpoint')]",
+                        "azureKeyVaultDnsSuffix": "[parameters('azureKeyVaultDnsSuffix')]",
+                        "azureKeyVaultServiceEndpointResourceId": "[parameters('azureKeyVaultServiceEndpointResourceId')]",
+                        "providerIdentityTenantId": "[parameters('providerIdentityTenantId')]",
+                        "DSCAgentConfig": "[string(parameters('DSCAgentConfig'))]",
+                        "subscriptionName": "[subscription().displayName]",
+                        "ConfigurationMode": "[parameters('ConfigurationMode')]",
+                        "StandaloneDeployment": "[parameters('StandaloneDeployment')]",
+                        "DisableStrongNameValidation": "[parameters('DisableStrongNameValidation')]",
+                        "DisableContainers": "[parameters('DisableContainers')]",
+                        "BRSDisableKVAuthorityValidation": "[parameters('BRSDisableKVAuthorityValidation')]"
+                    }
+                },
+                "protectedSettings": {
+                    "properties": {
+                        "Credential": {
+                            "Username": "[parameters('adminUsername')]",
+                            "Password": "[parameters('adminPassword')]"
+                        }
+                    }
+                }
+            }
+        }]
+    },
+    "resources": [{
+            "apiVersion": "[variables('apiVersion').lbApiVersion]",
+            "type": "Microsoft.Network/loadBalancers",
+            "name": "[variables('lbName')]",
+            "location": "[variables('location')]",
+            "properties": {
+                "frontendIPConfigurations": [{
+                    "name": "LoadBalancerIPConfig",
+                    "properties": {
+                        "publicIPAddress": {
+                            "id": "[parameters('publicIPID')]"
+                        }
+                    }
+                }],
+                "backendAddressPools": [{
+                    "name": "[variables('bePoolName')]"
+                }],
+                "copy": [{
+                        "name": "loadBalancingRules",
+                        "count": "[length(variables('lbProbePortsArray'))]",
+                        "input": {
+                            "name": "[concat('LBRuleForPort_', variables('lbProbePortsArray')[copyIndex('loadBalancingRules')])]",
+                            "properties": {
+                                "backendAddressPool": {
+                                    "id": "[variables('derivedIds').backendPoolId]"
+                                },
+                                "backendPort": "[variables('lbProbeBackendPortsArray')[copyIndex('loadBalancingRules')]]",
+                                "enableFloatingIP": false,
+                                "frontendIPConfiguration": {
+                                    "id": "[variables('derivedIds').lbIPConfigID]"
+                                },
+                                "frontendPort": "[variables('lbProbePortsArray')[copyIndex('loadBalancingRules')]]",
+                                "idleTimeoutInMinutes": 5,
+                                "probe": {
+                                    "id": "[concat(variables('lbID'),'/probes/', 'ProbForPort_', if(greater(length(parameters('lbHealthProbePortsArray')), copyIndex('loadBalancingRules')), parameters('lbHealthProbePortsArray')[copyIndex('loadBalancingRules')], last(parameters('lbHealthProbePortsArray'))))]"
+                                },
+                                "protocol": "Tcp"
+                            }
+                        }
+                    },
+                    {
+                        "name": "probes",
+                        "count": "[length(parameters('lbHealthProbePortsArray'))]",
+                        "input": {
+                            "name": "[concat('ProbForPort_', parameters('lbHealthProbePortsArray')[copyIndex('probes')])]",
+                            "properties": {
+                                "intervalInSeconds": 5,
+                                "numberOfProbes": 2,
+                                "port": "[parameters('lbHealthProbePortsArray')[copyIndex('probes')]]",
+                                "protocol": "tcp"
+                            }
+                        }
+                    },
+                    {
+                        "name": "inboundNatPools",
+                        "count": "[length(parameters('natPools'))]",
+                        "input": {
+                            "name": "[parameters('natPools')[copyIndex('inboundNatPools')].name]",
+                            "properties": {
+                                "frontendIPConfiguration": {
+                                    "id": "[variables('derivedIds').lbIPConfigID]"
+                                },
+                                "frontendPortRangeStart": "[parameters('natPools')[copyIndex('inboundNatPools')].frontendPortRangeStart]",
+                                "frontendPortRangeEnd": "[parameters('natPools')[copyIndex('inboundNatPools')].frontendPortRangeEnd]",
+                                "backendPort": "[parameters('natPools')[copyIndex('inboundNatPools')].backendPort]",
+                                "protocol": "[parameters('natPools')[copyIndex('inboundNatPools')].protocol]"
+                            }
+                        }
+                    }
+                ]
+            },
+            "tags": {
+                "resourceType": "Service Fabric",
+                "displayName": "LoadBalancer"
+            }
+        },
+        {
+            "apiVersion": "[variables('apiVersion').vmssApiVersion]",
+            "type": "Microsoft.Compute/virtualMachineScaleSets",
+            "name": "[variables('vmScaleSetName')]",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[variables('lbID')]"
+            ],
+            "properties": {
+                "overprovision": "[parameters('overProvision')]",
+                "upgradePolicy": {
+                    "mode": "[variables('upgradePolicy')]"
+                },
+                "virtualMachineProfile": {
+                    "networkProfile": {
+                        "networkInterfaceConfigurations": [{
+                            "name": "[variables('nicName')]",
+                            "properties": {
+                                "ipConfigurations": [{
+                                    "name": "[variables('ipConfigName')]",
+                                    "properties": {
+                                        "loadBalancerBackendAddressPools": [{
+                                            "id": "[variables('derivedIds').backendPoolId]"
+                                        }],
+                                        "copy": [{
+                                            "name": "loadBalancerInboundNatPools",
+                                            "count": "[length(parameters('natPools'))]",
+                                            "input": {
+                                                "id": "[concat(variables('lbID'),'/inboundNatPools/', parameters('natPools')[copyIndex('loadBalancerInboundNatPools')].name)]"
+                                            }
+                                        }],
+                                        "subnet": {
+                                            "id": "[parameters('subnetID')]"
+                                        }
+                                    }
+                                }],
+                                "primary": true
+                            }
+                        }]
+                    },
+                    "osProfile": {
+                        "adminPassword": "[parameters('adminPassword')]",
+                        "adminUsername": "[parameters('adminUsername')]",
+                        "computerNamePrefix": "[concat(parameters('nodeTypePrefix'), parameters('nodeTypeIndex'))]",
+                        "secrets": [{
+                            "sourceVault": {
+                                "id": "[parameters('sourceVaultValue')]"
+                            },
+                            "copy": [{
+                                "name": "vaultCertificates",
+                                "count": "[add(length(parameters('certsToInstall')), length(parameters('customerCertsToInstall')))]",
+                                "input": {
+                                    "certificateStore": "[if(contains(parameters('customerCertsToInstall'), concat(parameters('certsToInstall'), parameters('customerCertsToInstall'))[copyIndex('vaultCertificates')]), variables('customerCertsStoreValue'), variables('certificateStoreValue'))]",
+                                    "certificateUrl": "[concat(parameters('certsToInstall'), parameters('customerCertsToInstall'))[copyIndex('vaultCertificates')]]"
+                                }
+                            }]
+                        }]
+                    },
+                    "storageProfile": {
+                        "imageReference": {
+                            "publisher": "[parameters('vmImagePublisher')]",
+                            "offer": "[parameters('vmImageOffer')]",
+                            "sku": "[parameters('vmImageSku')]",
+                            "version": "[parameters('vmImageVersion')]"
+                        },
+                        "osDisk": {
+                            "createOption": "FromImage"
+                        },
+                        "dataDisks": [{
+                            "diskSizeGB": 100,
+                            "lun": 1,
+                            "createOption": "Empty"
+                        }]
+                    },
+                    "extensionProfile": {
+                        "extensions": "[variables('vmssExtensions')]"
+                    }
+                }
+            },
+            "sku": {
+                "name": "[parameters('vmNodeSize')]",
+                "capacity": "[parameters('nodeTypeInstanceCounts')[parameters('nodeTypeIndex')]]"
+            },
+            "tags": {
+                "resourceType": "Service Fabric",
+                "displayName": "ServiceFabricCluster"
+            }
+        }
+    ],
+    "outputs": {
+        "virtualMachineScaleSetResourceId": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.Compute/virtualMachineScaleSets', variables('vmScaleSetName'))]"
+        }
+    }
+}

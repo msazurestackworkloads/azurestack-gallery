@@ -21,6 +21,47 @@ function Get-TargetResource
     $returnValue
 }
 
+
+# This function is to set CD/DVD drive letter to a new one. The reason to use it in Disk DSC is that the CD/DVD drive letter and service fabric data drive letter will be 
+# swapped and changed after VMSS instance inplace upgrade or reimage. This function will be used before initializing the service fabric data disk, to keep the original drive 
+# letter order.
+function Set-DVDDriveLetter
+{
+    Param
+    (
+        [Parameter(Mandatory=$True,
+        Position=1)]
+        [string]
+        [ValidatePattern("^[A-Z]{1}:{1}`$")]$NewDrvLetter
+    )
+    # Get Available CD/DVD Drive - Drive Type 5
+    $DvdDrv = Get-WmiObject -Class Win32_Volume -Filter "DriveType=5"
+    
+    # Check if CD/DVD Drive is Available
+    if ($DvdDrv -ne $null)
+    {
+        # Get Current Drive Letter for CD/DVD Drive
+        $DvdDrvLetter = $DvdDrv | Select-Object -ExpandProperty DriveLetter
+        Write-Verbose "Current CD/DVD Drive Letter is $DvdDrvLetter" -Verbose
+    
+        # Confirm New Drive Letter is NOT used
+        if (-not (Test-Path -Path $NewDrvLetter))
+        {
+            # Change CD/DVD Drive Letter
+            $DvdDrv | Set-WmiInstance -Arguments @{DriveLetter="$NewDrvLetter"}
+            Write-Verbose "Updated CD/DVD Drive Letter as $NewDrvLetter" -Verbose
+        }
+        else
+        {
+           Write-Verbose "Drive Letter $NewDrvLetter Already In Use" -Verbose
+        }
+    }
+    else
+    {
+        Write-Verbose "No CD/DVD Drive Available !!" -Verbose
+    }
+}
+
 function Set-TargetResource
 {
     param
@@ -30,6 +71,8 @@ function Set-TargetResource
 
         [string] $DriveLetter
     )
+
+    Set-DVDDriveLetter -NewDrvLetter 'F:'
     
     $disk = Get-Disk -Number $DiskNumber
     
@@ -115,6 +158,5 @@ function Test-TargetResource
     }
     return $false
 }
-
 
 Export-ModuleMember -Function *-TargetResource

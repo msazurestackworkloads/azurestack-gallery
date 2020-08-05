@@ -1,81 +1,106 @@
 {
-  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
-  "contentVersion": "1.0.0.0",
-  "parameters": {
-    "clusterName": {
-      "value": "SFCluster"
-    },
-    "nodeTypePrefix": {
-      "value": "SFNode"
-    },
-    "primaryNtInstanceCount": {
-      "value": 3
-    },
-    "vmImageSku": {
-      "value": "2016-Datacenter"
-    },
-    "vmNodeSize": {
-      "value": "Standard_D2_v2"
-    },
-    "adminUserName": {
-      "value": "azureuser"
-    },
-    "adminPassword": {
-      "value": "adminpassword"
-    },
-    "servicefabricTcpGatewayPort": {
-      "value": 19000
-    },
-    "servicefabricHttpGatewayPort": {
-      "value": 19080
-    },
-    "servicefabricReverseProxyEndpointPort": {
-      "value": 19081
-    },
-    "sourceVaultValue": {
-      "value": ""
-    },
-    "clusterCertificateUrlValue": {
-      "value": ""
-    },
-    "clusterCertificateThumbprint": {
-      "value": "E1DE3257117B5DCADCD176C6D989236EB96464B9"
-    },
-	"serverCertificateUrlValue": {
-      "value": ""
-    },
-    "serverCertificateThumbprint": {
-      "value": "E1DE3257117B5DCADCD176C6D989236EB96464B9"
-    },
-    "reverseProxyCertificateUrlValue": {
-      "value": ""
-    },
-    "reverseProxyCertificateThumbprint": {
-      "value": ""
-    },
-    "adminClientCertificateThumbprints": {
-      "value": "650EBE07FD7596F8778E16896983D3ACD456F5F5"
-    },
-    "nonAdminClientCertificateThumbprints": {
-      "value": ""
-    },
-    "DNSService": {
-      "value": "No"
-    },
-    "RepairManager": {
-      "value": "No"
-    },
-    "diagLogAge": {
-      "value": 15
-    },
-    "serviceFabricUrl": {
-      "value": "http://go.microsoft.com/fwlink/?LinkId=730690"
-    },
-    "serviceFabricRuntimeUrl": {
-      "value": ""
-    },
-    "scriptBaseUrl": {
-      "value": "https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master/servicefabric/Microsoft.ServiceFabricCluster/DeploymentTemplates/"
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "clusterName": {
+            "value": "sfcluster"
+        },
+        "nodeTypePrefix": {
+            "value": "sfnode"
+        },
+        "primaryNtInstanceCount": {
+            "value": 3
+        },
+        "vmNodeSize": {
+            "value": "Standard_D2_v2"
+        },
+        "adminUserName": {
+            "value": "azureuser"
+        },
+        "adminPassword": {
+            "value": "adminpassword"
+        },
+        "servicefabricTcpGatewayPort": {
+            "value": 19000
+        },
+        "servicefabricHttpGatewayPort": {
+            "value": 19080
+        },
+        "servicefabricReverseProxyEndpointPort": {
+            "value": 19081
+        },
+        "lbApplicationPorts": { "value": [35000] },
+        "lbApplicationBackendPorts": { "value": [35000] },
+        "loadbalancerProbePortsArray": { "value": [35000] },
+        "nsgPorts": { "value": [3389] },
+        "sourceVaultValue": {
+            "value": ""
+        },
+        "clusterCertificateUrlValue": {
+            "value": ""
+        },
+        "ServerCertificateUrlValue": {
+            "value": ""
+        },
+        "reverseProxyCertificateUrlValue": {
+            "value": ""
+        },
+        "adminClientCertificateUrlValue": {
+            "value": ""
+        },
+        "nonAdminClientCertificateUrlValue": {
+            "value": ""
+        },
+        "clusterCertificateCommonName": {
+            "value": "SFClusterCertificate"
+        },
+        "serverCertificateCommonName": {
+            "value": "SFServerCertificate"
+        },
+        "reverseProxyCertificateCommonName": {
+            "value": "SFReverseProxyCertificate"
+        },
+        "adminClientCertificateCommonName": {
+            "value": "SFAdminClientCertificate"
+        },
+        "nonAdminClientCertificateCommonName": {
+            "value": "SFNonAdminClientCertificate"
+        },
+        "DNSService": {
+            "value": "No"
+        },
+        "RepairManager": {
+            "value": "No"
+        },
+        "serviceFabricUrl": {
+            "value": ""
+        },
+        "serviceFabricRuntimeUrl": {
+            "value": ""
+        },
+        "scriptBaseUrl": {
+            "value": "https://sfcluster.blob.local.azurestack.external/artifacts/"
+        },
+        "standaloneDeployment": {
+            "value": false
+        },
+        "ehCertRootInstall": {
+            "value": false
+        },
+        "disableStrongNameValidation": {
+            "value": false
+        },
+        "disableContainers": {
+            "value": true
+        },
+        "devModeForMonitoring": {
+            "value": false
+        },		
+        "configurationMode": {
+            "value": "ApplyAndAutoCorrect"
+        },
+        "buildNumber": {
+            "value": "1.2002.0"
+        }
     }
-  }
 }

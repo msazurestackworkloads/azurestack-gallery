@@ -2,13 +2,12 @@
     "name": "SampleCluster",
     "clusterConfigurationVersion": "1.0.0",
     "apiVersion": "08-2017",
-    "nodes": [
-        {
+    "nodes": [{
             "nodeName": "vm0",
             "iPAddress": "machine1",
             "nodeTypeRef": "NodeType0",
-            "faultDomain": "fd:/dc1/r0",
-            "upgradeDomain": "UD0"
+            "faultDomain": "fd:/1",
+            "upgradeDomain": "0"
         },
         {
             "nodeName": "vm1",
@@ -26,6 +25,7 @@
         }
     ],
     "properties": {
+        "fabricClusterAutoupgradeEnabled": "false",
         "diagnosticsStore": {
             "metadata": "Diagnostics store provided in Azure stack blob storage.",
             "dataDeletionAgeInDays": "7",
@@ -50,8 +50,7 @@
                     "Thumbprint": "[Thumbprint]",
                     "X509StoreName": "My"
                 },
-                "ClientCertificateThumbprints": [
-                    {
+                "ClientCertificateThumbprints": [{
                         "CertificateThumbprint": "[Thumbprint]",
                         "IsAdmin": false
                     },
@@ -62,46 +61,40 @@
                 ]
             }
         },
-        "nodeTypes": [
-            {
-                "name": "NodeType0",
-                "clientConnectionEndpointPort": "19000",
-                "clusterConnectionEndpointPort": "19001",
-                "leaseDriverEndpointPort": "19002",
-                "serviceConnectionEndpointPort": "19003",
-                "httpGatewayEndpointPort": "19080",
-                "reverseProxyEndpointPort": "19081",
-                "applicationPorts": {
-                    "startPort": "20001",
-                    "endPort": "20031"
-                },
-                "isPrimary": true
-            }
-        ],
-      "fabricSettings": [
-        {
-          "name": "Setup",
-          "parameters": [
-            {
-              "name": "FabricDataRoot",
-              "value": "F:\\SF"
+        "nodeTypes": [{
+            "name": "NodeType0",
+            "clientConnectionEndpointPort": "19000",
+            "clusterConnectionEndpointPort": "19001",
+            "leaseDriverEndpointPort": "19002",
+            "serviceConnectionEndpointPort": "19003",
+            "httpGatewayEndpointPort": "19080",
+            "reverseProxyEndpointPort": "19081",
+            "applicationPorts": {
+                "startPort": "20001",
+                "endPort": "20031"
+            },
+            "isPrimary": true
+        }],
+        "fabricSettings": [{
+                "name": "Setup",
+                "parameters": [{
+                        "name": "FabricDataRoot",
+                        "value": "E:\\SF"
+                    },
+                    {
+                        "name": "FabricLogRoot",
+                        "value": "E:\\SF\\Log"
+                    }
+                ]
             },
             {
-              "name": "FabricLogRoot",
-              "value": "F:\\SF\\Log"
+                "name": "Management",
+                "parameters": [{
+                    "name": "EnableDeploymentAtDataRoot",
+                    "value": true
+                }]
             }
-          ]
-        },
-        {
-          "name": "Management",
-          "parameters": [
-            {
-              "name": "EnableDeploymentAtDataRoot",
-              "value": true
-            }
-          ]
-        }
-      ],
+        ],
         "addOnFeatures": [
             "DnsService",
             "RepairManager"
