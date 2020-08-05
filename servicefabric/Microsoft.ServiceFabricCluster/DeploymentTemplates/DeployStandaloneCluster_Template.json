@@ -1,0 +1,807 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "clusterName": {
+            "type": "string",
+            "defaultValue": "sfcluster",
+            "metadata": {
+                "description": "Name of your cluster - Between 3 and 23 characters. Letters and numbers only"
+            }
+        },
+        "nodeTypePrefix": {
+            "type": "string",
+            "defaultValue": "sfnode",
+            "maxLength": 8,
+            "metadata": {
+                "description": "Service fabric node type name. Also used for VM scaleset name prefix."
+            }
+        },
+        "additionalLoadbalancerProbePortsArray": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "Additional ports to be registered for health probe"
+            }
+        },
+        "primaryNtInstanceCount": {
+            "type": "int",
+            "metadata": {
+                "description": "Size of the VM scale set (Min 3 and Max 100)."
+            },
+            "defaultValue": 3,
+            "minValue": 1,
+            "maxValue": 100
+        },
+        "additionalNodeTypeInstaceCounts": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "Comma seperated list of instance counts for additional node types (if any) - (like [3, 5, 2])."
+            }
+        },
+        "loadbalancerProbePortsArray": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "load balancer ports to be registered for health probe"
+            }
+        },
+        "vmImageSku": {
+            "type": "string",
+            "defaultValue": "2016-Datacenter"
+        },
+        "vmNodeSize": {
+            "type": "string",
+            "allowedValues": [
+                "Standard_D1_v2",
+                "Standard_D2_v2",
+                "Standard_D3_v2",
+                "Standard_D4_v2",
+                "Standard_D5_v2",
+                "Standard_D11_v2",
+                "Standard_D12_v2",
+                "Standard_D13_v2",
+                "Standard_D14_v2",
+                "Standard_DS1_v2",
+                "Standard_DS2_v2",
+                "Standard_DS3_v2",
+                "Standard_DS4_v2",
+                "Standard_DS5_v2",
+                "Standard_DS11_v2",
+                "Standard_DS12_v2",
+                "Standard_DS13_v2",
+                "Standard_DS14_v2"
+            ],
+            "defaultValue": "Standard_D2_v2"
+        },
+        "adminUserName": {
+            "type": "string",
+            "defaultValue": "clusterAdmin",
+            "metadata": {
+                "description": "Remote desktop user Id."
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Remote desktop user password. Must be a strong password."
+            }
+        },
+        "servicefabricTcpGatewayPort": {
+            "type": "int",
+            "defaultValue": 19000,
+            "metadata": {
+                "description": "Service Fabric cluster TCP gateway port to be used to connect using service fabric client."
+            }
+        },
+        "servicefabricHttpGatewayPort": {
+            "type": "int",
+            "defaultValue": 19080,
+            "metadata": {
+                "description": "Service Fabric cluster HTTP gateway port to be used to connect using service fabric explorer."
+            }
+        },
+        "servicefabricReverseProxyEndpointPort": {
+            "type": "int",
+            "defaultValue": 19081,
+            "metadata": {
+                "description": "Service Fabric cluster reverse proxy port."
+            }
+        },
+        "lbApplicationPorts": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "Array of application ports to be opened (like [80, 8080, 8081])."
+            }
+        },
+        "lbApplicationBackendPorts": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "Array of application backend port to be opened."
+            }
+        },
+        "nsgPorts": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "Array of additional ports to be opened in the NSG (like [3389, 80, 8081])."
+            }
+        },
+        "sourceVaultValue": {
+            "type": "string",
+            "metadata": {
+                "description": "Resource Id of the key vault, is should be in the format of /subscriptions/<Sub ID>/resourceGroups/<Resource group name>/providers/Microsoft.KeyVault/vaults/<vault name>"
+            }
+        },
+        "clusterCertificateUrlValue": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Refers to the location URL in your key vault where the certificate was uploaded, it is should be in the format of https://<name of the vault>.vault.azure.net:443/secrets/<exact location>"
+            }
+        },
+        "clusterCertificateThumbprint": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Cluster Certificate Thumbprint"
+            }
+        },
+        "serverCertificateUrlValue": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Refers to the location URL in your key vault where the certificate was uploaded, it is should be in the format of https://<name of the vault>.vault.azure.net:443/secrets/<exact location>"
+            }
+        },
+        "serverCertificateThumbprint": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Server Certificate Thumbprint"
+            }
+        },
+        "customerCertsToInstall": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "Array of customer certificate urls to install in VMSS (like [https://<name of the vault>.vault.azure.net:443/secrets/<exact location>, https://<name of the vault>.vault.azure.net:443/secrets/<exact location>])."
+            }
+        },
+        "reverseProxyCertificateUrlValue": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Refers to the location URL in your key vault where the certificate was uploaded, it is should be in the format of https://<name of the vault>.vault.azure.net:443/secrets/<exact location>"
+            }
+        },
+        "reverseProxyCertificateThumbprint": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Reverse proxy Certificate Thumbprint"
+            }
+        },
+        "applicationCertificateUrlValue": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Refers to the location URL in your key vault where the certificate was uploaded, it is should be in the format of https://<name of the vault>.vault.azure.net:443/secrets/<exact location>"
+            }
+        },
+        "adminClientCertificateUrlValue": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Refers to the location URL in your key vault where the certificate was uploaded, it is should be in the format of https://<name of the vault>.vault.azure.net:443/secrets/<exact location>"
+            }
+        },
+        "adminClientCertificateThumbprints": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Admin client Certificate Thumbprints"
+            }
+        },
+        "nonAdminClientCertificateUrlValue": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Refers to the location URL in your key vault where the certificate was uploaded, it is should be in the format of https://<name of the vault>.vault.azure.net:443/secrets/<exact location>"
+            }
+        },
+        "nonAdminClientCertificateThumbprints": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Non-Admin client Certificate Thumbprint"
+            }
+        },
+        "DNSService": {
+            "type": "string",
+            "allowedValues": [
+                "Yes",
+                "No"
+            ],
+            "defaultValue": "No",
+            "metadata": {
+                "description": "DNS Service Optional Feature"
+            }
+        },
+        "RepairManager": {
+            "type": "string",
+            "allowedValues": [
+                "Yes",
+                "No"
+            ],
+            "defaultValue": "No",
+            "metadata": {
+                "description": "Repair Manager Optional Feature"
+            }
+        },
+        "BackupRestoreService": {
+            "type": "string",
+            "allowedValues": [
+                "Yes",
+                "No"
+            ],
+            "defaultValue": "No",
+            "metadata": {
+                "description": "BackupRestore Service Optional Feature"
+            }
+        },
+        "serviceFabricUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "Service fabric deployment package download url."
+            },
+            "defaultValue": "https://download.microsoft.com/download/8/3/6/836E3E99-A300-4714-8278-96BC3E8B5528/6.5.641.9590/Microsoft.Azure.ServiceFabric.WindowsServer.6.5.641.9590.zip"
+        },
+        "serviceFabricRuntimeUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "Service fabric runtime download url. Leave it empty if using the latest."
+            },
+            "defaultValue": "https://download.microsoft.com/download/B/0/B/B0BCCAC5-65AA-4BE3-AB13-D5FF5890F4B5/6.5.641.9590/MicrosoftAzureServiceFabric.6.5.641.9590.cab"
+        },
+        "scriptBaseUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "Scripts base url"
+            },
+            "defaultValue": "[deployment().properties.templateLink.uri]"
+        },
+        "rootCertBase64": {
+            "type": "string",
+            "metadata": {
+                "description": "The Base64 string of the Root Certificate"
+            },
+            "defaultValue": ""
+        },
+        "clusterCertificateCommonName": {
+            "type": "string",
+            "metadata": {
+                "description": "CN for cluster certificate"
+            },
+            "defaultValue": ""
+        },
+        "serverCertificateCommonName": {
+            "type": "string",
+            "metadata": {
+                "description": "CN for server certificate"
+            },
+            "defaultValue": ""
+        },
+        "reverseProxyCertificateCommonName": {
+            "type": "string",
+            "metadata": {
+                "description": "CN for reverse proxy certificate"
+            },
+            "defaultValue": ""
+        },
+        "adminClientCertificateCommonName": {
+            "type": "string",
+            "metadata": {
+                "description": "CN for admin client certificate"
+            },
+            "defaultValue": ""
+        },
+        "nonAdminClientCertificateCommonName": {
+            "type": "string",
+            "metadata": {
+                "description": "CN for non-admin client certificate"
+            },
+            "defaultValue": ""
+        },
+        "providerIdentityCertCommonName": {
+            "type": "string",
+            "metadata": {
+                "description": "CN for provider identity certificate"
+            },
+            "defaultValue": ""
+        },
+        "additionalCertCommonNamesNeedNetworkAccess": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "Additional certificate common names that need Network Service permission"
+            }
+        },
+        "managedOSImageVersion": {
+            "type": "string",
+            "metadata": {
+                "description": "OS Image version to be used"
+            },
+            "defaultValue": "latest"
+        },
+        "natPools": {
+            "type": "array",
+            "metadata": {
+                "description": "NAT pools"
+            },
+            "defaultValue": [{
+                "name": "rdpPool",
+                "frontendPortRangeStart": 50000,
+                "frontendPortRangeEnd": 50099,
+                "backendPort": 3389,
+                "protocol": "Tcp"
+            }]
+        },
+        "providerIdentityClientCertSecretUri": {
+            "type": "string",
+            "defaultValue": ""
+        },
+        "providerIdentityApplicationId": {
+            "type": "string",
+            "defaultValue": ""
+        },
+        "armEndpoint": {
+            "type": "string",
+            "defaultValue": ""
+        },
+        "azureKeyVaultDnsSuffix": {
+            "type": "string",
+            "defaultValue": ""
+        },
+        "azureKeyVaultServiceEndpointResourceId": {
+            "type": "string",
+            "defaultValue": ""
+        },
+        "providerIdentityTenantId": {
+            "type": "string",
+            "defaultValue": ""
+        },
+        "DSCAgentConfig": {
+            "type": "object",
+            "defaultValue": {}
+        },
+        "ConfigurationMode": {
+            "type": "string",
+            "allowedValues": [
+                "ApplyOnly",
+                "ApplyAndMonitor",
+                "ApplyAndAutoCorrect"
+            ],
+            "defaultValue": "ApplyOnly"
+        },
+        "StandaloneDeployment": {
+            "type": "bool",
+            "defaultValue": true
+        },
+        "EHCertRootInstall": {
+            "type": "bool",
+            "defaultValue": false
+        },
+        "EHRootCertCommonNames": {
+            "type": "array",
+            "defaultValue": []
+        },
+        "DisableStrongNameValidation": {
+            "type": "bool",
+            "defaultValue": false
+        },
+        "DisableContainers": {
+            "type": "bool",
+            "defaultValue": true
+        },
+        "BuildNumber": {
+          "type": "string",
+          "metadata": {
+            "description": "The build that this template is part of. It is used to create a forceupdate tag to force a VMSS guest agent update"
+          },
+          "defaultValue": "1.0.0"
+        },
+        "BRSDisableKVAuthorityValidation": {
+            "type": "bool",
+            "metadata": {
+                "description": "Set to true if it is a ADFS identity system so BackupRestoreService of Service Fabric can authenticate with ADFS APP appropriately. Use only if BackUpRestoreService is used in SF cluster"
+            },
+            "defaultValue": false
+       }
+    },
+    "variables": {
+
+        "apiVersion": {
+            "vmssApiVersion": "2016-03-30",
+            "lbApiVersion": "2015-06-15",
+            "vNetApiVersion": "2015-06-15",
+            "storageApiVersion": "2017-10-01",
+            "publicIPApiVersion": "2015-06-15",
+            "templateDeploymentApiVersion": "2015-01-01"
+        },
+
+        "location": "[resourceGroup().location]",
+        "vmssPrefix": "[concat(parameters('nodeTypePrefix'), 'vmss')]",
+        "frontEndNSGName": "[concat(variables('vmssPrefix'), 'nsg')]",
+        "frontEndNSGID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('frontEndNSGName'))]",
+        "virtualNetworkName": "[concat(variables('vmssPrefix'), 'vnet')]",
+        "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
+
+        "vmImageOfferForStandalone": "[if(equals(parameters('vmImageSku'), 'Datacenter-Core-1709-with-Containers-smalldisk'), 'WindowsServerSemiAnnual', 'WindowsServer')]",
+
+        "subnetName": "[concat(variables('vmssPrefix'), 'subnet')]",
+        "dnsLabel": "[parameters('clusterName')]",
+        "addressPrefix": "10.0.0.0/16",
+        "subnetPrefixFirstHalf": "10.0.",
+        "subnetPrefixSecondHalf": ".0/24",
+        "ephemeralStartPort": 49152,
+        "ephemeralEndPort": 65534,
+        "applicationStartPort": 20000,
+        "applicationEndPort": 30000,
+        "lbPortsArray": "[concat(array(parameters('servicefabricTcpGatewayPort')), array(parameters('servicefabricHttpGatewayPort')), parameters('lbApplicationPorts'))]",
+        "lbHealthProbePortsArray": "[concat(array(parameters('servicefabricTcpGatewayPort')), array(parameters('servicefabricHttpGatewayPort')), if(empty(parameters('loadbalancerProbePortsArray')), parameters('lbApplicationPorts'), parameters('loadbalancerProbePortsArray')))]",
+        "lbBackendPortsArray": "[concat(array(parameters('servicefabricTcpGatewayPort')), array(parameters('servicefabricHttpGatewayPort')), if(empty(parameters('lbApplicationBackendPorts')), parameters('lbApplicationPorts'), parameters('lbApplicationBackendPorts')))]",
+        "nsgPortsArray": "[concat(variables('lbPortsArray'), parameters('nsgPorts'), array(concat('-', parameters('servicefabricTcpGatewayPort'))))]",
+        "nodeTypeInstanceCounts": "[concat(array(parameters('primaryNtInstanceCount')), parameters('additionalNodeTypeInstaceCounts'))]",
+        "nodeTypes": "[length(variables('nodeTypeInstanceCounts'))]",
+        "publicIpResourceName": "[concat(variables('vmssPrefix'), 'pip')]",
+        "imageConfig": {
+            "vmssUniqueName": "[variables('vmssPrefix')]",
+            "vmImagePublisher": "[if(parameters('StandaloneDeployment'), 'MicrosoftWindowsServer', 'Microsoft')]",
+            "vmImageOffer": "[if(parameters('StandaloneDeployment'), variables('vmImageOfferForStandalone'), 'AddOnRP')]",
+            "vmImageSku": "[if(parameters('StandaloneDeployment'), parameters('vmImageSku'), 'WindowsServer')]",
+            "vmImageVersion": "[parameters('managedOSImageVersion')]",
+            "overProvision": "false",
+            "storageAccountType": "Standard_LRS"
+        },
+
+        "derivedIds": {
+            "subnetID": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]"
+        },
+
+        "vmssDeploymentTemplateURL": "[uri(parameters('scriptBaseUrl'), 'vmssStandaloneProvision.json')]",
+
+        "delimiters": [
+            ",",
+            ";"
+        ],
+
+        "adminClientCertificateThumbprint": "[split(trim(parameters('adminClientCertificateThumbprints')), variables('delimiters'))]",
+        "nonAdminClientCertificateThumbprint": "[split(trim(parameters('nonAdminClientCertificateThumbprints')), variables('delimiters'))]",
+
+        "clusterCerts": "[if(equals(parameters('clusterCertificateUrlValue'), parameters('serverCertificateUrlValue')), array(parameters('clusterCertificateUrlValue')), concat(array(parameters('clusterCertificateUrlValue')), array(parameters('serverCertificateUrlValue'))))]",
+        "coreCerts": "[if(or(contains(variables('clusterCerts'), parameters('applicationCertificateUrlValue')), equals(parameters('applicationCertificateUrlValue'),'')), variables('clusterCerts'), concat(array(parameters('applicationCertificateUrlValue')), variables('clusterCerts')))]",
+        "certsPlusReverse": "[if(or(contains(variables('coreCerts'), parameters('reverseProxyCertificateUrlValue')), equals(parameters('reverseProxyCertificateUrlValue'),'')), variables('coreCerts'), concat(array(parameters('reverseProxyCertificateUrlValue')), variables('coreCerts')))]",
+        "certsPlusClient": "[if(equals(trim(parameters('adminClientCertificateUrlValue')), ''), variables('certsPlusReverse'), concat(variables('certsPlusReverse'), array(parameters('adminClientCertificateUrlValue'))))]",
+        "certUrls": "[if(or(contains(variables('certsPlusClient'), parameters('nonAdminClientCertificateUrlValue')), equals(parameters('nonAdminClientCertificateUrlValue'),'')), variables('certsPlusClient'), concat(variables('certsPlusClient'), array(parameters('nonAdminClientCertificateUrlValue'))))]",
+        "certsToInstall": "[if(equals(trim(parameters('providerIdentityClientCertSecretUri')), ''), variables('certUrls'), array(parameters('providerIdentityClientCertSecretUri')))]"
+
+    },
+    "resources": [{
+            "apiVersion": "[variables('apiVersion').vNetApiVersion]",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('frontEndNSGName')]",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "resourceType": "Service Fabric",
+                "clusterName": "[parameters('clusterName')]",
+                "displayName": "NSG - Front End"
+            },
+            "properties": {
+                "copy": [{
+                    "name": "securityRules",
+                    "count": "[length(variables('nsgPortsArray'))]",
+                    "input": {
+                        "name": "[concat('NSGRuleForPort_', if(startsWith(string(variables('nsgPortsArray')[copyIndex('securityRules')]),'-'), replace(string(variables('nsgPortsArray')[copyIndex('securityRules')]),'-','Out_'),string(variables('nsgPortsArray')[copyIndex('securityRules')])))]",
+                        "properties": {
+                            "description": "[concat('Allow ', if(startsWith(string(variables('nsgPortsArray')[copyIndex('securityRules')]),'-'), replace(string(variables('nsgPortsArray')[copyIndex('securityRules')]),'-',''),string(variables('nsgPortsArray')[copyIndex('securityRules')])))]",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "[if(startsWith(string(variables('nsgPortsArray')[copyIndex('securityRules')]),'-'), replace(string(variables('nsgPortsArray')[copyIndex('securityRules')]),'-',''),string(variables('nsgPortsArray')[copyIndex('securityRules')]))]",
+                            "sourceAddressPrefix": "Internet",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": "[int(concat('10', copyIndex('securityRules')))]",
+                            "direction": "[if(startsWith(string(variables('nsgPortsArray')[copyIndex('securityRules')]),'-'),'Outbound','Inbound')]"
+                        }
+                    }
+                }]
+            }
+        },
+        {
+            "apiVersion": "[variables('apiVersion').vNetApiVersion]",
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[variables('virtualNetworkName')]",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[variables('frontEndNSGID')]"
+            ],
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('addressPrefix')]"
+                    ]
+                },
+                "copy": [{
+                    "name": "subnets",
+                    "count": "[variables('nodeTypes')]",
+                    "input": {
+                        "name": "[concat(variables('subnetName'), copyIndex('subnets'))]",
+                        "properties": {
+                            "addressPrefix": "[concat(variables('subnetPrefixFirstHalf'), copyIndex('subnets'), variables('subnetPrefixSecondHalf'))]",
+                            "networkSecurityGroup": {
+                                "id": "[variables('frontEndNSGID')]"
+                            }
+                        }
+                    }
+                }]
+            },
+            "tags": {
+                "resourceType": "Service Fabric",
+                "clusterName": "[parameters('clusterName')]",
+                "displayName": "VirtualNetwork"
+            }
+        },
+        {
+            "apiVersion": "[variables('apiVersion').publicIPApiVersion]",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('publicIpResourceName')]",
+            "location": "[variables('location')]",
+            "copy": {
+                "name": "PublicIPProvisioning",
+                "count": "[variables('nodeTypes')]"
+            },
+            "dependsOn": [
+                "[variables('vnetID')]"
+            ],
+            "properties": {
+                "dnsSettings": {
+                    "domainNameLabel": "[if(equals(string(copyIndex()), '0'), variables('dnsLabel'), concat(variables('dnsLabel'), copyIndex()))]"
+                },
+                "publicIPAllocationMethod": "Dynamic"
+            },
+            "tags": {
+                "resourceType": "Service Fabric",
+                "displayName": "PublicIP"
+            }
+        },
+        {
+            "apiVersion": "[variables('apiVersion').templateDeploymentApiVersion]",
+            "name": "[concat('SFDeployment', copyindex())]",
+            "type": "Microsoft.Resources/deployments",
+            "copy": {
+                "name": "SFDeployment",
+                "count": "[variables('nodeTypes')]"
+            },
+            "dependsOn": [
+                "PublicIPProvisioning",
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('vmssDeploymentTemplateURL')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "clusterName": {
+                        "value": "[parameters('clusterName')]"
+                    },
+                    "nodeTypePrefix": {
+                        "value": "[parameters('nodeTypePrefix')]"
+                    },
+                    "nodeTypeInstanceCounts": {
+                        "value": "[variables('nodeTypeInstanceCounts')]"
+                    },
+                    "nodeTypeIndex": {
+                        "value": "[copyIndex()]"
+                    },
+                    "subnetIPFormat": {
+                        "value": "[concat(variables('subnetPrefixFirstHalf'), '[]', variables('subnetPrefixSecondHalf'))]"
+                    },
+                    "overProvision": {
+                        "value": "[variables('imageConfig').overProvision]"
+                    },
+                    "vmImageSku": {
+                        "value": "[variables('imageConfig').vmImageSku]"
+                    },
+                    "vmImagePublisher": {
+                        "value": "[variables('imageConfig').vmImagePublisher]"
+                    },
+                    "vmImageOffer": {
+                        "value": "[variables('imageConfig').vmImageOffer]"
+                    },
+                    "vmImageVersion": {
+                        "value": "[variables('imageConfig').vmImageVersion]"
+                    },
+                    "vmNodeSize": {
+                        "value": "[parameters('vmNodeSize')]"
+                    },
+                    "adminUserName": {
+                        "value": "[parameters('adminUserName')]"
+                    },
+                    "adminPassword": {
+                        "value": "[parameters('adminPassword')]"
+                    },
+                    "additionalLoadbalancerProbePortsArray": {
+                        "value": "[parameters('additionalLoadbalancerProbePortsArray')]"
+                    },
+                    "lbHealthProbePortsArray": {
+                        "value": "[variables('lbHealthProbePortsArray')]"
+                    },
+                    "subnetID": {
+                        "value": "[concat(variables('derivedIds').subnetID, copyIndex())]"
+                    },
+                    "publicIPID": {
+                        "value": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpResourceName'))]"
+                    },
+                    "lbPortsArray": {
+                        "value": "[variables('lbPortsArray')]"
+                    },
+                    "lbBackendPortsArray": {
+                        "value": "[variables('lbBackendPortsArray')]"
+                    },
+                    "sourceVaultValue": {
+                        "value": "[parameters('sourceVaultValue')]"
+                    },
+                    "certsToInstall": {
+                        "value": "[variables('certsToInstall')]"
+                    },
+                    "customerCertsToInstall": {
+                        "value": "[parameters('customerCertsToInstall')]"
+                    },
+                    "clusterCertificateThumbprint": {
+                        "value": "[parameters('clusterCertificateThumbprint')]"
+                    },
+                    "serverCertificateThumbprint": {
+                        "value": "[parameters('serverCertificateThumbprint')]"
+                    },
+                    "reverseProxyCertificateThumbprint": {
+                        "value": "[parameters('reverseProxyCertificateThumbprint')]"
+                    },
+                    "servicefabricTcpGatewayPort": {
+                        "value": "[parameters('servicefabricTcpGatewayPort')]"
+                    },
+                    "servicefabricHttpGatewayPort": {
+                        "value": "[parameters('servicefabricHttpGatewayPort')]"
+                    },
+                    "servicereverseProxyEndpointPort": {
+                        "value": "[parameters('servicefabricReverseProxyEndpointPort')]"
+                    },
+                    "ephemeralStartPort": {
+                        "value": "[variables('ephemeralStartPort')]"
+                    },
+                    "ephemeralEndPort": {
+                        "value": "[variables('ephemeralEndPort')]"
+                    },
+                    "applicationStartPort": {
+                        "value": "[variables('applicationStartPort')]"
+                    },
+                    "applicationEndPort": {
+                        "value": "[variables('applicationEndPort')]"
+                    },
+                    "adminClientCertificateThumbprint": {
+                        "value": "[variables('adminClientCertificateThumbprint')]"
+                    },
+                    "adminClientConnectionEndpoint": {
+                        "value": "[concat(reference(concat('Microsoft.Network/publicIPAddresses/', variables('publicIpResourceName')), variables('apiVersion').publicIPApiVersion).dnsSettings.fqdn, ':', parameters('servicefabricTcpGatewayPort'))]"
+                    },
+                    "nonAdminClientCertificateThumbprint": {
+                        "value": "[variables('nonAdminClientCertificateThumbprint')]"
+                    },
+                    "DNSService": {
+                        "value": "[parameters('DNSService')]"
+                    },
+                    "RepairManager": {
+                        "value": "[parameters('RepairManager')]"
+                    },
+                    "BackupRestoreService": {
+                        "value": "[parameters('BackupRestoreService')]"
+                    },
+                    "serviceFabricUrl": {
+                        "value": "[parameters('serviceFabricUrl')]"
+                    },
+                    "serviceFabricRuntimeUrl": {
+                        "value": "[parameters('serviceFabricRuntimeUrl')]"
+                    },
+                    "scriptBaseUrl": {
+                        "value": "[parameters('scriptBaseUrl')]"
+                    },
+                    "rootCertBase64": {
+                        "value": "[parameters('rootCertBase64')]"
+                    },
+                    "clusterCertificateCommonName": {
+                        "value": "[parameters('clusterCertificateCommonName')]"
+                    },
+                    "serverCertificateCommonName": {
+                        "value": "[parameters('serverCertificateCommonName')]"
+                    },
+                    "reverseProxyCertificateCommonName": {
+                        "value": "[parameters('reverseProxyCertificateCommonName')]"
+                    },
+                    "adminClientCertificateCommonName": {
+                        "value": "[parameters('adminClientCertificateCommonName')]"
+                    },
+                    "nonAdminClientCertificateCommonName": {
+                        "value": "[parameters('nonAdminClientCertificateCommonName')]"
+                    },
+                    "providerIdentityCertCommonName": {
+                        "value": "[parameters('providerIdentityCertCommonName')]"
+                    },
+                    "additionalCertCommonNamesNeedNetworkAccess": {
+                        "value": "[parameters('additionalCertCommonNamesNeedNetworkAccess')]"
+                    },
+                    "natPools": {
+                        "value": "[parameters('natPools')]"
+                    },
+                    "providerIdentityApplicationId": {
+                        "value": "[parameters('providerIdentityApplicationId')]"
+                    },
+                    "armEndpoint": {
+                        "value": "[parameters('armEndpoint')]"
+                    },
+                    "azureKeyVaultDnsSuffix": {
+                        "value": "[parameters('azureKeyVaultDnsSuffix')]"
+                    },
+                    "azureKeyVaultServiceEndpointResourceId": {
+                        "value": "[parameters('azureKeyVaultServiceEndpointResourceId')]"
+                    },
+                    "providerIdentityTenantId": {
+                        "value": "[parameters('providerIdentityTenantId')]"
+                    },
+                    "DSCAgentConfig": {
+                        "value": "[parameters('DSCAgentConfig')]"
+                    },
+                    "ConfigurationMode": {
+                        "value": "[parameters('ConfigurationMode')]"
+                    },
+                    "StandaloneDeployment": {
+                        "value": "[parameters('StandaloneDeployment')]"
+                    },
+                    "DisableStrongNameValidation": {
+                        "value": "[parameters('DisableStrongNameValidation')]"
+                    },
+                    "DisableContainers": {
+                        "value": "[parameters('DisableContainers')]"
+                    },
+                    "BuildNumber": {
+                        "value": "[parameters('BuildNumber')]"
+                    },
+                    "BRSDisableKVAuthorityValidation": {
+                        "value": "[parameters('BRSDisableKVAuthorityValidation')]"
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "virtualMachineScaleSetResourceId": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'SFDeployment0'), variables('apiVersion').templateDeploymentApiVersion).outputs.virtualMachineScaleSetResourceId.value]"
+        },
+        "administrationEndpointURL": {
+            "type": "string",
+            "value": "[concat('https://', reference(concat('Microsoft.Network/publicIPAddresses/', variables('publicIpResourceName')), variables('apiVersion').publicIPApiVersion).dnsSettings.fqdn, ':', parameters('servicefabricTcpGatewayPort'))]"
+        },
+        "applicationEndpointURL": {
+            "type": "string",
+            "value": "[concat('https://', reference(concat('Microsoft.Network/publicIPAddresses/', variables('publicIpResourceName')), variables('apiVersion').publicIPApiVersion).dnsSettings.fqdn, ':', parameters('servicefabricHttpGatewayPort'))]"
+        },
+        "endpointFQDN": {
+            "value": "[reference(concat('Microsoft.Network/publicIPAddresses/', variables('publicIpResourceName')), variables('apiVersion').publicIPApiVersion).dnsSettings.fqdn]",
+            "type": "string"
+        }
+    }
+}
