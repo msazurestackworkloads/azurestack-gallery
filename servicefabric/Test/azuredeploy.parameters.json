@@ -84,18 +84,12 @@
         "standaloneDeployment": {
             "value": true
         },
-        "ehCertRootInstall": {
-            "value": false
-        },
         "disableStrongNameValidation": {
             "value": false
         },
         "disableContainers": {
             "value": true
         },
-        "devModeForMonitoring": {
-            "value": false
-        },		
         "configurationMode": {
             "value": "ApplyAndAutoCorrect"
         },

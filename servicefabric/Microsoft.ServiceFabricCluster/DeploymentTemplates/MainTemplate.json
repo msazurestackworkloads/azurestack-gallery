@@ -391,14 +391,6 @@
             "type": "bool",
             "defaultValue": true
         },
-        "EHCertRootInstall": {
-            "type": "bool",
-            "defaultValue": false
-        },
-        "EHRootCertCommonNames": {
-            "type": "array",
-            "defaultValue": []
-        },
         "DisableStrongNameValidation": {
             "type": "bool",
             "defaultValue": false
@@ -406,10 +398,6 @@
         "DisableContainers": {
             "type": "bool",
             "defaultValue": true
-        },
-        "DevModeForMonitoring": {
-            "type": "bool",
-            "defaultValue": false
         },
         "BuildNumber": {
           "type": "string",
@@ -476,7 +464,7 @@
             "subnetID": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]"
         },
 
-        "vmssDeploymentTemplateURL": "[uri(parameters('scriptBaseUrl'), 'vmssStandaloneProvision.json')]",
+        "vmssDeploymentTemplateURL": "[uri(parameters('scriptBaseUrl'), 'vmssProvision.json')]",
 
         "delimiters": [
             ",",
