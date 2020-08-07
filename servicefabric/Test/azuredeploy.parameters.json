@@ -79,7 +79,7 @@
             "value": ""
         },
         "scriptBaseUrl": {
-            "value": "https://sfcluster.blob.local.azurestack.external/artifacts/"
+            "value": "https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master/servicefabric/Microsoft.ServiceFabricCluster/DeploymentTemplates/"
         },
         "standaloneDeployment": {
             "value": false
