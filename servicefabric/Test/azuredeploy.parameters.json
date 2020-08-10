@@ -39,32 +39,26 @@
         "clusterCertificateUrlValue": {
             "value": ""
         },
-        "ServerCertificateUrlValue": {
+       "clusterCertificateThumbprint": {
+            "value": "E1DE3257117B5DCADCD176C6D989236EB96464B9"
+        },
+	"ServerCertificateUrlValue": {
             "value": ""
         },
+        "serverCertificateThumbprint": {
+            "value": "E1DE3257117B5DCADCD176C6D989236EB96464B9"
+         },	
         "reverseProxyCertificateUrlValue": {
             "value": ""
         },
-        "adminClientCertificateUrlValue": {
-            "value": ""
-        },
-        "nonAdminClientCertificateUrlValue": {
-            "value": ""
-        },
-        "clusterCertificateCommonName": {
-            "value": "SFClusterCertificate"
-        },
-        "serverCertificateCommonName": {
-            "value": "SFServerCertificate"
-        },
-        "reverseProxyCertificateCommonName": {
-            "value": "SFReverseProxyCertificate"
-        },
-        "adminClientCertificateCommonName": {
-            "value": "SFAdminClientCertificate"
-        },
-        "nonAdminClientCertificateCommonName": {
-            "value": "SFNonAdminClientCertificate"
+        "reverseProxyCertificateThumbprint": {
+             "value": ""
+        },	
+        "adminClientCertificateThumbprints": {
+             "value": "650EBE07FD7596F8778E16896983D3ACD456F5F5"
+        },	
+        "nonAdminClientCertificateThumbprints": {
+              "value": ""
         },
         "DNSService": {
             "value": "No"
@@ -79,7 +73,7 @@
             "value": ""
         },
         "scriptBaseUrl": {
-            "value": "https://raw.githubusercontent.com/larisaborodina/azurestack-gallery/master/servicefabric/Microsoft.ServiceFabricCluster/DeploymentTemplates/"
+            "value": "https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master/servicefabric/Microsoft.ServiceFabricCluster/DeploymentTemplates/"
         },
         "standaloneDeployment": {
             "value": true
