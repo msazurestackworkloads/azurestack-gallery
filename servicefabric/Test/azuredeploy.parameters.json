@@ -39,10 +39,10 @@
         "clusterCertificateUrlValue": {
             "value": ""
         },
-       "clusterCertificateThumbprint": {
+        "clusterCertificateThumbprint": {
             "value": "E1DE3257117B5DCADCD176C6D989236EB96464B9"
         },
-	"ServerCertificateUrlValue": {
+        "serverCertificateUrlValue": {
             "value": ""
         },
         "serverCertificateThumbprint": {
@@ -53,13 +53,28 @@
         },
         "reverseProxyCertificateThumbprint": {
              "value": ""
-        },	
+        },
         "adminClientCertificateThumbprints": {
              "value": "650EBE07FD7596F8778E16896983D3ACD456F5F5"
-        },	
+        },
         "nonAdminClientCertificateThumbprints": {
               "value": ""
         },
+        "clusterCertificateCommonName": {
+            "value": "SFClusterCertificate"
+        },
+        "serverCertificateCommonName": {
+            "value": "SFServerCertificate"
+        },
+        "reverseProxyCertificateCommonName": {
+            "value": "SFReverseProxyCertificate"
+        },
+        "adminClientCertificateCommonName": {
+            "value": "SFAdminClientCertificate"
+        },
+        "nonAdminClientCertificateCommonName": {
+            "value": "SFNonAdminClientCertificate"
+        },	
         "DNSService": {
             "value": "No"
         },
