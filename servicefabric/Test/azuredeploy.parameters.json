@@ -73,7 +73,7 @@
             "value": ""
         },
         "scriptBaseUrl": {
-            "value": "https://raw.githubusercontent.com/msazurestackworkloads/azurestack-gallery/master/servicefabric/Microsoft.ServiceFabricCluster/DeploymentTemplates/"
+            "value": "https://raw.githubusercontent.com/larisaborodina/azurestack-gallery/master/servicefabric/Microsoft.ServiceFabricCluster/DeploymentTemplates/"
         },
         "standaloneDeployment": {
             "value": true
