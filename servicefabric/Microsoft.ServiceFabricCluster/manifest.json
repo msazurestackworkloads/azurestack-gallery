@@ -13,7 +13,7 @@
     {
       "name": "DefaultTemplate",
       "type": "Template",
-      "path": "DeploymentTemplates\\DeployStandaloneCluster_Template.json",
+      "path": "DeploymentTemplates\\MainTemplate.json",
       "isDefault": true
     },
     {
@@ -29,9 +29,9 @@
       "isDefault": false
     },
     {
-      "name": "vmssStandaloneProvision.json",
+      "name": "vmssProvision.json",
       "type": "Custom",
-      "path": "DeploymentTemplates\\vmssStandaloneProvision.json",
+      "path": "DeploymentTemplates\\vmssProvision.json",
       "isDefault": false
     },
     {
