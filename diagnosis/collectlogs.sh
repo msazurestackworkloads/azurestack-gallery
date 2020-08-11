@@ -86,6 +86,7 @@ compressLogsDirectory()
     # TODO This wont work on a disconnected scenario
     (cd $TMP && zip -q -r ~/${LOGFILENAME} ${HOSTNAME})
     sudo chown ${CURRENTUSER} ~/${LOGFILENAME}
+    sudo rm -f -r $TMP
 }
 
 collectCloudProviderJson() {
