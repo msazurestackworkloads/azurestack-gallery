@@ -10,3 +10,4 @@ kubectl cluster-info dump --output-directory ${TMP} &> /dev/null
 cp ${TMP}/*.json ${TMP}/kube-system/*.json ${LOGDIRECTORY}
 
 (cd $TMP && zip -q -r ~/${WD}.zip ${WD})
+sudo rm -f -r $TMP

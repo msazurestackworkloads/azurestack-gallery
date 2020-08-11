@@ -32,11 +32,9 @@ checkRequirements()
 
 copyLogsToSADirectory()
 {
-    az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{host:name,akse:tags.aksEngineVersion}" --output table | grep 'k8s-' > ${SA_DIR}/akse-version.txt
+    az vm list -g ${RESOURCE_GROUP} --show-details --query "[?contains(name, 'k8s-')].{host:name,akse:tags.aksEngineVersion}" --output table > ${SA_DIR}/akse-version.txt
     
-    cp ${LOGFILEFOLDER}/k8s-*.zip ${SA_DIR}
-    cp ${LOGFILEFOLDER}/vmd-*.zip ${SA_DIR}
-    cp ${LOGFILEFOLDER}/cluster-snapshot.zip ${SA_DIR}
+    cp ${LOGFILEFOLDER}/*.zip ${SA_DIR}
     cp ${LOGFILEFOLDER}/resources/* ${SA_DIR}
     
     if [ -n "$API_MODEL" ]
@@ -121,7 +119,7 @@ processDvmHost()
 {
     host=$1
     
-    DVM_NAME=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep 'vmd-' | cut -f 1 )
+    DVM_NAME=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[?contains(name, 'vmd-')].{Name:name}" --output tsv | head -n 1)
     
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing dvm-host ${host}"
     scp ${SCP_FLAGS} collectlogs.sh ${USER}@${host}:/home/${USER}/collectlogs.sh
@@ -275,7 +273,7 @@ checkRequirements
 validateResourceGroup
 
 # DVM
-DVM_HOST=$(az network public-ip list -g ${RESOURCE_GROUP} --query "[*].{Name:name,ip:ipAddress}" --output tsv | grep 'vmd-' | head -n 1 | cut -f 2)
+DVM_HOST=$(az network public-ip list -g ${RESOURCE_GROUP} --query "[?contains(name, 'vmd-')].{ip:ipAddress}" --output tsv | head -n 1)
 
 if [ -n "$DVM_HOST" ]
 then
@@ -286,7 +284,7 @@ then
 fi
 
 # CLUSTER NODES
-MASTER_IP=$(az network public-ip list -g ${RESOURCE_GROUP} --query "[*].{Name:name,ip:ipAddress}" --output tsv | grep 'k8s-master' | cut -f 2)
+MASTER_IP=$(az network public-ip list -g ${RESOURCE_GROUP} --query "[?contains(name, 'k8s-master')].{ip:ipAddress}" --output tsv)
 if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Error fetching the master nodes' load balancer IP"
     exit 1
@@ -302,7 +300,7 @@ then
     scp ${SCP_FLAGS} ${USER}@${MASTER_IP}:/home/${USER}/cluster-snapshot.zip ${LOGFILEFOLDER}/cluster-snapshot.zip
     ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo rm -f cluster-snapshot.zip hosts.sh"
     
-    CLUSTER_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep 'k8s-' | cut -f 1)
+    CLUSTER_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[?storageProfile.osDisk.osType=='Linux'].{Name:name}" --output tsv | sed 's/[[:blank:]]*$//')
     PROXY_CMD="ssh -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS} ${USER}@${MASTER_IP} -W %h:%p"
 
     for host in ${CLUSTER_NODES}
@@ -311,7 +309,7 @@ then
     done
 
     #Get Windoews nodes log if Windows nodes exist
-    WINDOWS_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[*].{Name:name,ip:privateIps}" --output tsv | grep -v 'k8s-\|vmd-' | cut -f 1)
+    WINDOWS_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[?storageProfile.osDisk.osType=='Windows'].{Name:name}" --output tsv | sed 's/[[:blank:]]*$//')
 
     if [ -n "$WINDOWS_NODES" ]
     then
