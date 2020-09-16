@@ -169,15 +169,15 @@ do
     if [ -z "${NAMESPACES}" ] || (echo $NAMESPACES | grep -qw $cns);
     then
         # Ignore the Pause container
-        if docker inspect --format='{{ .Config.Image }}' ${cid} | grep -q -v pause-amd64;
+        if docker inspect --format='{{ .Config.Image }}' ${cid} | grep -q -v pause;
         then
             pname=$(docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.name" }}' ${cid})
             cname=$(docker inspect --format='{{ index .Config.Labels "io.kubernetes.container.name" }}' ${cid})
             clog=$(docker inspect --format='{{ .LogPath }}' ${cid})
             
             collectContainerMetadata ${cid} ${pname} ${cname}
-            sudo docker inspect ${cid} &> ${LOGDIRECTORY}/containers/k8s-${pname}-${cname}.json
-            sudo cat $clog >> ${LOGDIRECTORY}/containers/k8s-${pname}-${cname}.log
+            sudo docker inspect ${cid} &> ${LOGDIRECTORY}/containers/k8s-${pname}-${cname}-${cid}.json
+            sudo cat $clog >> ${LOGDIRECTORY}/containers/k8s-${pname}-${cname}-${cid}.log
         fi
     fi
 done
