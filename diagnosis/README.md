@@ -19,6 +19,7 @@ The logs retrieved by `getkuberneteslogs.sh` are the following:
 - etcd status and journal
 - docker status and journal
 - kube-system snapshot
+- Kubernetes cloud provider logs
 
 Some additional logs are retrieved for Windows nodes:
 
