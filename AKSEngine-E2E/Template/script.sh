@@ -65,6 +65,10 @@ apt_get_install()
     wait_for_apt_locks
 }
 
+cleanUpGPUDrivers() {
+    rm -f /etc/apt/sources.list.d/nvidia-docker.list
+    apt-key del $(apt-key list | grep NVIDIA -B 1 | head -n 1 | cut -d "/" -f 2 | cut -d " " -f 1)
+}
 
 ###
 #   <summary>
@@ -251,6 +255,7 @@ fi
 
 #####################################################################################
 # Install pre-requisites
+cleanUpGPUDrivers
 
 log_level -i "Updating apt cache."
 apt_get_update || exit $ERR_APT_UPDATE_TIMEOUT
