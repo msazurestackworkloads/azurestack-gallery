@@ -72,8 +72,8 @@ ensureResourceGroup()
 
 ensureStorageAccount()
 {
-    SA_NAME="diagnostics"
-    
+    SA_NAME="${RESOURCE_GROUP}"
+
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Ensuring storage account: ${SA_NAME}"
     az storage account create --name ${SA_NAME} --resource-group ${SA_RESOURCE_GROUP} --location ${LOCATION} --sku Premium_LRS --https-only true 1> /dev/null
     if [ $? -ne 0 ]; then
