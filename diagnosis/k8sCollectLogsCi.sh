@@ -24,6 +24,17 @@ processHost()
     ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "rm -f collectlogs.sh ${host}.zip"
 }
 
+processWindowsHost()
+{
+    host=$1
+
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing windows-host ${host}"
+    scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" azs-collect-windows-logs.ps1 ${USER}@${host}:"C:/k/debug/azs-collect-windows-logs.ps1"
+    ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "powershell; Start-Process PowerShell -Verb RunAs; C:/k/debug/azs-collect-windows-logs.ps1"
+    scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host}:"C:/Users/azureuser/win_log_${host}.zip" ${LOGFILEFOLDER}/"win_log_${host}.zip"
+    ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "powershell; rm C:/k/debug/azs-collect-windows-logs.ps1; rm C:/Users/azureuser/win_log_${host}.zip"
+}
+
 processDvmHost()
 {
     host=$1
@@ -94,10 +105,6 @@ do
         --master-ip)
             MASTER_IP="$2"
             shift 2
-        ;;
-        --aksupstreamflag)
-            AKS_UPSTREAM_FLAG=true
-            shift
         ;;
         -n|--user-namespace)
             NAMESPACES="$NAMESPACES $2"
@@ -173,25 +180,6 @@ then
     processDvmHost ${DVM_HOST} ${DVM_NAME}
 fi
 
-if [ "$AKS_UPSTREAM_FLAG" = true ]
-then
-    ssh ${SSH_FLAGS} ${USER}@${DVM_HOST}  "cd /home/azureuser/src/github.com/Azure/aks-engine; sudo cp _output/*-ssh /home/azureuser/aksMasterIdentityFile; sudo chmod 744 /home/azureuser/aksMasterIdentityFile "
-    scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:/home/${USER}/aksMasterIdentityFile ${LOGFILEFOLDER}/aksMasterIdentityFile
-    scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:/home/${USER}/src/github.com/Azure/aks-engine/deploy_test_results ${LOGFILEFOLDER}/deploy_test_results
-    scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:/home/${USER}/src/github.com/Azure/aks-engine/scale_* ${LOGFILEFOLDER}/
-    scp ${SCP_FLAGS} ${USER}@${DVM_HOST}:/home/${USER}/src/github.com/Azure/aks-engine/upgrade_* ${LOGFILEFOLDER}/
-    
-    if [ ! -f ${LOGFILEFOLDER}/aksMasterIdentityFile ]
-    then
-        echo "Not able to find kubernetes cluster identity file"
-        exit 1
-    else
-        IDENTITYFILE=${LOGFILEFOLDER}/aksMasterIdentityFile
-        SSH_FLAGS="-q -t -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS}"
-        SCP_FLAGS="-q -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS}"
-    fi
-fi
-
 if [ -n "$MASTER_IP" ]
 then
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Checking connectivity with master node"
@@ -200,32 +188,42 @@ then
     scp ${SCP_FLAGS} hosts.sh ${USER}@${MASTER_IP}:/home/${USER}/hosts.sh
     ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo chmod 744 hosts.sh; ./hosts.sh"
     scp ${SCP_FLAGS} ${USER}@${MASTER_IP}:/home/${USER}/cluster-snapshot.zip ${LOGFILEFOLDER}/cluster-snapshot.zip
-    ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "kubectl get nodes -o json|jq -r '.items[].metadata.name' | grep -v  k8s-master-* > cluster_nodes.txt"
+    ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} $'kubectl get nodes -o json|jq -r \'.items[] | select(.metadata.labels."kubernetes.io/os" == "linux") | .metadata.name\' > linux_nodes.txt'
     scp ${SCP_FLAGS} ${USER}@${MASTER_IP}:/home/${USER}/cluster_nodes.txt ${LOGFILEFOLDER}/cluster-nodes.txt
-    ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo rm -f cluster-snapshot.zip hosts.sh cluster_nodes.txt"
+    ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} $'kubectl get nodes -o json|jq -r \'.items[] | select(.metadata.labels."kubernetes.io/os" == "windows") | .metadata.name\' > windows_nodes.txt'
+    scp ${SCP_FLAGS} ${USER}@${MASTER_IP}:/home/${USER}/*_nodes.txt ${LOGFILEFOLDER}/.
+    ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo rm -f cluster-snapshot.zip hosts.sh *_nodes.txt"
     
-    if [ ! -f ${LOGFILEFOLDER}/cluster-nodes.txt ]
+    if [ ! -f ${LOGFILEFOLDER}/linux_nodes.txt ]
     then
-        echo "Agent nodes not present"
+        echo "Linux nodes not present"
     else
         PROXY_CMD="ssh -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS} ${USER}@${MASTER_IP} -W %h:%p"
         
-        INPUT_FILE=${LOGFILEFOLDER}/cluster-nodes.txt
-        CLUSTER_NODES=$(<$INPUT_FILE)
+        INPUT_FILE=${LOGFILEFOLDER}/linux_nodes.txt
+        LINUX_NODES=$(<$INPUT_FILE)
         
-        for host in ${CLUSTER_NODES}
+        for host in ${LINUX_NODES}
+        do
+            processHost ${host}
+        done
+    fi
+
+    if [ ! -f ${LOGFILEFOLDER}/windows_nodes.txt ]
+    then
+        echo "Windows nodes not present"
+    else
+        PROXY_CMD="ssh -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS} ${USER}@${MASTER_IP} -W %h:%p"
+        
+        INPUT_FILE=${LOGFILEFOLDER}/windows_nodes.txt
+        WINDOWS_NODES=$(<$INPUT_FILE)
+        
+        for host in ${WINDOWS_NODES}
         do
             processHost ${host}
         done
     fi
 fi
 
-echo "Removing master files copied"
-if [ -f ${LOGFILEFOLDER}/aksMasterIdentityFile ]
-then
-    echo "Removing master files copied"
-    rm ${LOGFILEFOLDER}/aksMasterIdentityFile
-fi
-
-echo "[$(date +%Y%m%d%H%M%S)][INFO] Logs can be found here: $LOGFILEFOLDER"
+echo "[$(date +%Y%m%d%H%M%S)][INFO] Done with k8s log collection"
 
