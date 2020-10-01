@@ -222,5 +222,4 @@ then
     fi
 fi
 
-echo "[$(date +%Y%m%d%H%M%S)][INFO] Done with k8s log collection"
-
+echo "[$(date +%Y%m%d%H%M%S)][INFO] Done with k8s log collection, logs can be found here: $LOGFILEFOLDER"
