@@ -31,7 +31,7 @@ processWindowsHost()
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing windows-host ${host}"
     scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" azs-collect-windows-logs.ps1 ${USER}@${host}:"C:/k/debug/azs-collect-windows-logs.ps1"
     ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "powershell; Start-Process PowerShell -Verb RunAs; C:/k/debug/azs-collect-windows-logs.ps1"
-    scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host}:"C:/Users/azureuser/win_log_${host}.zip" ${LOGFILEFOLDER}/"win_log_${host}.zip"
+    scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host}:"C:/Users/${USER}/win_log_${host}.zip" ${LOGFILEFOLDER}/"win_log_${host}.zip"
     ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "powershell; rm C:/k/debug/azs-collect-windows-logs.ps1; rm C:/Users/azureuser/win_log_${host}.zip"
 }
 
@@ -188,9 +188,6 @@ then
     scp ${SCP_FLAGS} hosts.sh ${USER}@${MASTER_IP}:/home/${USER}/hosts.sh
     ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo chmod 744 hosts.sh; ./hosts.sh"
     scp ${SCP_FLAGS} ${USER}@${MASTER_IP}:/home/${USER}/cluster-snapshot.zip ${LOGFILEFOLDER}/cluster-snapshot.zip
-    ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} $'kubectl get nodes -o json|jq -r \'.items[] | select(.metadata.labels."kubernetes.io/os" == "linux") | .metadata.name\' > linux_nodes.txt'
-    scp ${SCP_FLAGS} ${USER}@${MASTER_IP}:/home/${USER}/cluster_nodes.txt ${LOGFILEFOLDER}/cluster-nodes.txt
-    ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} $'kubectl get nodes -o json|jq -r \'.items[] | select(.metadata.labels."kubernetes.io/os" == "windows") | .metadata.name\' > windows_nodes.txt'
     scp ${SCP_FLAGS} ${USER}@${MASTER_IP}:/home/${USER}/*_nodes.txt ${LOGFILEFOLDER}/.
     ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo rm -f cluster-snapshot.zip hosts.sh *_nodes.txt"
     
