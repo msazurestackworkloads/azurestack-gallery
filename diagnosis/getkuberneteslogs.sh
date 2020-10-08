@@ -30,6 +30,12 @@ checkRequirements()
     fi
 }
 
+updateFileEOL()
+{
+    sed -i -e 's/\r$//' hosts.sh
+    sed -i -e 's/\r$//' collectlogs.sh
+}
+
 copyLogsToSADirectory()
 {
     az vm list -g ${RESOURCE_GROUP} --show-details --query "[?contains(name, 'k8s-')].{host:name,akse:tags.aksEngineVersion}" --output table > ${SA_DIR}/akse-version.txt
@@ -271,6 +277,7 @@ SCP_FLAGS="-q -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS}"
 
 checkRequirements
 validateResourceGroup
+updateFileEOL
 
 # DVM
 DVM_HOST=$(az network public-ip list -g ${RESOURCE_GROUP} --query "[?contains(name, 'vmd-')].{ip:ipAddress}" --output tsv | head -n 1)

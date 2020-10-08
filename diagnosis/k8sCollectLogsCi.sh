@@ -13,6 +13,12 @@ validateKeys()
     fi
 }
 
+updateFileEOL()
+{
+    sed -i -e 's/\r$//' hosts.sh
+    sed -i -e 's/\r$//' collectlogs.sh
+}
+
 processHost()
 {
     host=$1
@@ -172,6 +178,7 @@ mkdir -p $LOGFILEFOLDER
 SSH_FLAGS="-q -t -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS}"
 SCP_FLAGS="-q -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS}"
 
+updateFileEOL
 
 if [ -n "$DVM_HOST" ]
 then
