@@ -337,7 +337,7 @@ if [ $ENABLE_VALIDATIONS == "true" ]; then
     RUN touch registry 
 EOF
 
-    TEST_IMAGE_NAME="localhost:443/testbuild"
+    TEST_IMAGE_NAME="$PIP_FQDN:443/testbuild"
     docker build -t ${TEST_IMAGE_NAME} -f Dockerfile .
     if [ $? -ne 0 ]; then
         exit $ERR_REGISTRY_BUILD_FAILED
