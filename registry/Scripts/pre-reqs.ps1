@@ -529,8 +529,12 @@ function Set-ContainerRegistryPrerequisites
 (
     [Parameter(Mandatory = $true, HelpMessage = "Location of Azure Stack.")]
     [string] $Location,
-    [Parameter(Mandatory = $true, HelpMessage = "Service principal ID which will be added to provide contributor access.")]
+    [Parameter(Mandatory = $true, HelpMessage = "Service principal ID which will be added to provide contributor access for storage account.")]
     [string] $ServicePrincipalId,
+    [Parameter(Mandatory = $true, HelpMessage = "Service principal object ID which will be added to provide read and list access on keyvault secret.")]
+    [string] $ServicePrincipalObjectId,
+    [Parameter(Mandatory = $true, HelpMessage = "Tenant object ID will be added to provide set, get and list access on keyvault secret.")]
+    [string] $TenantObjectId,
     [Parameter(Mandatory = $true, HelpMessage = "Name of the resource group to be created.")]
     [string] $ResourceGroupName,
     [Parameter(Mandatory = $true, HelpMessage = "Storage account name which needs to be created.")]
@@ -548,7 +552,10 @@ function Set-ContainerRegistryPrerequisites
     [Parameter(Mandatory = $true, HelpMessage = "User name using which images will be push and pull.")]
     [string] $RegistryUserName,
     [Parameter(Mandatory = $true, HelpMessage = "Password using which images will be push and pull.")]
-    [string] $RegistryUserPassword
+    [string] $RegistryUserPassword,
+    [Parameter(Mandatory = $false, HelpMessage = "IdentitySystem of the environment. Supported values ADFS or AAD.")]
+    [ValidateSet("AAD", "ADFS")]
+    [string] $IdentitySystem = "ADFS"
 ) {
     # Assuming tenant is logged in already and selected the given subscription.
     # best case check if tenant is loged in. Currently subscription selected status is not checked.
@@ -573,7 +580,7 @@ function Set-ContainerRegistryPrerequisites
 
     Write-Host "Checking if ServicePrincipalId ($ServicePrincipalId) already has access on storage account ($StorageAccountName), ."
     $ErrorActionPreference = "SilentlyContinue";
-    $roleAssignment = Get-AzureRMRoleAssignment -ServicePrincipalName $ServicePrincipalId `
+    $roleAssignment = Get-AzureRMRoleAssignment -ObjectId $ServicePrincipalObjectId `
         -Scope $storageAccountDetails.Id `
         -ErrorVariable accessExistError
     $ErrorActionPreference = "Continue"; #Turning errors back on
@@ -592,10 +599,27 @@ function Set-ContainerRegistryPrerequisites
         -Location $Location `
         -KeyVaultName $KeyVaultName `
         -Sku standard | Out-Null
-    Write-Host "Set access policy on keyvault ($KeyVaultName) for client ($ServicePrincipalId)" 
-    Set-AzureRmKeyVaultAccessPolicy -VaultName $KeyVaultName `
-        -ServicePrincipalName $ServicePrincipalId `
-        -PermissionsToSecrets GET, LIST
+    if ($IdentitySystem -ieq "ADFS")
+    {
+        Write-Host "Set access policy on keyvault ($KeyVaultName) for client ($ServicePrincipalId)"
+        Set-AzureRmKeyVaultAccessPolicy -VaultName $KeyVaultName `
+            -ObjectId $ServicePrincipalObjectId `
+            -PermissionsToSecrets GET, LIST `
+            -BypassObjectIdValidation
+
+        Write-Host "Set access policy on keyvault ($KeyVaultName) for tenant($TenantObjectId)"
+        Set-AzureRmKeyVaultAccessPolicy -VaultName $KeyVaultName `
+            -ObjectId $TenantObjectId `
+            -PermissionsToSecrets SET, GET, LIST `
+            -BypassObjectIdValidation
+    }
+    else
+    {
+        Write-Host "Set access policy on keyvault ($KeyVaultName) for client ($ServicePrincipalId)"
+        Set-AzureRmKeyVaultAccessPolicy -VaultName $KeyVaultName `
+            -ServicePrincipalName $ServicePrincipalId `
+            -PermissionsToSecrets GET, LIST
+    }
 
     # Secret related to registry credentials.
     Set-RegistryAccessSecret -KeyVaultName $KeyVaultName `
