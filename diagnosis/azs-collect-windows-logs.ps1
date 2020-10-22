@@ -75,4 +75,5 @@ else {
 Write-Host "Compressing all logs to $zipName"
 $paths | Format-Table FullName, Length -AutoSize
 Compress-Archive -LiteralPath $paths -DestinationPath $zipName
+Remove-Item -Path $paths
 Get-ChildItem $zipName # this puts a FileInfo on the pipeline so that another script can get it on the pipeline
