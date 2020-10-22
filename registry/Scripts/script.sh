@@ -321,21 +321,23 @@ else
     echo registry containers are up and running
 fi
 
+echo validating docker registry login to make sure cert is valid
+REGISTRY_USER=""
+REGISTRY_PASSWORD=""
+fetchValidationCredentials
+docker login $PIP_FQDN:443 -u $REGISTRY_USER -p $REGISTRY_PASSWORD
+if [ $? -ne 0 ]; then
+    exit $ERR_REGISTRY_LOGIN_FAILED
+fi
+
 if [ $ENABLE_VALIDATIONS == "true" ]; then
-    echo validating docker registry
-    REGISTRY_USER=""
-    REGISTRY_PASSWORD=""
-    fetchValidationCredentials
-    docker login localhost:443 -u $REGISTRY_USER -p $REGISTRY_PASSWORD
-    if [ $? -ne 0 ]; then
-        exit $ERR_REGISTRY_LOGIN_FAILED
-    fi
+    
     cat <<EOF >> Dockerfile
     FROM registry:${REGISTRY_IMAGE_TAG}
     RUN touch registry 
 EOF
 
-    TEST_IMAGE_NAME="localhost:443/testbuild"
+    TEST_IMAGE_NAME="$PIP_FQDN:443/testbuild"
     docker build -t ${TEST_IMAGE_NAME} -f Dockerfile .
     if [ $? -ne 0 ]; then
         exit $ERR_REGISTRY_BUILD_FAILED
