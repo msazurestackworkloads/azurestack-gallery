@@ -606,8 +606,7 @@ function Set-ContainerRegistryPrerequisites
         -Location $Location `
         -KeyVaultName $KeyVaultName `
         -Sku standard | Out-Null
-    if ($IdentitySystem -ieq "ADFS")
-    {
+    if ($IdentitySystem -ieq "ADFS") {
         Write-Host "Checking if ServicePrincipalObject ($ApplicationIdentifier) already has access on storage account ($StorageAccountName) ."
         $ErrorActionPreference = "SilentlyContinue";
         $roleAssignment = Get-AzureRMRoleAssignment -ObjectId $ApplicationIdentifier `
@@ -636,8 +635,7 @@ function Set-ContainerRegistryPrerequisites
             -PermissionsToSecrets SET, GET, LIST `
             -BypassObjectIdValidation
     }
-    else
-    {
+    else {
         Write-Host "Checking if ServicePrincipalId ($ServicePrincipalId) already has access on storage account ($StorageAccountName), ."
         $ErrorActionPreference = "SilentlyContinue";
         $roleAssignment = Get-AzureRMRoleAssignment -ServicePrincipalName $ServicePrincipalId `
@@ -656,7 +654,7 @@ function Set-ContainerRegistryPrerequisites
 
         Write-Host "Set access policy on keyvault ($KeyVaultName) for client ($ServicePrincipalId)"
         Set-AzureRmKeyVaultAccessPolicy -VaultName $KeyVaultName `
-            -ObjectId $ServicePrincipalId `
+            -ServicePrincipalName $ServicePrincipalId `
             -PermissionsToSecrets GET, LIST `
             -BypassObjectIdValidation
     }
