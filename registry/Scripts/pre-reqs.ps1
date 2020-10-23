@@ -491,8 +491,14 @@ function Set-RegistryAccessSecret (
 .Parameter Location
     Location of Azure Stack.
 
+.Parameter ApplicationIdentifier
+    Service principal Application Identifier to provide access to keyvault secret (Needed only in ADFS deployment).
+
+.Parameter TenantObjectId
+    Tenant object ID of the user currently logged in (Needed only in ADFS deployment).
+
 .Parameter ServicePrincipalId
-    Service principal ID which will be added to provide contributor access
+    Service principal ID which will be added to provide contributor access (Needed only in AAD deployment).
 
 .Parameter ResourceGroupName
     Name of the resource group to be created.
@@ -521,6 +527,9 @@ function Set-RegistryAccessSecret (
 .Parameter RegistryUserPassword
     Password using which images will be push and pull.
 
+.Parameter IdentitySystem
+    IdentitySystem of the environment. Supported values ADFS or AAD.
+
 .Example
   Set-ContainerRegistryPrerequisites
 
@@ -529,8 +538,8 @@ function Set-ContainerRegistryPrerequisites
 (
     [Parameter(Mandatory = $true, HelpMessage = "Location of Azure Stack.")]
     [string] $Location,
-    [Parameter(Mandatory = $false, HelpMessage = "Service principal object ID which will be added to provide read and list access on keyvault secret.")]
-    [string] $ServicePrincipalObjectId,
+    [Parameter(Mandatory = $false, HelpMessage = "Service principal Application Identifier to provide access to keyvault secret.")]
+    [string] $ApplicationIdentifier,
     [Parameter(Mandatory = $false, HelpMessage = "Service principal ID which will be added to provide contributor access.")]
     [string] $ServicePrincipalId,
     [Parameter(Mandatory = $false, HelpMessage = "Tenant object ID of the user currently logged in.")]
@@ -559,8 +568,8 @@ function Set-ContainerRegistryPrerequisites
 ) {
 
     if ($IdentitySystem -ieq "ADFS") {
-        if (-not $ServicePrincipalObjectId) {
-            throw "For ADFS deployment ServicePrincipalObjectId parameter value can't be empty. Please provide value for ServicePrincipalObjectId"
+        if (-not $ApplicationIdentifier) {
+            throw "For ADFS deployment ApplicationIdentifier parameter value can't be empty. Please provide value for ApplicationIdentifier"
         }
         if (-not $TenantObjectId) {
             throw "For ADFS deployment TenantObjectId parameter value can't be empty. Please provide value for TenantObjectId"
@@ -599,25 +608,25 @@ function Set-ContainerRegistryPrerequisites
         -Sku standard | Out-Null
     if ($IdentitySystem -ieq "ADFS")
     {
-        Write-Host "Checking if ServicePrincipalObject ($ServicePrincipalObjectId) already has access on storage account ($StorageAccountName) ."
+        Write-Host "Checking if ServicePrincipalObject ($ApplicationIdentifier) already has access on storage account ($StorageAccountName) ."
         $ErrorActionPreference = "SilentlyContinue";
-        $roleAssignment = Get-AzureRMRoleAssignment -ObjectId $ServicePrincipalObjectId `
+        $roleAssignment = Get-AzureRMRoleAssignment -ObjectId $ApplicationIdentifier `
             -Scope $storageAccountDetails.Id `
             -ErrorVariable accessExistError
         $ErrorActionPreference = "Continue"; #Turning errors back on
         if (-not $roleAssignment) {
-            Write-Host "Assigning ServicePrincipalObject ($ServicePrincipalObjectId) contributor role on storage account ($StorageAccountName)"
-            New-AzureRMRoleAssignment -ObjectId $ServicePrincipalObjectId `
+            Write-Host "Assigning ServicePrincipalObject ($ApplicationIdentifier) contributor role on storage account ($StorageAccountName)"
+            New-AzureRMRoleAssignment -ObjectId $ApplicationIdentifier `
                 -RoleDefinitionName "Contributor" `
                 -Scope $storageAccountDetails.Id
         }
         else {
-            Write-Host "ServicePrincipalObject ($ServicePrincipalObjectId) already has access on Storage account ($StorageAccountName) "
+            Write-Host "ServicePrincipalObject ($ApplicationIdentifier) already has access on Storage account ($StorageAccountName) "
         }
 
-        Write-Host "Set access policy on keyvault ($KeyVaultName) for client ($ServicePrincipalObjectId)"
+        Write-Host "Set access policy on keyvault ($KeyVaultName) for client ($ApplicationIdentifier)"
         Set-AzureRmKeyVaultAccessPolicy -VaultName $KeyVaultName `
-            -ObjectId $ServicePrincipalObjectId `
+            -ObjectId $ApplicationIdentifier `
             -PermissionsToSecrets GET, LIST `
             -BypassObjectIdValidation
 
@@ -645,7 +654,7 @@ function Set-ContainerRegistryPrerequisites
             Write-Host "ServicePrincipalId ($ServicePrincipalId) already has access on Storage account ($StorageAccountName) "
         }
 
-        Write-Host "Set access policy on keyvault ($KeyVaultName) for client ($ServicePrincipalObjectId)"
+        Write-Host "Set access policy on keyvault ($KeyVaultName) for client ($ServicePrincipalId)"
         Set-AzureRmKeyVaultAccessPolicy -VaultName $KeyVaultName `
             -ObjectId $ServicePrincipalId `
             -PermissionsToSecrets GET, LIST `
