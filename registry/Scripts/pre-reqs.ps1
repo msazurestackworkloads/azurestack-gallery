@@ -560,15 +560,15 @@ function Set-ContainerRegistryPrerequisites
 
     if ($IdentitySystem -ieq "ADFS") {
         if (-not $ServicePrincipalObjectId) {
-            throw "For ADFS deployment ServicePrincipalObjectId parameter value cant be empty. Please provide value for ServicePrincipalObjectId"
+            throw "For ADFS deployment ServicePrincipalObjectId parameter value can't be empty. Please provide value for ServicePrincipalObjectId"
         }
         if (-not $TenantObjectId) {
-            throw "For ADFS deployment TenantObjectId parameter value cant be empty. Please provide value for TenantObjectId"
+            throw "For ADFS deployment TenantObjectId parameter value can't be empty. Please provide value for TenantObjectId"
         }
     }
     else {
         if (-not $ServicePrincipalId) {
-            throw "For AAD deployment ServicePrincipalId parameter value cant be empty. Please provide value for ServicePrincipalId"
+            throw "For AAD deployment ServicePrincipalId parameter value can't be empty. Please provide value for ServicePrincipalId"
         }
     }
     # Assuming tenant is logged in already and selected the given subscription.
@@ -599,7 +599,7 @@ function Set-ContainerRegistryPrerequisites
         -Sku standard | Out-Null
     if ($IdentitySystem -ieq "ADFS")
     {
-        Write-Host "Checking if ServicePrincipalObject ($ServicePrincipalObjectId) already has access on storage account ($StorageAccountName), ."
+        Write-Host "Checking if ServicePrincipalObject ($ServicePrincipalObjectId) already has access on storage account ($StorageAccountName) ."
         $ErrorActionPreference = "SilentlyContinue";
         $roleAssignment = Get-AzureRMRoleAssignment -ObjectId $ServicePrincipalObjectId `
             -Scope $storageAccountDetails.Id `
