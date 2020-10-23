@@ -494,8 +494,8 @@ function Set-RegistryAccessSecret (
 .Parameter ApplicationIdentifier
     Service principal Application Identifier to provide access to keyvault secret (Needed only in ADFS deployment).
 
-.Parameter TenantObjectId
-    Tenant object ID of the user currently logged in (Needed only in ADFS deployment).
+.Parameter UserObjectId
+    User object ID of the user currently logged in (Needed only in ADFS deployment).
 
 .Parameter ServicePrincipalId
     Service principal ID which will be added to provide contributor access (Needed only in AAD deployment).
@@ -540,10 +540,10 @@ function Set-ContainerRegistryPrerequisites
     [string] $Location,
     [Parameter(Mandatory = $false, HelpMessage = "Service principal Application Identifier to provide access to keyvault secret.")]
     [string] $ApplicationIdentifier,
-    [Parameter(Mandatory = $false, HelpMessage = "Service principal ID which will be added to provide contributor access.")]
+    [Parameter(Mandatory = $false, HelpMessage = "Service principal id which will be added to provide contributor access.")]
     [string] $ServicePrincipalId,
-    [Parameter(Mandatory = $false, HelpMessage = "Tenant object ID of the user currently logged in.")]
-    [string] $TenantObjectId,
+    [Parameter(Mandatory = $false, HelpMessage = "User object id of the user currently logged in.")]
+    [string] $UserObjectId,
     [Parameter(Mandatory = $true, HelpMessage = "Name of the resource group to be created.")]
     [string] $ResourceGroupName,
     [Parameter(Mandatory = $true, HelpMessage = "Storage account name which needs to be created.")]
@@ -571,8 +571,8 @@ function Set-ContainerRegistryPrerequisites
         if (-not $ApplicationIdentifier) {
             throw "For ADFS deployment ApplicationIdentifier parameter value can't be empty. Please provide value for ApplicationIdentifier"
         }
-        if (-not $TenantObjectId) {
-            throw "For ADFS deployment TenantObjectId parameter value can't be empty. Please provide value for TenantObjectId"
+        if (-not $UserObjectId) {
+            throw "For ADFS deployment UserObjectId parameter value can't be empty. Please provide value for UserObjectId"
         }
     }
     else {
@@ -630,9 +630,9 @@ function Set-ContainerRegistryPrerequisites
             -PermissionsToSecrets GET, LIST `
             -BypassObjectIdValidation
 
-        Write-Host "Set access policy on keyvault ($KeyVaultName) for tenant($TenantObjectId)"
+        Write-Host "Set access policy on keyvault ($KeyVaultName) for tenant($UserObjectId)"
         Set-AzureRmKeyVaultAccessPolicy -VaultName $KeyVaultName `
-            -ObjectId $TenantObjectId `
+            -ObjectId $UserObjectId `
             -PermissionsToSecrets SET, GET, LIST `
             -BypassObjectIdValidation
     }
