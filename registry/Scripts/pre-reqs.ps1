@@ -655,8 +655,7 @@ function Set-ContainerRegistryPrerequisites
         Write-Host "Set access policy on keyvault ($KeyVaultName) for client ($ServicePrincipalId)"
         Set-AzureRmKeyVaultAccessPolicy -VaultName $KeyVaultName `
             -ServicePrincipalName $ServicePrincipalId `
-            -PermissionsToSecrets GET, LIST `
-            -BypassObjectIdValidation
+            -PermissionsToSecrets GET, LIST
     }
 
     # Secret related to registry credentials.
