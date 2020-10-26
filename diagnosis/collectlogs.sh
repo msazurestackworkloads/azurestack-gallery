@@ -4,7 +4,7 @@ collectKubeletMetadata()
 {
     KUBELET_REPOSITORY=$(docker images --format '{{.Repository}}' | grep hyperkube)
     KUBELET_TAG=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep hyperkube | cut -d ":" -f 2)
-    KUBELET_VERBOSITY=$(cat /etc/systemd/system/kubelet.service | grep -e '--v=[0-9]' -oh | grep -e [0-9] -oh | head -n 1)
+    KUBELET_VERBOSITY=$(grep -e '--v=[0-9]' -oh /etc/systemd/system/kubelet.service | grep -e '[0-9]' -oh /etc/systemd/system/kubelet.service | head -n 1)
     KUBELET_LOG_FILE=${LOGDIRECTORY}/daemons/k8s-kubelet.log
     
     echo "== BEGIN HEADER =="               > ${KUBELET_LOG_FILE}
