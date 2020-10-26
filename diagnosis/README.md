@@ -29,6 +29,7 @@ Some additional logs are retrieved for Windows nodes:
  - azure-vnet log and azure-vnet-telemetry log
  - ETW events for docker
  - ETW events for Hyper-V
+ - Azure CNI config files
 
 ## Required Parameters
 
