@@ -72,9 +72,13 @@ ensureResourceGroup()
 
 ensureStorageAccount()
 {
-    SA_NAME="${RESOURCE_GROUP}"
+    SA_NAME="k8slogs$(date +%Y%m%d%H%M%S)"
 
     echo "[$(date +%Y%m%d%H%M%S)][INFO] Ensuring storage account: ${SA_NAME}"
+    az storage account show --name ${SA_NAME} --resource-group ${SA_RESOURCE_GROUP} 1> /dev/null 2> /dev/null
+    if [ $? -eq 0 ]; then
+        return
+    fi
     az storage account create --name ${SA_NAME} --resource-group ${SA_RESOURCE_GROUP} --location ${LOCATION} --sku Premium_LRS --https-only true 1> /dev/null
     if [ $? -ne 0 ]; then
         echo "[$(date +%Y%m%d%H%M%S)][ERR] Error ensuring storage account ${SA_NAME}"
@@ -84,7 +88,7 @@ ensureStorageAccount()
 
 ensureStorageAccountContainer()
 {
-    SA_CONTAINER="kuberneteslogs"
+    SA_CONTAINER=$(echo "${RESOURCE_GROUP}" | sed 's/[_-]//g' | sed -e 's/\(.*\)/\L\1/')
     
     echo "$(date +%Y%m%d%H%M%S)][INFO] Ensuring storage account container: ${SA_CONTAINER}"
     az storage container create --name ${SA_CONTAINER} --account-name ${SA_NAME}
@@ -107,12 +111,15 @@ uploadLogs()
 processHost()
 {
     host=$1
+
+    hostName=$(ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "hostname")
+    hostName=$(echo ${hostName} | sed 's/[[:space:]]*$//')
     
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host ${host}"
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing host ${hostName}"
     scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" collectlogs.sh ${USER}@${host}:/home/${USER}/collectlogs.sh
     ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "sudo chmod 744 collectlogs.sh; ./collectlogs.sh ${NAMESPACES};"
-    scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host}:/home/${USER}/${host}.zip ${LOGFILEFOLDER}/${host}.zip
-    ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "rm -f collectlogs.sh ${host}.zip"
+    scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host}:/home/${USER}/${hostName}.zip ${LOGFILEFOLDER}/${hostName}.zip
+    ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "rm -f collectlogs.sh ${hostName}.zip"
 }
 
 processDvmHost()
@@ -132,11 +139,17 @@ processWindowsHost()
 {
     host=$1
 
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing windows-host ${host}"
+    # It has to store the hostname in a file first to avoid whitespace from Windows cmd output.
+    ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} 'powershell; $env:COMPUTERNAME > %HOMEPATH%\hostname.txt'
+    scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host}:'%HOMEPATH%/hostname.txt' hostname.txt
+    hostName=$(cat hostname.txt | sed 's/[[:space:]]*$//')
+    rm hostname.txt -f
+
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing windows-host ${hostName}"
     scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" azs-collect-windows-logs.ps1 ${USER}@${host}:"C:/k/debug/azs-collect-windows-logs.ps1"
     ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "powershell; Start-Process PowerShell -Verb RunAs; C:/k/debug/azs-collect-windows-logs.ps1"
-    scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host}:"C:/Users/${USER}/win_log_${host}.zip" ${LOGFILEFOLDER}/"win_log_${host}.zip"
-    ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "powershell; rm C:/k/debug/azs-collect-windows-logs.ps1; rm C:/Users/${USER}/win_log_${host}.zip"
+    scp ${SCP_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host}:"C:/Users/${USER}/win_log_${hostName}.zip" ${LOGFILEFOLDER}/"win_log_${hostName}.zip"
+    ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "powershell; rm C:/k/debug/azs-collect-windows-logs.ps1; rm C:/Users/${USER}/win_log_${hostName}.zip"
 }
 
 printUsage()
@@ -169,7 +182,7 @@ then
     printUsage
 fi
 
-NAMESPACES="kube-system"
+NAMESPACES=""
 UPLOAD_LOGS="false"
 
 # Handle named parameters
@@ -186,6 +199,10 @@ do
         ;;
         -g|--resource-group)
             RESOURCE_GROUP="$2"
+            shift 2
+        ;;
+        -n|--user-namespace )
+            NAMESPACES="${NAMESPACES}, $2"
             shift 2
         ;;
         --api-model)
@@ -284,7 +301,7 @@ then
 fi
 
 # CLUSTER NODES
-MASTER_IP=$(az network public-ip list -g ${RESOURCE_GROUP} --query "[?contains(name, 'k8s-master')].{ip:ipAddress}" --output tsv)
+MASTER_IP=$(az network public-ip list -g ${RESOURCE_GROUP} --query "[?contains(name, 'k8s-master') || contains(name, 'aks-master')].{ip:ipAddress}" --output tsv)
 if [ $? -ne 0 ]; then
     echo "[$(date +%Y%m%d%H%M%S)][ERR] Error fetching the master nodes' load balancer IP"
     exit 1
@@ -300,16 +317,16 @@ then
     scp ${SCP_FLAGS} ${USER}@${MASTER_IP}:/home/${USER}/cluster-snapshot.zip ${LOGFILEFOLDER}/cluster-snapshot.zip
     ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo rm -f cluster-snapshot.zip hosts.sh"
     
-    CLUSTER_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[?storageProfile.osDisk.osType=='Linux'].{Name:name}" --output tsv | sed 's/[[:blank:]]*$//')
+    LINUX_NODES=$(az vm list -g ${RESOURCE_GROUP} --query "[?storageProfile.osDisk.osType=='Linux' && tags != null && contains(tags.orchestrator, 'Kubernetes')].{Name:name}" --output tsv | sed 's/[[:blank:]]*$//')
     PROXY_CMD="ssh -i ${IDENTITYFILE} ${KNOWN_HOSTS_OPTIONS} ${USER}@${MASTER_IP} -W %h:%p"
 
-    for host in ${CLUSTER_NODES}
+    for host in ${LINUX_NODES}
     do
         processHost ${host}
     done
 
     #Get Windoews nodes log if Windows nodes exist
-    WINDOWS_NODES=$(az vm list -g ${RESOURCE_GROUP} --show-details --query "[?storageProfile.osDisk.osType=='Windows'].{Name:name}" --output tsv | sed 's/[[:blank:]]*$//')
+    WINDOWS_NODES=$(az vm list -g ${RESOURCE_GROUP} --query "[?storageProfile.osDisk.osType=='Windows' && tags != null && contains(tags.orchestrator, 'Kubernetes')].{Name:name}" --output tsv | sed 's/[[:blank:]]*$//')
 
     if [ -n "$WINDOWS_NODES" ]
     then
@@ -319,6 +336,27 @@ then
         done
     fi
 
+    # Search VMSS nodes
+    VMSS_LIST=$(az vmss list -g ${RESOURCE_GROUP} --query "[?tags != null && contains(tags.orchestrator, 'Kubernetes')].{name:name, osType:virtualMachineProfile.storageProfile.osDisk.osType}")
+    for VMSS in $(echo "${VMSS_LIST}" | jq -c '.[]'); do
+        VMSS_NAME=$(echo ${VMSS} | jq -r '.name')
+        OS_TYPE=$(echo ${VMSS} | jq -r '.osType')
+        VMSS_NODES=$(az network nic list -g ${RESOURCE_GROUP} --query "[?name=='${VMSS_NAME}'].{ip:ipConfigurations[0].privateIpAddress}" --output tsv | sed 's/[[:blank:]]*$//')
+        
+        if [ "$OS_TYPE" == "Linux" ]
+        then
+            for host in ${VMSS_NODES}
+            do
+                processHost ${host}
+            done
+        else
+            for host in ${VMSS_NODES}
+            do
+                processWindowsHost ${host} 
+            done
+        fi
+    done
+
 fi
 
 mkdir -p $LOGFILEFOLDER/resources
@@ -326,7 +364,7 @@ az network vnet list -g ${RESOURCE_GROUP} > ${LOGFILEFOLDER}/resources/vnets.jso
 
 # UPLOAD
 if [ "$UPLOAD_LOGS" == "true" ]; then
-    echo "[$(date +%Y%m%d%H%M%S)][INFO] Processing logs"
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Uploading logs to storage account..."
     createSADirectories
     copyLogsToSADirectory
     ensureResourceGroup
@@ -334,6 +372,7 @@ if [ "$UPLOAD_LOGS" == "true" ]; then
     ensureStorageAccountContainer
     uploadLogs
     deleteSADirectory
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] The logs are uploaded to resource group: ${SA_RESOURCE_GROUP}, stroage account: ${SA_NAME}, container: ${SA_CONTAINER}."
 fi
 
 echo "[$(date +%Y%m%d%H%M%S)][INFO] Logs can be found here: $LOGFILEFOLDER"
