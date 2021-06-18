@@ -1,6 +1,6 @@
 $ProgressPreference = "SilentlyContinue"
 
-$lockedFiles = "kubelet.err.log", "kubelet.log", "kubeproxy.log", "kubeproxy.err.log", "azure-vnet-telemetry.log", "azure-vnet.log", "network-interfaces.json", "interfaces.json"
+$lockedFiles = "kubelet.err.log", "kubelet.log", "kubeproxy.log", "kubeproxy.err.log", "azure-vnet-telemetry.log", "azure-vnet.log", "network-interfaces.json", "interfaces.json", "azure-vnet-ipam.log", "windowsnodereset.log", "csi-proxy.log", "csi-proxy.err.log"
 
 $timeStamp = get-date -format 'yyyyMMdd-hhmmss'
 $zipName = "win_log_$env:computername.zip"
@@ -56,7 +56,10 @@ if (-not (Test-Path 'c:\k\debug\collectlogs.ps1')) {
 & 'c:\k\debug\collectlogs.ps1' | write-Host
 $netLogs = Get-ChildItem (Get-ChildItem -Path c:\k\debug -Directory | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName | Select-Object -ExpandProperty FullName
 $paths += $netLogs
-$paths += "c:\AzureData\CustomDataSetupScript.log"
+$setupLog = "c:\AzureData\CustomDataSetupScript.log"
+if (Test-Path $setupLog) {
+  $paths += $setupLog
+}
 
 Write-Host "Collecting containerd hyperv logs"
 if ((Test-Path "$Env:ProgramFiles\containerd\diag.ps1") -And (Test-Path "$Env:ProgramFiles\containerd\ContainerPlatform.wprp")) {
@@ -75,5 +78,5 @@ else {
 Write-Host "Compressing all logs to $zipName"
 $paths | Format-Table FullName, Length -AutoSize
 Compress-Archive -LiteralPath $paths -DestinationPath $zipName
-Remove-Item -Path $paths
+Remove-Item -Path $paths -ErrorAction SilentlyContinue
 Get-ChildItem $zipName # this puts a FileInfo on the pipeline so that another script can get it on the pipeline
