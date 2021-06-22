@@ -55,8 +55,16 @@ Some additional logs are retrieved for Windows nodes:
 
 ## Examples
 ```bash
+# switch to the subscription where the Kubernetes cluster is deployed.
 az account set --subscription <Subscription ID>
-# cd to the directory where the scripts are in.
+
+# download the scripts.
+mkdir -p $HOME/kuberneteslogs
+cd $HOME/kuberneteslogs
+curl -L https://github.com/msazurestackworkloads/azurestack-gallery/releases/download/diagnosis-v1.0.0/diagnosis-v1.0.0.tar.gz -o diagnosis.tar.gz
+tar xvf diagnosis.tar.gz
+
+# use the script to collect logs
 ./getkuberneteslogs.sh -u azureuser -i private.key.1.pem -g k8s-rg
 ./getkuberneteslogs.sh -u azureuser -i ~/.ssh/id_rsa -g k8s-rg --disable-host-key-checking
 ./getkuberneteslogs.sh -u azureuser -i ~/.ssh/id_rsa -g k8s-rg -n default -n monitoring
