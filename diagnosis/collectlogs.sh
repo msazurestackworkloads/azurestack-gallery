@@ -236,7 +236,7 @@ if systemctl is-active --quiet docker; then
         cns=$(sudo docker inspect --format='{{ index .Config.Labels "io.kubernetes.pod.namespace" }}' ${cid})
         
         # if NAMESPACES not set, then collect everything
-        if [ -z "${NAMESPACES}" ] || (echo $NAMESPACES | grep -qw $cns);
+        if [ -z "${NAMESPACES}" ] || ([ -n "${cns}" ] && (echo $NAMESPACES | grep -qw $cns));
         then
             image_sha=$(sudo docker inspect ${cid} | jq -r '.[].Image' | grep -e "sha256:[[:alnum:]]*" -oh | head -n 1 | cut -d ':' -f 2)
             image=$(sudo docker image inspect ${image_sha} | jq -r '.[] | .RepoTags | @tsv' | xargs)
@@ -265,7 +265,7 @@ if command -v crictl &> /dev/null; then
         cns=$(echo ${cinfo} | jq -r '.status.labels."io.kubernetes.pod.namespace"')
         
         # if NAMESPACES not set, then collect everything
-        if [ -z "${NAMESPACES}" ] || (echo $NAMESPACES | grep -qw $cns);
+        if [ -z "${NAMESPACES}" ] || ([ -n "${cns}" ] && (echo $NAMESPACES | grep -qw $cns));
         then
             image=$(echo ${cinfo} | jq -r '.status.image.image')
             # Ignore the Pause container

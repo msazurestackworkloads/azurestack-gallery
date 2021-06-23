@@ -8,6 +8,7 @@ The scripts in this directory aim to simplify the collection of relevant logs fr
 This tool is mainly designed for the Microsoft support team to collect comprehensive cluster logs. For self-diagnosis purposes, please see [`az aks kollect`](https://docs.microsoft.com/en-us/cli/azure/aks?view=azure-cli-latest#az_aks_kollect) command and [aks-periscope](https://github.com/Azure/aks-periscope) application.
 
 ## Requirments
+- Make sure the Network Security Group (NSG) for master nodes has exposed SSH port 22.
 - A machine that has access to your Kubernetes cluster, or the same machine you used to deploy your cluster. For Windows machine, install [Git Bash](https://gitforwindows.org/) in order to run bash scripts.
 - `Azure CLI` installed on the machine where the script will be run. Make sure that you can login to your Azure Stack environment using `Azure CLI` from the machine. Follow this [article](https://docs.microsoft.com/azure-stack/user/azure-stack-version-profiles-azurecli2) to learn how to install and configure Azure CLI to manage your Azure Stack cloud.
 - Switch to the subscription where the Kubernetes cluster is deployed, by using `az account set --subscription <Subscription ID>`.
