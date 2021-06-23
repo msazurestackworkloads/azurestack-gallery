@@ -202,7 +202,7 @@ do
             shift 2
         ;;
         -n|--user-namespace )
-            NAMESPACES="${NAMESPACES}, $2"
+            NAMESPACES="${NAMESPACES},$2"
             shift 2
         ;;
         --api-model)
@@ -313,7 +313,7 @@ validateKeys ${MASTER_IP} "${SSH_FLAGS}"
 if [ -n "$MASTER_IP" ]
 then
     scp ${SCP_FLAGS} hosts.sh ${USER}@${MASTER_IP}:/home/${USER}/hosts.sh
-    ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo chmod 744 hosts.sh; ./hosts.sh"
+    ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo chmod 744 hosts.sh; ./hosts.sh ${NAMESPACES};"
     scp ${SCP_FLAGS} ${USER}@${MASTER_IP}:/home/${USER}/cluster-snapshot.zip ${LOGFILEFOLDER}/cluster-snapshot.zip
     ssh ${SSH_FLAGS} ${USER}@${MASTER_IP} "sudo rm -f cluster-snapshot.zip hosts.sh"
     
