@@ -75,6 +75,16 @@ else {
   Write-Host "Containerd hyperv logs not avalaible"
 }
 
+Write-Host "Collecting waagent logs"
+Invoke-Expression ((get-childitem -Path c:\windowsazure -Filter CollectGuestLogs.exe -Recurse | Sort-Object LastAccessTime -desc | Select-Object -first 1).FullName + " -FileName:$($ENV:TEMP)\waagent\")
+$collectGuestLogsOutput = "$($ENV:HOME)\AutoLogs_ProcessModules.xml"
+if (Test-Path $collectGuestLogsOutput) {
+  $paths += $collectGuestLogsOutput
+}
+Get-ChildItem "$($ENV:TEMP)\waagent" | Foreach-Object {
+  $paths += $_.FullName
+}
+
 Write-Host "Compressing all logs to $zipName"
 $paths | Format-Table FullName, Length -AutoSize
 Compress-Archive -LiteralPath $paths -DestinationPath $zipName

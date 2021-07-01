@@ -6,7 +6,7 @@ LOGDIRECTORY=${TMP}/${WD}
 mkdir -p ${LOGDIRECTORY}
 
 test $# -gt 0 && NAMESPACES=$@
-test -z "${NAMESPACES}" && echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] CCollecting cluster snapshot from all namespaces"
+test -z "${NAMESPACES}" && echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting cluster snapshot from all namespaces"
 test -n "${NAMESPACES}" && NAMESPACES="kube-system${NAMESPACES}" && echo "[$(date +%Y%m%d%H%M%S)][INFO][$HOSTNAME] Collecting cluster snapshot from namespaces: $NAMESPACES"
 
 if [ -z "${NAMESPACES}" ];
