@@ -23,6 +23,7 @@ This script automates the process of gathering the following logs:
 - Log file `/var/log/azure/deploy-script-dvm.log` (if deployed using Azure Stack's Kubernetes Cluster marketplace item)
 - Static manifests in directory `/etc/kubernetes/manifests`
 - Static addons in directory `/etc/kubernetes/addons`
+- Waagent logs
 - kube-system containers metadata and logs
 - kubelet status and journal
 - etcd status and journal
@@ -62,7 +63,7 @@ az account set --subscription <Subscription ID>
 # download the scripts.
 mkdir -p $HOME/kuberneteslogs
 cd $HOME/kuberneteslogs
-curl -L https://github.com/msazurestackworkloads/azurestack-gallery/releases/download/diagnosis-v1.0.0/diagnosis-v1.0.0.tar.gz -o diagnosis.tar.gz
+curl -L https://github.com/msazurestackworkloads/azurestack-gallery/releases/download/diagnosis-v1.1.0/diagnosis-v1.1.0.tar.gz -o diagnosis.tar.gz
 tar xvf diagnosis.tar.gz
 
 # use the script to collect logs

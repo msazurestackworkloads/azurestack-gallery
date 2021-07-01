@@ -111,6 +111,12 @@ uploadLogs()
 processHost()
 {
     host=$1
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Checking connectivity to host ${host}"
+    ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "exit"
+    if [ $? -ne 0 ]; then
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to host ${host}"
+        return
+    fi
 
     hostName=$(ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "hostname")
     hostName=$(echo ${hostName} | sed 's/[[:space:]]*$//')
@@ -138,6 +144,12 @@ processDvmHost()
 processWindowsHost()
 {
     host=$1
+    echo "[$(date +%Y%m%d%H%M%S)][INFO] Checking connectivity to host ${host}"
+    ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} "exit"
+    if [ $? -ne 0 ]; then
+        echo "[$(date +%Y%m%d%H%M%S)][ERR] Error connecting to host ${host}"
+        return
+    fi
 
     # It has to store the hostname in a file first to avoid whitespace from Windows cmd output.
     ssh ${SSH_FLAGS} -o ProxyCommand="${PROXY_CMD}" ${USER}@${host} 'powershell; $env:COMPUTERNAME > %HOMEPATH%\hostname.txt'

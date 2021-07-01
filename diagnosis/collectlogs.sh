@@ -202,6 +202,8 @@ if [ -d /var/log/kubeaudit ]; then
 fi
 
 sudo cp /var/log/waagent.log ${LOGDIRECTORY}/var/log/k8s-waagent.log || :
+mkdir -p ${LOGDIRECTORY}/var/lib
+cd /var/lib && sudo zip -q -r ${LOGDIRECTORY}/var/lib/waagent.zip waagent || :
 
 if [ -f /var/log/azure/deploy-script-dvm.log ]
 then
