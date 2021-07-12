@@ -5,7 +5,7 @@ In order to troubleshoot some AKS cluster issues, you may need to collect logs d
 
 The scripts in this directory aim to simplify the collection of relevant logs from your Kubernetes cluster. The script will automatically create a snapshot of the cluster, and connect to each node to collect logs. In addition, the script can, optionally, upload the collected logs to a storage account.
 
-This tool is mainly designed for the Microsoft support team to collect comprehensive cluster logs. For self-diagnosis purposes, please see [`az aks kollect`](https://docs.microsoft.com/en-us/cli/azure/aks?view=azure-cli-latest#az_aks_kollect) command and [aks-periscope](https://github.com/Azure/aks-periscope) application.
+This tool is mainly designed for the Microsoft support team to collect comprehensive cluster logs.
 
 ## Requirments
 - Make sure the Network Security Group (NSG) for master nodes has exposed SSH port 22.
