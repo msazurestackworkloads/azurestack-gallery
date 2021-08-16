@@ -1,6 +1,6 @@
-# Microsoft Azure Container Service Engine
+# Microsoft Azure Container Service Engine (Deprecated)
 
-The Azure Kubernetes Service Engine (aks-engine) generates ARM (Azure Resource Manager) templates for Docker enabled clusters on Microsoft Azure.
+The Azure Kubernetes Service Engine (aks-engine) generates ARM (Azure Resource Manager) templates for Docker enabled clusters on Microsoft Azure. Using the marketplace item to create cluster has been deprecated, please use AKS Engine directly. 
 
 ## How to Deploy a Kubernetes Cluster
 
