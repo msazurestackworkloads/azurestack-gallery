@@ -88,5 +88,4 @@ Get-ChildItem "$($ENV:TEMP)\waagent" | Foreach-Object {
 Write-Host "Compressing all logs to $zipName"
 $paths | Format-Table FullName, Length -AutoSize
 Compress-Archive -LiteralPath $paths -DestinationPath $zipName
-Remove-Item -Path $paths -ErrorAction SilentlyContinue
-Get-ChildItem $zipName # this puts a FileInfo on the pipeline so that another script can get it on the pipeline
+Remove-Item -Path $paths -Recurse -Confirm:$false -Force -ErrorAction SilentlyContinue

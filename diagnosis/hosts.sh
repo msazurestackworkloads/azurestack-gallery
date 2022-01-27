@@ -11,10 +11,10 @@ test -n "${NAMESPACES}" && NAMESPACES="kube-system${NAMESPACES}" && echo "[$(dat
 
 if [ -z "${NAMESPACES}" ];
 then
-    kubectl cluster-info dump --all-namespaces --output-directory ${LOGDIRECTORY} &> /dev/null
+    sudo kubectl cluster-info dump --all-namespaces --output-directory ${LOGDIRECTORY} --kubeconfig /etc/kubernetes/admin.conf &> /dev/null
 else
-    kubectl cluster-info dump --namespaces "${NAMESPACES}" --output-directory ${LOGDIRECTORY} &> /dev/null
+    sudo kubectl cluster-info dump --namespaces "${NAMESPACES}" --output-directory ${LOGDIRECTORY} --kubeconfig /etc/kubernetes/admin.conf &> /dev/null
 fi
 
-(cd $TMP && zip -q -r ~/${WD}.zip ${WD})
+(cd $TMP && sudo zip -q -r ~/${WD}.zip ${WD} && sudo chmod 777 ~/${WD}.zip)
 sudo rm -f -r $TMP

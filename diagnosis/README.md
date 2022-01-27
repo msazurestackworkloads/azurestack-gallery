@@ -63,7 +63,7 @@ az account set --subscription <Subscription ID>
 # download the scripts.
 mkdir -p $HOME/kuberneteslogs
 cd $HOME/kuberneteslogs
-curl -L https://github.com/msazurestackworkloads/azurestack-gallery/releases/download/diagnosis-v1.1.0/diagnosis-v1.1.0.tar.gz -o diagnosis.tar.gz
+curl -L https://github.com/msazurestackworkloads/azurestack-gallery/releases/download/diagnosis-v1.2.0/diagnosis-v1.2.0.tar.gz -o diagnosis.tar.gz
 tar xvf diagnosis.tar.gz
 
 # use the script to collect logs
