@@ -1,4 +1,4 @@
-$ProgressPreference = "SilentlyContinue"
+$global:ProgressPreference = "SilentlyContinue"
 
 $lockedFiles = "kubelet.err.log", "kubelet.log", "kubeproxy.log", "kubeproxy.err.log", "azure-vnet-telemetry.log", "azure-vnet.log", "network-interfaces.json", "interfaces.json", "azure-vnet-ipam.log", "windowsnodereset.log", "csi-proxy.log", "csi-proxy.err.log"
 
